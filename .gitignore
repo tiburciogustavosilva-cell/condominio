@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+backend/data/db.json
+*.log
+.DS_Store
+supabase/.temp
+supabase/.branches

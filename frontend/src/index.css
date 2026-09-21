@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ============================================================
+       RECOLORIR TUDO = mexer só nestes 3 tokens
+       ============================================================ */
+    --brand: 24 95% 53%;            /* laranja — CTA principal   */
+    --brand-support: 265 84% 62%;   /* roxo — apoio / destaque   */
+    --brand-foreground: 0 0% 100%;  /* texto sobre as cores acima */
+
+    /* ---- superfícies ---- */
+    --background: 30 33% 99%;
+    --foreground: 24 12% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 12% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 12% 12%;
+
+    /* ---- papéis semânticos (derivados da marca) ---- */
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
+    --secondary: var(--brand-support);
+    --secondary-foreground: var(--brand-foreground);
+
+    --muted: 24 16% 95%;
+    --muted-foreground: 24 8% 42%;
+    --accent: 265 60% 96%;
+    --accent-foreground: 265 55% 32%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 62% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 24 45% 14%;
+    --info: 214 84% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 24 16% 90%;
+    --input: 24 16% 87%;
+    --ring: var(--brand);
+
+    --radius: 0.75rem;
+
+    /* ---- sidebar ---- */
+    --sidebar-background: 24 33% 98%;
+    --sidebar-foreground: 24 10% 28%;
+    --sidebar-border: 24 16% 91%;
+    --sidebar-accent: var(--brand);
+    --sidebar-accent-foreground: var(--brand-foreground);
+
+    /* ---- sombras ---- */
+    --shadow-sm: 0 1px 2px 0 hsl(24 40% 20% / 0.05);
+    --shadow: 0 1px 3px 0 hsl(24 40% 20% / 0.1), 0 1px 2px -1px hsl(24 40% 20% / 0.1);
+    --shadow-md: 0 4px 10px -2px hsl(24 40% 20% / 0.12), 0 2px 4px -2px hsl(24 40% 20% / 0.08);
+    --shadow-lg: 0 16px 36px -10px hsl(24 40% 20% / 0.18);
+    --shadow-glow: 0 8px 30px -8px hsl(var(--brand) / 0.45);
+
+    /* ---- gradientes ---- */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand)), hsl(14 90% 55%));
+    --gradient-support: linear-gradient(135deg, hsl(var(--brand-support)), hsl(288 70% 60%));
+    --gradient-subtle: linear-gradient(180deg, hsl(30 33% 99%), hsl(24 22% 96%));
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100vh;
+    color-scheme: light;
+  }
+
+  h1, h2, h3, h4, h5 {
+    @apply font-heading font-bold tracking-tight;
+  }
+
+  ::selection {
+    background: hsl(var(--brand) / 0.25);
+  }
+}
+
+@layer components {
+  /* superfície base de "página" — usada no AdminLayout */
+  .app-surface {
+    background: var(--gradient-subtle);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
