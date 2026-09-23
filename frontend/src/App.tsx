@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { RequireAuth, RequireSindico } from '@/components/layout/guards';
 
 import Login from '@/pages/Login';
+import Cadastro from '@/pages/Cadastro';
 import Dashboard from '@/pages/Dashboard';
 import Chamados from '@/pages/Chamados';
 import NovoChamado from '@/pages/NovoChamado';
@@ -24,6 +25,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
 
           <Route element={<RequireAuth />}>
             <Route element={<AdminLayout />}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -98,6 +98,13 @@ export default function Login() {
                 Entrar
               </Button>
             </form>
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Ainda não tem uma conta?{' '}
+              <Link to="/cadastro" className="font-medium text-foreground underline underline-offset-2">
+                Cadastre-se
+              </Link>
+            </p>
 
             <div className="mt-5 rounded-md bg-muted p-3 text-xs text-muted-foreground">
               <p className="font-semibold text-foreground">Contas de teste</p>

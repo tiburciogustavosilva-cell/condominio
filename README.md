@@ -28,6 +28,12 @@ clonar isso em outra máquina, copie `frontend/.env.example` para
 | Síndico   | sindico@condominio.com  | admin123    |
 | Condômino | morador@condominio.com  | morador123  |
 
+O sistema é **multi-condomínio**: qualquer pessoa pode criar uma conta nova
+pela tela de login ("Cadastre-se", rota `/cadastro`), informando e-mail,
+senha e os dados do próprio condomínio (nome, endereço, CNPJ). Isso cria um
+condomínio novo, isolado dos demais por RLS, e a pessoa vira síndico dele.
+Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulo 9).
+
 ## Módulos
 
 | Módulo | Condômino | Síndico |
@@ -94,6 +100,12 @@ condominio-sistema/
 - **Dados**: Postgres do Supabase. Toda tabela tem RLS habilitado; nada é
   filtrado "na mão" no frontend — se uma linha não deveria aparecer para o
   usuário logado, a query já volta sem ela.
+- **Multi-condomínio**: toda tabela de negócio tem `condominio_id` (com
+  `default public.minha_condominio()`, então inserts do frontend não
+  precisam informar isso na mão) e as policies de RLS sempre filtram por
+  `condominio_id = minha_condominio()` — dados de um condomínio nunca
+  aparecem para outro. Cadastro de um condomínio novo acontece pela tela
+  `/cadastro` (`supabase.auth.signUp` + trigger `handle_new_user`).
 - **Padrão de módulo**: uma tabela (+ policies) em `supabase/migrations/` +
   um hook em `src/hooks/useX.ts` (mapeia snake_case do banco para o shape que
   as páginas já usam) + uma página em `src/pages/` + um item em
@@ -122,8 +134,9 @@ Detalhes, decisões e como resolver cada um em `docs/SUPABASE_MIGRATION.md`.
 ## Próximos passos sugeridos
 
 1. Implantar a Edge Function de lembretes de manutenção (`pg_cron` + e-mail).
-2. Edge Function `criar-morador` (ou fluxo de autocadastro) pra fechar o
-   módulo de Moradores sem precisar do Supabase Studio.
+2. Edge Function `criar-morador` pra convidar morador dentro do próprio
+   condomínio sem precisar do Supabase Studio (o autocadastro de síndico +
+   condomínio novo já existe, ver `/cadastro`).
 3. Upload de foto/anexo nos chamados e nas encomendas (Supabase Storage).
 4. Gerar `frontend/src/integrations/supabase/types.ts` de verdade (`supabase
    gen types`) e tipar `createClient<Database>` — hoje os hooks tipam as

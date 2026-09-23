@@ -5,6 +5,13 @@
 
 export type Papel = 'sindico' | 'condomino';
 
+export interface Condominio {
+  id: string;
+  nome: string;
+  endereco: string;
+  cnpj: string;
+}
+
 export interface Unidade {
   id: string;
   numero: string;

@@ -18,6 +18,7 @@ em `backend/` ficou **dormente** — nenhuma página do frontend chama mais
 | 6. Moradores: criar morador novo (login + senha) | ⬜ exige `service_role`, ver seção "O que ainda não dá pra fazer" |
 | 7. Apagar `backend/`, simplificar `npm run dev` | ✅ script simplificado; pasta `backend/` mantida no disco como referência |
 | 8. `ativos`, `ordens_servico` + módulo Manutenção Predial | ✅ Schema + RLS testados; espelha a planilha "Controle de Manutenções Prediais" (Cadastro, Plano de Manutenção, Registro de Serviços, Dashboard) + exportação `.xlsx` |
+| 9. Multi-condomínio + tela de Cadastro (`/cadastro`) | ✅ Schema + RLS + fluxo de signup testados ponta a ponta (ver seção abaixo) |
 
 Todo o schema, RLS e RPCs foram testados de ponta a ponta: login real dos
 dois papéis, CRUD de cada módulo, e tentativas deliberadas de burlar RLS
@@ -80,6 +81,50 @@ RPCs (`security definer`, bypassam RLS com checagem própria dentro):
 - `is_sindico()` / `minha_unidade()` — helpers usados dentro das policies.
 - `admin_atualizar_morador(...)` — síndico edita qualquer perfil sem precisar de `service_role`.
 - `dashboard_resumo()` — contadores do dashboard num round-trip só.
+
+## Módulo 9: multi-condomínio + tela de Cadastro
+
+O sistema deixou de ser single-tenant. Agora existe uma tabela `condominios`,
+e **toda** tabela de negócio (unidades, areas, chamados, avisos, reservas,
+encomendas, prestadores, manutencoes, manutencao_historico, ativos,
+ordens_servico, e `profiles`) tem uma coluna `condominio_id`. As RLS
+policies de cada tabela foram reescritas pra sempre incluir `condominio_id =
+minha_condominio()`, então um síndico/condômino de um condomínio nunca
+enxerga (nem consegue escrever em) linhas de outro — isso vale inclusive
+para a RPC `dashboard_resumo()`, que passou a filtrar cada subquery pelo
+condomínio de quem chamou.
+
+Como funciona o cadastro (tela `/cadastro`, `frontend/src/pages/Cadastro.tsx`):
+
+1. A pessoa preenche e-mail, senha, nome e os dados do condomínio (nome,
+   endereço, CNPJ opcional).
+2. O frontend chama `useAuth().cadastrar(dados)`
+   (`frontend/src/hooks/useAuth.tsx`), que é só um `supabase.auth.signUp()`
+   passando esses dados em `options.data` (metadata do usuário).
+3. O trigger `handle_new_user()` (roda em `auth.users` depois do insert) vê
+   que veio `condominio_nome` na metadata, cria a linha em `public.condominios`
+   e já cria o `profile` dessa pessoa como `papel = 'sindico'` apontando pro
+   `condominio_id` recém-criado. Se não vier `condominio_nome` (fluxo antigo,
+   ex.: síndico convidando morador por outro caminho), o profile é criado sem
+   condomínio associado — hoje isso não acontece pela UI, mas o trigger
+   sustenta os dois casos.
+4. Toda tabela de negócio tem `condominio_id` com `default
+   public.minha_condominio()` — então os hooks existentes (`useChamados`,
+   `useReservas`, etc.) não precisaram de nenhuma mudança pra inserts:
+   o Postgres já preenche o condomínio certo sozinho a partir de quem está
+   logado.
+5. Se a confirmação de e-mail estiver ligada no projeto (é o padrão), o
+   `signUp()` não devolve sessão — a tela mostra "confirme seu e-mail" em vez
+   de logar direto. Isso foi testado de ponta a ponta (signUp real via
+   `@supabase/supabase-js`, conferido no banco que `condominios` e `profiles`
+   ficaram corretos, e limpo depois).
+
+**Risco que foi verificado e corrigido antes de existir em produção:** a
+versão original (single-tenant) de `dashboard_resumo()` e de
+`admin_atualizar_morador()` teriam vazado dados entre condomínios diferentes
+(a primeira agregando contadores de todo mundo, a segunda deixando um síndico
+editar o perfil de alguém de outro condomínio). Ambas foram reescritas nas
+migrations de multi-condomínio antes de ir pro ar.
 
 ## Módulo 5 pendente: lembretes de manutenção por e-mail
 
