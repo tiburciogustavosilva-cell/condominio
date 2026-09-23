@@ -4,8 +4,8 @@ import { bottomNavItems } from './nav-items';
 import { NavLink } from './NavLink';
 
 export function BottomNav() {
-  const { isSindico } = useAuth();
-  const items = bottomNavItems.filter((l) => !l.sindico || isSindico);
+  const { isSindico, condominio } = useAuth();
+  const items = bottomNavItems.filter((l) => (!l.sindico || isSindico) && (!l.porteiro || condominio?.temPorteiro));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur lg:hidden">

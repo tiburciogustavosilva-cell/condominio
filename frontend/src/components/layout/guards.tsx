@@ -21,3 +21,19 @@ export function RequireSindico() {
   if (!isSindico) return <Navigate to="/" replace />;
   return <Outlet />;
 }
+
+/** Manda o síndico pra tela de perguntas iniciais antes de liberar o resto do sistema. */
+export function RequireOnboardingConcluido() {
+  const { isSindico, condominio } = useAuth();
+  if (isSindico && condominio && !condominio.onboardingConcluido) {
+    return <Navigate to="/perguntas-condominio" replace />;
+  }
+  return <Outlet />;
+}
+
+/** Só libera a rota se o condomínio tiver porteiro (ex.: módulo de Encomendas). */
+export function RequireComPorteiro() {
+  const { condominio } = useAuth();
+  if (condominio && !condominio.temPorteiro) return <Navigate to="/" replace />;
+  return <Outlet />;
+}

@@ -2,10 +2,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { RequireAuth, RequireSindico } from '@/components/layout/guards';
+import { RequireAuth, RequireComPorteiro, RequireOnboardingConcluido, RequireSindico } from '@/components/layout/guards';
 
 import Login from '@/pages/Login';
 import Cadastro from '@/pages/Cadastro';
+import PerguntasCondominio from '@/pages/PerguntasCondominio';
 import Dashboard from '@/pages/Dashboard';
 import Chamados from '@/pages/Chamados';
 import NovoChamado from '@/pages/NovoChamado';
@@ -26,23 +27,28 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/perguntas-condominio" element={<PerguntasCondominio />} />
 
           <Route element={<RequireAuth />}>
-            <Route element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="chamados" element={<Chamados />} />
-              <Route path="chamados/novo" element={<NovoChamado />} />
-              <Route path="chamados/:id" element={<ChamadoDetalhe />} />
-              <Route path="reservas" element={<Reservas />} />
-              <Route path="encomendas" element={<Encomendas />} />
-              <Route path="avisos" element={<Avisos />} />
-              <Route path="perfil" element={<Perfil />} />
+            <Route element={<RequireOnboardingConcluido />}>
+              <Route element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="chamados" element={<Chamados />} />
+                <Route path="chamados/novo" element={<NovoChamado />} />
+                <Route path="chamados/:id" element={<ChamadoDetalhe />} />
+                <Route path="reservas" element={<Reservas />} />
+                <Route element={<RequireComPorteiro />}>
+                  <Route path="encomendas" element={<Encomendas />} />
+                </Route>
+                <Route path="avisos" element={<Avisos />} />
+                <Route path="perfil" element={<Perfil />} />
 
-              <Route element={<RequireSindico />}>
-                <Route path="prestadores" element={<Prestadores />} />
-                <Route path="manutencao-predial" element={<ManutencaoPredial />} />
-                <Route path="moradores" element={<Moradores />} />
-                <Route path="unidades" element={<Unidades />} />
+                <Route element={<RequireSindico />}>
+                  <Route path="prestadores" element={<Prestadores />} />
+                  <Route path="manutencao-predial" element={<ManutencaoPredial />} />
+                  <Route path="moradores" element={<Moradores />} />
+                  <Route path="unidades" element={<Unidades />} />
+                </Route>
               </Route>
             </Route>
           </Route>

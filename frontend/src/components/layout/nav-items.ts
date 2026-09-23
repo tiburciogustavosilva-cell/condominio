@@ -17,13 +17,15 @@ export type NavItem = {
   icon: LucideIcon;
   end?: boolean;
   sindico?: boolean;
+  /** Só aparece se o condomínio tiver porteiro (ver /perguntas-condominio). */
+  porteiro?: boolean;
 };
 
 export const navItems: NavItem[] = [
   { to: '/', label: 'Painel', icon: LayoutDashboard, end: true },
   { to: '/chamados', label: 'Chamados', icon: Wrench },
   { to: '/reservas', label: 'Reservas', icon: CalendarRange },
-  { to: '/encomendas', label: 'Encomendas', icon: Package },
+  { to: '/encomendas', label: 'Encomendas', icon: Package, porteiro: true },
   { to: '/avisos', label: 'Avisos', icon: Megaphone },
   { to: '/prestadores', label: 'Prestadores', icon: HardHat, sindico: true },
   { to: '/manutencao-predial', label: 'Manutenção Predial', icon: ClipboardList, sindico: true },

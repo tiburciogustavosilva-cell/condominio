@@ -54,7 +54,7 @@ export default function Cadastro() {
         setEnviado({ email: form.email, precisaConfirmarEmail: true });
       } else {
         toast.success('Conta criada!');
-        navigate('/');
+        navigate('/perguntas-condominio');
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao criar a conta');
@@ -207,6 +207,15 @@ export default function Cadastro() {
                     Entrar
                   </Link>
                 </p>
+
+                <div className="mt-5 border-t border-border pt-4">
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link to="/perguntas-condominio">Ir para perguntas (teste)</Link>
+                  </Button>
+                  <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                    Atalho pra testar a tela de perguntas sem se cadastrar de novo.
+                  </p>
+                </div>
               </>
             )}
           </Card>

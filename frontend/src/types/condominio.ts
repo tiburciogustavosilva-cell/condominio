@@ -10,6 +10,20 @@ export interface Condominio {
   nome: string;
   endereco: string;
   cnpj: string;
+  temBlocos: boolean;
+  qtdBlocos: number | null;
+  temComercio: boolean;
+  qtdComercio: number | null;
+  temPorteiro: boolean;
+  onboardingConcluido: boolean;
+}
+
+export interface RespostasOnboarding {
+  temBlocos: boolean;
+  qtdBlocos: number | null;
+  temComercio: boolean;
+  qtdComercio: number | null;
+  temPorteiro: boolean;
 }
 
 export interface Unidade {
