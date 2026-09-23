@@ -124,6 +124,11 @@ export interface HistoricoManutencao {
   detalhe: string;
 }
 
+export type TipoManutencao = 'preventiva' | 'corretiva' | 'preditiva';
+export type PrioridadeManutencao = 'baixa' | 'media' | 'alta' | 'critica';
+export type StatusPlano = 'programada' | 'em_andamento' | 'concluida' | 'atrasada' | 'cancelada';
+export type Categoria = 'eletrica' | 'hidraulica' | 'elevadores' | 'incendio' | 'climatizacao' | 'civil' | 'outros';
+
 export interface Manutencao {
   id: string;
   prestadorId: string;
@@ -140,7 +145,53 @@ export interface Manutencao {
   prestadorEmail?: string;
   proximaManutencao?: string | null;
   diasParaProxima?: number | null;
+  /** Status calculado a partir do prazo (em_dia/proxima/vencida) — não confundir com statusManual. */
   status?: StatusManutencao;
+  // Campos do "Plano de Manutenção" (ver planilha modelo)
+  ativoId: string | null;
+  ativoNome?: string;
+  tipo: TipoManutencao;
+  prioridade: PrioridadeManutencao;
+  /** Status do fluxo de trabalho, definido manualmente pelo síndico. */
+  statusManual: StatusPlano;
+  custoPrevisto: number | null;
+  numeroOs: string | null;
+  criadoEm: string;
+}
+
+export interface Ativo {
+  id: string;
+  codigo: string;
+  nome: string;
+  categoria: Categoria;
+  localizacao: string;
+  fabricanteModelo: string;
+  numeroSerie: string;
+  dataInstalacao: string | null;
+  vidaUtilAnos: number | null;
+  responsavel: string;
+  observacoes: string;
+  criadoEm: string;
+}
+
+export interface OrdemServico {
+  id: string;
+  numeroOs: string | null;
+  dataAbertura: string;
+  dataExecucao: string | null;
+  ativoId: string | null;
+  ativoNome?: string;
+  tipo: TipoManutencao;
+  descricao: string;
+  diagnostico: string;
+  acaoExecutada: string;
+  responsavel: string;
+  prioridade: PrioridadeManutencao;
+  status: StatusPlano;
+  custoMaterial: number;
+  custoMaoDeObra: number;
+  custoTotal: number;
+  observacoes: string;
   criadoEm: string;
 }
 
@@ -174,5 +225,32 @@ export const LABEL = {
     semanal: 'Semanal',
     mensal: 'Mensal',
     anual: 'Anual'
+  } as Record<string, string>,
+  tipoManutencao: {
+    preventiva: 'Preventiva',
+    corretiva: 'Corretiva',
+    preditiva: 'Preditiva'
+  } as Record<string, string>,
+  prioridadeManutencao: {
+    baixa: 'Baixa',
+    media: 'Média',
+    alta: 'Alta',
+    critica: 'Crítica'
+  } as Record<string, string>,
+  statusPlano: {
+    programada: 'Programada',
+    em_andamento: 'Em andamento',
+    concluida: 'Concluída',
+    atrasada: 'Atrasada',
+    cancelada: 'Cancelada'
+  } as Record<string, string>,
+  categoria: {
+    eletrica: 'Elétrica',
+    hidraulica: 'Hidráulica',
+    elevadores: 'Elevadores',
+    incendio: 'Incêndio',
+    climatizacao: 'Climatização',
+    civil: 'Civil',
+    outros: 'Outros'
   } as Record<string, string>
 };

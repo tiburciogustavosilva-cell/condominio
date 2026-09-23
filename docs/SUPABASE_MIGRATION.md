@@ -17,6 +17,7 @@ em `backend/` ficou **dormente** — nenhuma página do frontend chama mais
 | 5. `prestadores`, `manutencoes` (+ histórico) | ✅ CRUD completo. Envio automático de e-mail: ⬜ (Edge Function não implantada, ver módulo 5 abaixo) |
 | 6. Moradores: criar morador novo (login + senha) | ⬜ exige `service_role`, ver seção "O que ainda não dá pra fazer" |
 | 7. Apagar `backend/`, simplificar `npm run dev` | ✅ script simplificado; pasta `backend/` mantida no disco como referência |
+| 8. `ativos`, `ordens_servico` + módulo Manutenção Predial | ✅ Schema + RLS testados; espelha a planilha "Controle de Manutenções Prediais" (Cadastro, Plano de Manutenção, Registro de Serviços, Dashboard) + exportação `.xlsx` |
 
 Todo o schema, RLS e RPCs foram testados de ponta a ponta: login real dos
 dois papéis, CRUD de cada módulo, e tentativas deliberadas de burlar RLS
@@ -62,6 +63,18 @@ gen_random_uuid()` e FKs de usuário apontando pra `profiles` (não pra
 | `reservas` | síndico vê tudo, condômino só as próprias; condômino só cancela (e só se `pendente`); síndico decide livremente |
 | `encomendas` | síndico cria/remove; condômino da unidade só confirma retirada |
 | `prestadores`, `manutencoes`, `manutencao_historico` | módulo inteiro restrito a síndico |
+| `ativos` | cadastro de equipamentos/áreas (Manutenção Predial); restrito a síndico |
+| `ordens_servico` | registro de serviços/OS, `custo_total` é coluna gerada (`custo_material + custo_mao_obra`); restrito a síndico |
+
+`manutencoes` ganhou colunas extra no módulo 8 pra virar o "Plano de
+Manutenção" da planilha: `ativo_id` (FK pra `ativos`, opcional), `tipo`
+(preventiva/corretiva/preditiva), `prioridade` (baixa/media/alta/critica),
+`status_manual` (programada/em_andamento/concluida/atrasada/cancelada —
+**diferente** do status calculado em_dia/proxima/vencida, que continua vindo
+do prazo via `recorrencia.ts`), `custo_previsto`, `numero_os`. Repare também
+que a tabela já tinha uma coluna `ativo` (boolean, liga/desliga lembrete) —
+`ativo_id` é outra coisa (o equipamento/área vinculado), nomes parecidos de
+propósito, não confundir ao ler o schema.
 
 RPCs (`security definer`, bypassam RLS com checagem própria dentro):
 - `is_sindico()` / `minha_unidade()` — helpers usados dentro das policies.

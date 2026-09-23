@@ -5,6 +5,7 @@ import {
   Package,
   Megaphone,
   HardHat,
+  ClipboardList,
   Users,
   Building2,
   type LucideIcon
@@ -25,6 +26,7 @@ export const navItems: NavItem[] = [
   { to: '/encomendas', label: 'Encomendas', icon: Package },
   { to: '/avisos', label: 'Avisos', icon: Megaphone },
   { to: '/prestadores', label: 'Prestadores', icon: HardHat, sindico: true },
+  { to: '/manutencao-predial', label: 'Manutenção Predial', icon: ClipboardList, sindico: true },
   { to: '/moradores', label: 'Moradores', icon: Users, sindico: true },
   { to: '/unidades', label: 'Unidades', icon: Building2, sindico: true }
 ];

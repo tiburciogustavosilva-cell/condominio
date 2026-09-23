@@ -13,6 +13,7 @@ import Reservas from '@/pages/Reservas';
 import Encomendas from '@/pages/Encomendas';
 import Avisos from '@/pages/Avisos';
 import Prestadores from '@/pages/Prestadores';
+import ManutencaoPredial from '@/pages/ManutencaoPredial';
 import Moradores from '@/pages/Moradores';
 import Unidades from '@/pages/Unidades';
 import Perfil from '@/pages/Perfil';
@@ -37,6 +38,7 @@ export default function App() {
 
               <Route element={<RequireSindico />}>
                 <Route path="prestadores" element={<Prestadores />} />
+                <Route path="manutencao-predial" element={<ManutencaoPredial />} />
                 <Route path="moradores" element={<Moradores />} />
                 <Route path="unidades" element={<Unidades />} />
               </Route>

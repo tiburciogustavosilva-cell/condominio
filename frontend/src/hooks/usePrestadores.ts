@@ -56,7 +56,7 @@ export function usePrestadores() {
 }
 
 const SELECT_MANUT =
-  '*, prestadores ( nome, email ), manutencao_historico ( tipo, data, em, detalhe )';
+  '*, prestadores ( nome, email ), ativos ( nome ), manutencao_historico ( tipo, data, em, detalhe )';
 
 function mapManutencao(row: any): Manutencao {
   const { proxima, dias, status } = statusManutencao(
@@ -86,6 +86,13 @@ function mapManutencao(row: any): Manutencao {
     proximaManutencao: proxima,
     diasParaProxima: dias,
     status,
+    ativoId: row.ativo_id,
+    ativoNome: row.ativos?.nome ?? '',
+    tipo: row.tipo,
+    prioridade: row.prioridade,
+    statusManual: row.status_manual,
+    custoPrevisto: row.custo_previsto === null ? null : Number(row.custo_previsto),
+    numeroOs: row.numero_os,
     criadoEm: row.criado_em
   };
 }
@@ -113,27 +120,40 @@ export function useManutencoes() {
     recarregar,
     criar: async (dados: {
       prestadorId: string;
+      ativoId?: string;
       titulo: string;
       descricao: string;
       ultimaManutencao: string;
       frequenciaUnidade: string;
       frequenciaIntervalo: number;
       diasAntecedencia: number;
+      tipo?: string;
+      prioridade?: string;
+      statusManual?: string;
+      custoPrevisto?: string | number;
+      numeroOs?: string;
     }) => {
       const { error } = await supabase.from('manutencoes').insert({
         prestador_id: dados.prestadorId,
+        ativo_id: dados.ativoId || null,
         titulo: dados.titulo,
         descricao: dados.descricao,
         ultima_manutencao: dados.ultimaManutencao,
         frequencia_unidade: dados.frequenciaUnidade,
         frequencia_intervalo: dados.frequenciaIntervalo,
-        dias_antecedencia: dados.diasAntecedencia
+        dias_antecedencia: dados.diasAntecedencia,
+        tipo: dados.tipo || 'preventiva',
+        prioridade: dados.prioridade || 'media',
+        status_manual: dados.statusManual || 'programada',
+        custo_previsto: dados.custoPrevisto ? Number(dados.custoPrevisto) : null,
+        numero_os: dados.numeroOs || null
       });
       if (error) throw new Error(error.message);
     },
-    atualizar: async (id: string, dados: Record<string, unknown>) => {
+    atualizar: async (id: string, dados: Record<string, any>) => {
       const payload: Record<string, unknown> = {};
       if (dados.prestadorId !== undefined) payload.prestador_id = dados.prestadorId;
+      if (dados.ativoId !== undefined) payload.ativo_id = dados.ativoId || null;
       if (dados.titulo !== undefined) payload.titulo = dados.titulo;
       if (dados.descricao !== undefined) payload.descricao = dados.descricao;
       if (dados.ultimaManutencao !== undefined) payload.ultima_manutencao = dados.ultimaManutencao;
@@ -141,6 +161,11 @@ export function useManutencoes() {
       if (dados.frequenciaIntervalo !== undefined) payload.frequencia_intervalo = dados.frequenciaIntervalo;
       if (dados.diasAntecedencia !== undefined) payload.dias_antecedencia = dados.diasAntecedencia;
       if (dados.ativo !== undefined) payload.ativo = dados.ativo;
+      if (dados.tipo !== undefined) payload.tipo = dados.tipo;
+      if (dados.prioridade !== undefined) payload.prioridade = dados.prioridade;
+      if (dados.statusManual !== undefined) payload.status_manual = dados.statusManual;
+      if (dados.custoPrevisto !== undefined) payload.custo_previsto = dados.custoPrevisto ? Number(dados.custoPrevisto) : null;
+      if (dados.numeroOs !== undefined) payload.numero_os = dados.numeroOs || null;
       const { error } = await supabase.from('manutencoes').update(payload).eq('id', id);
       if (error) throw new Error(error.message);
     },

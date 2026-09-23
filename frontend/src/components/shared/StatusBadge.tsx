@@ -20,16 +20,21 @@ const STATUS_MAP: Record<string, Entry> = {
   // encomendas
   aguardando: { label: 'Aguardando retirada', variant: 'info' },
   entregue: { label: 'Entregue', variant: 'success' },
-  // manutenções
+  // manutenções (prazo, calculado)
   em_dia: { label: 'Em dia', variant: 'success' },
   proxima: { label: 'Próxima', variant: 'warning' },
-  vencida: { label: 'Vencida', variant: 'destructive' }
+  vencida: { label: 'Vencida', variant: 'destructive' },
+  // manutenção predial (status manual do plano/ordem de serviço)
+  programada: { label: 'Programada', variant: 'info' },
+  concluida: { label: 'Concluída', variant: 'success' },
+  atrasada: { label: 'Atrasada', variant: 'destructive' }
 };
 
 const PRIORIDADE_MAP: Record<string, Entry> = {
   baixa: { label: 'Baixa', variant: 'muted' },
   media: { label: 'Média', variant: 'warning' },
-  alta: { label: 'Alta', variant: 'destructive' }
+  alta: { label: 'Alta', variant: 'destructive' },
+  critica: { label: 'Crítica', variant: 'destructive' }
 };
 
 function fallback(value: string): Entry {

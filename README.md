@@ -37,7 +37,8 @@ clonar isso em outra máquina, copie `frontend/.env.example` para
 | **Reservas** | Solicita áreas comuns (salão, churrasqueira, quadra); só cancela enquanto pendente | Aprova / rejeita / cancela qualquer uma |
 | **Encomendas** | Vê o que chegou para a unidade e confirma retirada | Registra recebimento na portaria |
 | **Avisos** | Lê o mural | Publica, fixa no topo, remove |
-| **Prestadores** | — | Cadastra prestadores e a agenda de manutenções recorrentes (status calculado no cliente; envio automático de e-mail ainda pendente — ver `docs/`) |
+| **Prestadores** | — | Cadastro de quem executa serviço (nome, e-mail, contato) |
+| **Manutenção Predial** | — | Cadastro de equipamentos/áreas, plano de manutenção (tipo/prioridade/custo/status), registro de ordens de serviço, dashboard próprio e exportação para `.xlsx` — espelha a planilha de controle predial |
 | **Moradores** | — | Edita dados/papel/unidade e remove — **criar morador novo ainda não** (exige `service_role`, ver `docs/SUPABASE_MIGRATION.md`) |
 | **Unidades** | — | CRUD de unidades |
 | **Perfil** | Edita dados e troca a senha | idem |
@@ -55,10 +56,13 @@ condominio-sistema/
     src/hooks/           1 hook por domínio de dado — busca + cache em useState
                         + mutações via supabase-js: useAuth (Provider + sessão),
                         useChamados, useAvisos, useReservas, useEncomendas,
-                        useMoradores, useUnidades, usePrestadores, useDashboard,
-                        usePerfil
+                        useMoradores, useUnidades, usePrestadores, useAtivos,
+                        useOrdensServico, useDashboard, usePerfil
     src/types/condominio.ts  types + enums + labels (LABEL) compartilhados
     src/lib/recorrencia.ts   cálculo de "próxima manutenção"/status (cliente)
+    src/lib/exportarRelatorio.ts  gera o .xlsx de Manutenção Predial (import
+                                 dinâmico do pacote `xlsx`, só ao clicar em
+                                 "Baixar relatório" — não entra no bundle inicial)
     src/lib/format.ts   funções puras de formatação (moeda, datas…)
     src/components/ui/       primitivos shadcn (button, card, badge, dialog…)
     src/components/layout/   AdminLayout, AppSidebar, BottomNav, NavLink, guards
