@@ -20,6 +20,7 @@ em `backend/` ficou **dormente** — nenhuma página do frontend chama mais
 | 8. `ativos`, `ordens_servico` + módulo Manutenção Predial | ✅ Schema + RLS testados; espelha a planilha "Controle de Manutenções Prediais" (Cadastro, Plano de Manutenção, Registro de Serviços, Dashboard) + exportação `.xlsx` |
 | 9. Multi-condomínio + tela de Cadastro (`/cadastro`) | ✅ Schema + RLS + fluxo de signup testados ponta a ponta (ver seção abaixo) |
 | 10. Administradoras (gerem vários condomínios) + `/meus-condominios` | ✅ Schema + RPCs testados ponta a ponta (ver seção abaixo) |
+| 11. Livro de Ocorrência (`ocorrencias`) | ✅ Schema + RLS testados ponta a ponta (ver seção abaixo) |
 
 Todo o schema, RLS e RPCs foram testados de ponta a ponta: login real dos
 dois papéis, CRUD de cada módulo, e tentativas deliberadas de burlar RLS
@@ -195,6 +196,21 @@ condomínio da própria administradora; RLS confirmando que a administradora
 só enxerga os próprios condomínios e que um síndico comum é bloqueado nas
 duas RPCs; `is_sindico()` confirmando que a administradora consegue
 escrever (testado com insert em `avisos`) no condomínio ativo.
+
+## Módulo 11: Livro de Ocorrência
+
+Aba nova (`/ocorrencias`, tabela `ocorrencias`) onde o condômino registra
+reclamações/ocorridos (barulho, segurança, convivência, dano/estrutura,
+outro). Schema e RLS espelham `chamados` exatamente — condômino vê e cria
+só as próprias, síndico vê todas do condomínio e é o único que muda o
+status (`aberto`/`em_andamento`/`concluido`, os mesmos valores de chamados,
+por isso os badges de status já saem com o texto certo sem precisar de
+nenhum mapa novo). Diferente de chamados, não tem prioridade nem
+comentários — é um registro mais simples, sem fluxo de atendimento.
+
+Testado ponta a ponta: condômino cria uma ocorrência e não consegue mudar o
+próprio status (RLS bloqueia); síndico enxerga a ocorrência do condômino e
+consegue mudar o status.
 
 ## Módulo 5 pendente: lembretes de manutenção por e-mail
 

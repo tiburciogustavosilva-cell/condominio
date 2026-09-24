@@ -22,6 +22,7 @@ import ChamadoDetalhe from '@/pages/ChamadoDetalhe';
 import Reservas from '@/pages/Reservas';
 import Encomendas from '@/pages/Encomendas';
 import Avisos from '@/pages/Avisos';
+import Ocorrencias from '@/pages/Ocorrencias';
 import Prestadores from '@/pages/Prestadores';
 import ManutencaoPredial from '@/pages/ManutencaoPredial';
 import Moradores from '@/pages/Moradores';
@@ -54,6 +55,7 @@ export default function App() {
                     <Route path="encomendas" element={<Encomendas />} />
                   </Route>
                   <Route path="avisos" element={<Avisos />} />
+                  <Route path="ocorrencias" element={<Ocorrencias />} />
                   <Route path="perfil" element={<Perfil />} />
 
                   <Route element={<RequireSindico />}>

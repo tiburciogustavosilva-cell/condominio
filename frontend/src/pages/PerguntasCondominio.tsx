@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, Check, Loader2, X } from 'lucide-react';
+import { Building2, Check, Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +15,7 @@ type Etapa = 'blocos' | 'qtd_blocos' | 'comercio' | 'qtd_comercio' | 'areas' | '
 
 const ORDEM: Etapa[] = ['blocos', 'qtd_blocos', 'comercio', 'qtd_comercio', 'areas', 'areas_opcoes', 'porteiro'];
 
-type OpcaoArea = 'salao' | 'churrasqueira' | 'outro';
+type OpcaoArea = 'salao' | 'churrasqueira';
 
 type Respostas = {
   temBlocos: boolean | null;
@@ -24,7 +24,8 @@ type Respostas = {
   qtdComercio: string;
   temAreasReserva: boolean | null;
   areasEscolhidas: Record<OpcaoArea, boolean>;
-  areaOutroTexto: string;
+  /** Áreas extras digitadas pela pessoa (botão "Adicionar" — pode ter mais de uma). */
+  areasPersonalizadas: string[];
   temPorteiro: boolean | null;
 };
 
@@ -34,8 +35,8 @@ const VAZIO: Respostas = {
   temComercio: null,
   qtdComercio: '',
   temAreasReserva: null,
-  areasEscolhidas: { salao: false, churrasqueira: false, outro: false },
-  areaOutroTexto: '',
+  areasEscolhidas: { salao: false, churrasqueira: false },
+  areasPersonalizadas: [],
   temPorteiro: null
 };
 
@@ -100,8 +101,10 @@ export default function PerguntasCondominio() {
         const novasAreas: string[] = [];
         if (respostasFinais.areasEscolhidas.salao) novasAreas.push('Salão de festas');
         if (respostasFinais.areasEscolhidas.churrasqueira) novasAreas.push('Churrasqueira');
-        const outro = respostasFinais.areaOutroTexto.trim();
-        if (respostasFinais.areasEscolhidas.outro && outro) novasAreas.push(outro);
+        for (const nome of respostasFinais.areasPersonalizadas) {
+          const limpo = nome.trim();
+          if (limpo) novasAreas.push(limpo);
+        }
         if (novasAreas.length > 0) {
           const { error: erroAreas } = await supabase
             .from('areas')
@@ -149,14 +152,26 @@ export default function PerguntasCondominio() {
     setRespostas((r) => ({ ...r, areasEscolhidas: { ...r.areasEscolhidas, [opcao]: !r.areasEscolhidas[opcao] } }));
   }
 
+  function adicionarAreaPersonalizada() {
+    setRespostas((r) => ({ ...r, areasPersonalizadas: [...r.areasPersonalizadas, ''] }));
+  }
+
+  function atualizarAreaPersonalizada(indice: number, valor: string) {
+    setRespostas((r) => ({
+      ...r,
+      areasPersonalizadas: r.areasPersonalizadas.map((v, i) => (i === indice ? valor : v))
+    }));
+  }
+
+  function removerAreaPersonalizada(indice: number) {
+    setRespostas((r) => ({ ...r, areasPersonalizadas: r.areasPersonalizadas.filter((_, i) => i !== indice) }));
+  }
+
   function confirmarAreasOpcoes() {
-    const { salao, churrasqueira, outro } = respostas.areasEscolhidas;
-    if (!salao && !churrasqueira && !outro) {
-      toast.error('Selecione pelo menos uma opção');
-      return;
-    }
-    if (outro && !respostas.areaOutroTexto.trim()) {
-      toast.error('Diga o nome da área em "Outro"');
+    const { salao, churrasqueira } = respostas.areasEscolhidas;
+    const temPersonalizada = respostas.areasPersonalizadas.some((v) => v.trim());
+    if (!salao && !churrasqueira && !temPersonalizada) {
+      toast.error('Selecione ou adicione pelo menos uma área');
       return;
     }
     const proxima = proximaEtapa(etapa, respostas);
@@ -257,8 +272,10 @@ export default function PerguntasCondominio() {
                 subtitulo="Pode marcar mais de uma."
                 escolhidas={respostas.areasEscolhidas}
                 onAlternar={alternarAreaEscolhida}
-                outroTexto={respostas.areaOutroTexto}
-                onOutroTextoChange={(v) => setRespostas((r) => ({ ...r, areaOutroTexto: v }))}
+                personalizadas={respostas.areasPersonalizadas}
+                onAdicionarPersonalizada={adicionarAreaPersonalizada}
+                onAtualizarPersonalizada={atualizarAreaPersonalizada}
+                onRemoverPersonalizada={removerAreaPersonalizada}
                 onConfirmar={confirmarAreasOpcoes}
               />
             )}
@@ -373,8 +390,7 @@ function PerguntaQuantidade({
 
 const OPCOES_AREA: { opcao: OpcaoArea; label: string }[] = [
   { opcao: 'salao', label: 'Salão de festas' },
-  { opcao: 'churrasqueira', label: 'Churrasqueira' },
-  { opcao: 'outro', label: 'Outro' }
+  { opcao: 'churrasqueira', label: 'Churrasqueira' }
 ];
 
 function PerguntaMultiEscolha({
@@ -382,16 +398,20 @@ function PerguntaMultiEscolha({
   subtitulo,
   escolhidas,
   onAlternar,
-  outroTexto,
-  onOutroTextoChange,
+  personalizadas,
+  onAdicionarPersonalizada,
+  onAtualizarPersonalizada,
+  onRemoverPersonalizada,
   onConfirmar
 }: {
   titulo: string;
   subtitulo?: string;
   escolhidas: Record<OpcaoArea, boolean>;
   onAlternar: (opcao: OpcaoArea) => void;
-  outroTexto: string;
-  onOutroTextoChange: (valor: string) => void;
+  personalizadas: string[];
+  onAdicionarPersonalizada: () => void;
+  onAtualizarPersonalizada: (indice: number, valor: string) => void;
+  onRemoverPersonalizada: (indice: number) => void;
   onConfirmar: () => void;
 }) {
   return (
@@ -439,14 +459,33 @@ function PerguntaMultiEscolha({
           );
         })}
 
-        {escolhidas.outro && (
-          <Input
-            autoFocus
-            placeholder="Digite o nome da área"
-            value={outroTexto}
-            onChange={(e) => onOutroTextoChange(e.target.value)}
-          />
-        )}
+        {personalizadas.map((valor, indice) => (
+          <div key={indice} className="flex items-center gap-2">
+            <Input
+              autoFocus
+              placeholder="Digite o nome da área"
+              value={valor}
+              onChange={(e) => onAtualizarPersonalizada(indice, e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => onRemoverPersonalizada(indice)}
+              aria-label="Remover área"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={onAdicionarPersonalizada}
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-input px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <Plus className="h-4 w-4" />
+          Adicionar
+        </button>
       </div>
 
       <Button type="submit" variant="brand" size="lg" className="w-full">

@@ -87,6 +87,20 @@ export interface Chamado {
   atualizadoEm: string;
 }
 
+export interface Ocorrencia {
+  id: string;
+  titulo: string;
+  descricao: string;
+  categoria: string;
+  status: StatusChamado;
+  usuarioId: string;
+  unidadeId: string | null;
+  autorNome?: string;
+  unidadeLabel?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export interface Aviso {
   id: string;
   titulo: string;
@@ -281,5 +295,12 @@ export const LABEL = {
     climatizacao: 'Climatização',
     civil: 'Civil',
     outros: 'Outros'
+  } as Record<string, string>,
+  categoriaOcorrencia: {
+    barulho: 'Barulho',
+    seguranca: 'Segurança',
+    convivencia: 'Convivência',
+    dano: 'Dano/Estrutura',
+    outro: 'Outro'
   } as Record<string, string>
 };

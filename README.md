@@ -45,6 +45,7 @@ dos demais por RLS. Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulos 9 e 10).
 | **Reservas** | Solicita áreas comuns (salão, churrasqueira, quadra); só cancela enquanto pendente | Aprova / rejeita / cancela qualquer uma |
 | **Encomendas** | Vê o que chegou para a unidade e confirma retirada | Registra recebimento na portaria |
 | **Avisos** | Lê o mural | Publica, fixa no topo, remove |
+| **Livro de Ocorrência** | Registra reclamações/ocorridos (barulho, segurança, convivência…) e acompanha os próprios | Vê todos, muda status |
 | **Prestadores** | — | Cadastro de quem executa serviço (nome, e-mail, contato) |
 | **Manutenção Predial** | — | Cadastro de equipamentos/áreas, plano de manutenção (tipo/prioridade/custo/status), registro de ordens de serviço, dashboard próprio e exportação para `.xlsx` — espelha a planilha de controle predial |
 | **Moradores** | — | Edita dados/papel/unidade e remove — **criar morador novo ainda não** (exige `service_role`, ver `docs/SUPABASE_MIGRATION.md`) |
