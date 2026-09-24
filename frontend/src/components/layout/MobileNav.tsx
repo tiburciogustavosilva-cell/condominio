@@ -12,8 +12,13 @@ type Props = {
 };
 
 export function MobileNav({ open, onClose }: Props) {
-  const { isSindico } = useAuth();
-  const links = navItems.filter((l) => !l.sindico || isSindico);
+  const { isSindico, condominio } = useAuth();
+  const links = navItems.filter(
+    (l) =>
+      (!l.sindico || isSindico) &&
+      (!l.porteiro || condominio?.temPorteiro) &&
+      (!l.areasReserva || condominio?.temAreasReserva)
+  );
 
   return (
     <AnimatePresence>

@@ -3,7 +3,13 @@
  * Espelha as tabelas do Supabase (ver supabase/migrations/). IDs são uuid (string).
  */
 
-export type Papel = 'sindico' | 'condomino';
+export type Papel = 'sindico' | 'condomino' | 'administradora';
+
+export interface Administradora {
+  id: string;
+  nome: string;
+  cnpj: string;
+}
 
 export interface Condominio {
   id: string;
@@ -237,7 +243,7 @@ export interface DashboardResumo {
 }
 
 export const LABEL = {
-  papel: { sindico: 'Síndico', condomino: 'Condômino' } as Record<string, string>,
+  papel: { sindico: 'Síndico', condomino: 'Condômino', administradora: 'Administradora' } as Record<string, string>,
   periodo: {
     manha: 'Manhã',
     tarde: 'Tarde',

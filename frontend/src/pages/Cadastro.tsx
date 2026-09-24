@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, CheckCircle2, Loader2 } from 'lucide-react';
+import { Briefcase, Building2, CheckCircle2, Loader2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+import { useAuth, type DadosCadastro } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/shared/Field';
 
 const VAZIO = {
+  tipo: 'sindico' as DadosCadastro['tipo'],
   nome: '',
   email: '',
   senha: '',
   confirmarSenha: '',
   condominioNome: '',
   condominioEndereco: '',
-  condominioCnpj: ''
+  condominioCnpj: '',
+  administradoraNome: '',
+  administradoraCnpj: ''
 };
 
 export default function Cadastro() {
@@ -43,18 +47,21 @@ export default function Cadastro() {
     setLoading(true);
     try {
       const { precisaConfirmarEmail } = await cadastrar({
+        tipo: form.tipo,
         email: form.email,
         senha: form.senha,
         nome: form.nome,
         condominioNome: form.condominioNome,
         condominioEndereco: form.condominioEndereco,
-        condominioCnpj: form.condominioCnpj
+        condominioCnpj: form.condominioCnpj,
+        administradoraNome: form.administradoraNome,
+        administradoraCnpj: form.administradoraCnpj
       });
       if (precisaConfirmarEmail) {
         setEnviado({ email: form.email, precisaConfirmarEmail: true });
       } else {
         toast.success('Conta criada!');
-        navigate('/perguntas-condominio');
+        navigate(form.tipo === 'administradora' ? '/meus-condominios' : '/perguntas-condominio');
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao criar a conta');
@@ -78,8 +85,8 @@ export default function Cadastro() {
             Cadastre seu condomínio e comece agora.
           </h1>
           <p className="max-w-md text-primary-foreground/85">
-            Você vira o síndico do seu prédio no sistema — os dados do seu condomínio ficam
-            separados de qualquer outro que use a plataforma.
+            Síndico de um prédio só ou administradora de vários — os dados de cada
+            condomínio ficam sempre separados dos demais.
           </p>
         </div>
         <p className="text-sm text-primary-foreground/70">© {new Date().getFullYear()} Condomínio</p>
@@ -123,9 +130,38 @@ export default function Cadastro() {
               <>
                 <div className="mb-5 space-y-1">
                   <h2 className="font-heading text-xl font-extrabold">Cadastre-se</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Crie sua conta de síndico e o cadastro do seu condomínio.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Como você vai usar o sistema?</p>
+                </div>
+
+                <div className="mb-5 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => set('tipo', 'sindico')}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-lg border px-3 py-4 text-sm font-medium transition-colors',
+                      form.tipo === 'sindico'
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <UserRound className="h-5 w-5" />
+                    Sou síndico
+                    <span className="text-xs font-normal text-muted-foreground">1 condomínio</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => set('tipo', 'administradora')}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-lg border px-3 py-4 text-sm font-medium transition-colors',
+                      form.tipo === 'administradora'
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <Briefcase className="h-5 w-5" />
+                    Sou administradora
+                    <span className="text-xs font-normal text-muted-foreground">vários condomínios</span>
+                  </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -164,36 +200,65 @@ export default function Cadastro() {
                     />
                   </Field>
 
-                  <div className="border-t border-border pt-4">
-                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Dados do condomínio
-                    </p>
-                    <div className="space-y-4">
-                      <Field label="Nome do condomínio" htmlFor="condominioNome">
-                        <Input
-                          id="condominioNome"
-                          placeholder="Ex.: Residencial Jardim das Palmeiras"
-                          value={form.condominioNome}
-                          onChange={(e) => set('condominioNome', e.target.value)}
-                          required
-                        />
-                      </Field>
-                      <Field label="Endereço" htmlFor="condominioEndereco">
-                        <Input
-                          id="condominioEndereco"
-                          value={form.condominioEndereco}
-                          onChange={(e) => set('condominioEndereco', e.target.value)}
-                        />
-                      </Field>
-                      <Field label="CNPJ (opcional)" htmlFor="condominioCnpj">
-                        <Input
-                          id="condominioCnpj"
-                          value={form.condominioCnpj}
-                          onChange={(e) => set('condominioCnpj', e.target.value)}
-                        />
-                      </Field>
+                  {form.tipo === 'sindico' ? (
+                    <div className="border-t border-border pt-4">
+                      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Dados do condomínio
+                      </p>
+                      <div className="space-y-4">
+                        <Field label="Nome do condomínio" htmlFor="condominioNome">
+                          <Input
+                            id="condominioNome"
+                            placeholder="Ex.: Residencial Jardim das Palmeiras"
+                            value={form.condominioNome}
+                            onChange={(e) => set('condominioNome', e.target.value)}
+                            required
+                          />
+                        </Field>
+                        <Field label="Endereço" htmlFor="condominioEndereco">
+                          <Input
+                            id="condominioEndereco"
+                            value={form.condominioEndereco}
+                            onChange={(e) => set('condominioEndereco', e.target.value)}
+                          />
+                        </Field>
+                        <Field label="CNPJ (opcional)" htmlFor="condominioCnpj">
+                          <Input
+                            id="condominioCnpj"
+                            value={form.condominioCnpj}
+                            onChange={(e) => set('condominioCnpj', e.target.value)}
+                          />
+                        </Field>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="border-t border-border pt-4">
+                      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Dados da administradora
+                      </p>
+                      <div className="space-y-4">
+                        <Field label="Nome da administradora" htmlFor="administradoraNome">
+                          <Input
+                            id="administradoraNome"
+                            placeholder="Ex.: Gestão Predial Ltda"
+                            value={form.administradoraNome}
+                            onChange={(e) => set('administradoraNome', e.target.value)}
+                            required
+                          />
+                        </Field>
+                        <Field label="CNPJ (opcional)" htmlFor="administradoraCnpj">
+                          <Input
+                            id="administradoraCnpj"
+                            value={form.administradoraCnpj}
+                            onChange={(e) => set('administradoraCnpj', e.target.value)}
+                          />
+                        </Field>
+                        <p className="text-xs text-muted-foreground">
+                          Você cadastra os condomínios que administra depois de entrar.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <Button type="submit" variant="brand" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}

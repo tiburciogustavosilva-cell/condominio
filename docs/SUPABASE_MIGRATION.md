@@ -19,6 +19,7 @@ em `backend/` ficou **dormente** — nenhuma página do frontend chama mais
 | 7. Apagar `backend/`, simplificar `npm run dev` | ✅ script simplificado; pasta `backend/` mantida no disco como referência |
 | 8. `ativos`, `ordens_servico` + módulo Manutenção Predial | ✅ Schema + RLS testados; espelha a planilha "Controle de Manutenções Prediais" (Cadastro, Plano de Manutenção, Registro de Serviços, Dashboard) + exportação `.xlsx` |
 | 9. Multi-condomínio + tela de Cadastro (`/cadastro`) | ✅ Schema + RLS + fluxo de signup testados ponta a ponta (ver seção abaixo) |
+| 10. Administradoras (gerem vários condomínios) + `/meus-condominios` | ✅ Schema + RPCs testados ponta a ponta (ver seção abaixo) |
 
 Todo o schema, RLS e RPCs foram testados de ponta a ponta: login real dos
 dois papéis, CRUD de cada módulo, e tentativas deliberadas de burlar RLS
@@ -125,6 +126,75 @@ versão original (single-tenant) de `dashboard_resumo()` e de
 (a primeira agregando contadores de todo mundo, a segunda deixando um síndico
 editar o perfil de alguém de outro condomínio). Ambas foram reescritas nas
 migrations de multi-condomínio antes de ir pro ar.
+
+## Módulo 10: administradoras (gerem vários condomínios)
+
+Terceiro tipo de conta, escolhido na tela `/cadastro`: além de síndico
+(1 condomínio) e condômino, agora existe **administradora** — uma empresa
+que gerencia vários condomínios com a mesma conta.
+
+Como funciona, em vez de reescrever toda RLS pra "pertence a uma das N
+administradoras": a administradora tem um condomínio **ativo**, guardado no
+mesmo `profiles.condominio_id` que síndico/condômino já usam, e troca esse
+valor via RPC quando quer trabalhar em outro. Isso significa que
+**nenhuma** policy de negócio (chamados, reservas, avisos, encomendas,
+prestadores, manutenções, ativos, unidades, areas, `dashboard_resumo`...)
+precisou ser tocada — todas já liam só `condominio_id = minha_condominio()`,
+e continuam lendo exatamente isso.
+
+- `administradoras` (nova tabela): `nome`, `cnpj`.
+- `profiles.administradora_id` (nova coluna, FK) — só preenchida pra quem
+  tem `papel = 'administradora'`.
+- `condominios.administradora_id` (nova coluna, FK) — de qual administradora
+  é aquele condomínio (nulo pra condomínio de síndico avulso).
+- `profiles_papel_check` passou a aceitar `'administradora'` além de
+  `'sindico'`/`'condomino'`.
+- `is_sindico()` passou a retornar `true` também pra `papel = 'administradora'`
+  — enquanto ela está "dentro" de um condomínio (o ativo), tem as mesmas
+  permissões de escrita que o síndico teria ali. É esse único ponto que faz
+  toda a permissão em cascata funcionar sem tocar em mais nada.
+- `is_administradora()` / `minha_administradora()` — helpers novos, mesmo
+  padrão de `is_sindico()`/`minha_condominio()`.
+- `condominios_select_administradora` (policy nova) — administradora
+  enxerga **todos** os condomínios dela (não só o ativo), pra montar o
+  seletor em `/meus-condominios`. `condominios_update_sindico` já cobre
+  edição do condomínio ativo (porque `is_sindico()` agora inclui ela).
+- `trocar_condominio_ativo(p_condominio_id)` (RPC) — troca
+  `profiles.condominio_id` pra outro condomínio, validando que ele pertence
+  à administradora logada.
+- `administradora_criar_condominio(nome, endereco, cnpj)` (RPC) — cria um
+  condomínio novo sob a administradora logada e já troca pra ele (fica
+  ativo), retornando o id novo.
+- `handle_new_user()` ganhou um terceiro caminho: se o cadastro veio com
+  `papel: 'administradora'` + `administradora_nome`, cria a empresa e o
+  perfil **sem** condomínio (`condominio_id` fica nulo até ela cadastrar o
+  primeiro em `/meus-condominios`).
+
+No frontend: `useAuth().isSindico` passou a ser `papel === 'sindico' ||
+papel === 'administradora'` — de propósito, pra espelhar exatamente o que
+`is_sindico()` já significa no banco. Isso faz toda tela/rota que já checava
+`isSindico` (Prestadores, Manutenção Predial, Moradores, Unidades, aprovar
+reserva, publicar aviso, mudar status de chamado no kanban…) passar a
+funcionar pra administradora automaticamente, sem precisar editar cada uma.
+`isAdministradora` é uma flag separada, só pra UI específica dela (o link
+"Trocar condomínio" na sidebar, a guarda de `/meus-condominios`).
+
+Guarda nova `RequireCondominioAtivo`: se a administradora está logada mas
+sem condomínio ativo (`profiles.condominio_id` nulo — acabou de se
+cadastrar, ou nunca criou nenhum), redireciona pra `/meus-condominios` antes
+de deixar entrar no resto do sistema (que assume um condomínio ativo em toda
+parte). A tela `/meus-condominios` fica fora do `AdminLayout` de propósito
+(senão a guarda entraria num loop tentando redirecionar pra dentro do próprio
+layout que ela está bloqueando).
+
+Testado ponta a ponta: signUp real (`@supabase/supabase-js`) criando conta de
+administradora, conferido no banco que a empresa e o perfil saíram certos;
+`administradora_criar_condominio` criando dois condomínios e trocando o
+ativo entre eles; `trocar_condominio_ativo` validando que só troca pra
+condomínio da própria administradora; RLS confirmando que a administradora
+só enxerga os próprios condomínios e que um síndico comum é bloqueado nas
+duas RPCs; `is_sindico()` confirmando que a administradora consegue
+escrever (testado com insert em `avisos`) no condomínio ativo.
 
 ## Módulo 5 pendente: lembretes de manutenção por e-mail
 

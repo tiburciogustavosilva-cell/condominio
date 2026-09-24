@@ -22,6 +22,17 @@ export function RequireSindico() {
   return <Outlet />;
 }
 
+/** Administradora sem condomínio ativo (nenhum cadastrado ainda, ou nenhum
+ * escolhido) vai pro seletor antes de liberar o resto do sistema — que
+ * assume um condomínio ativo em toda parte. */
+export function RequireCondominioAtivo() {
+  const { isAdministradora, usuario } = useAuth();
+  if (isAdministradora && !usuario?.condominioId) {
+    return <Navigate to="/meus-condominios" replace />;
+  }
+  return <Outlet />;
+}
+
 /** Manda o síndico pra tela de perguntas iniciais antes de liberar o resto do sistema. */
 export function RequireOnboardingConcluido() {
   const { isSindico, condominio } = useAuth();

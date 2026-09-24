@@ -29,10 +29,12 @@ clonar isso em outra máquina, copie `frontend/.env.example` para
 | Condômino | morador@condominio.com  | morador123  |
 
 O sistema é **multi-condomínio**: qualquer pessoa pode criar uma conta nova
-pela tela de login ("Cadastre-se", rota `/cadastro`), informando e-mail,
-senha e os dados do próprio condomínio (nome, endereço, CNPJ). Isso cria um
-condomínio novo, isolado dos demais por RLS, e a pessoa vira síndico dele.
-Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulo 9).
+pela tela de login ("Cadastre-se", rota `/cadastro`), escolhendo entre
+**síndico** (informa e-mail, senha e os dados de 1 condomínio — nome,
+endereço, CNPJ — e já vira o dono dele) ou **administradora** (informa os
+dados da empresa e depois cadastra quantos condomínios quiser em
+`/meus-condominios`, alternando entre eles). Cada condomínio fica isolado
+dos demais por RLS. Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulos 9 e 10).
 
 ## Módulos
 

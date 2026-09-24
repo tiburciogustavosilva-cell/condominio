@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Building2, ChevronLeft, LogOut } from 'lucide-react';
+import { Building2, ChevronLeft, LogOut, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
-  const { usuario, isSindico, condominio, logout } = useAuth();
+  const { usuario, isSindico, isAdministradora, condominio, logout } = useAuth();
   const navigate = useNavigate();
   const links = navItems.filter(
     (l) =>
@@ -78,9 +78,22 @@ export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{usuario?.nome}</p>
               <p className="truncate text-xs capitalize text-muted-foreground">{usuario?.papel}</p>
+              {isAdministradora && condominio && <p className="truncate text-xs text-muted-foreground">{condominio.nome}</p>}
             </div>
           )}
         </div>
+
+        {isAdministradora && (
+          <Button
+            variant="ghost"
+            size={collapsed ? 'icon' : 'sm'}
+            className={cn('w-full text-muted-foreground', !collapsed && 'justify-start')}
+            onClick={() => navigate('/meus-condominios')}
+          >
+            <Repeat className="h-4 w-4" />
+            {!collapsed && 'Trocar condomínio'}
+          </Button>
+        )}
 
         <Button
           variant="ghost"

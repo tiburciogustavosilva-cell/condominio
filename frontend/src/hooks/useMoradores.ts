@@ -28,6 +28,7 @@ export function useMoradores() {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, nome, email, telefone, papel, unidade_id')
+      .neq('papel', 'administradora')
       .order('nome');
     setMoradores(error || !data ? [] : data.map(mapMorador));
     setCarregando(false);

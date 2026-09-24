@@ -9,24 +9,31 @@ export type Usuario = {
   papel: Papel;
   unidadeId: string | null;
   condominioId: string | null;
+  administradoraId: string | null;
 };
 
 export type DadosCadastro = {
+  tipo: 'sindico' | 'administradora';
   email: string;
   senha: string;
   nome: string;
-  condominioNome: string;
-  condominioEndereco: string;
-  condominioCnpj: string;
+  condominioNome?: string;
+  condominioEndereco?: string;
+  condominioCnpj?: string;
+  administradoraNome?: string;
+  administradoraCnpj?: string;
 };
 
 type AuthValue = {
   usuario: Usuario | null;
   condominio: Condominio | null;
   isSindico: boolean;
+  /** true só para o papel "administradora" (gestora de vários condomínios). */
+  isAdministradora: boolean;
   carregando: boolean;
   login: (email: string, senha: string) => Promise<void>;
-  /** Cria a conta + o condomínio novo. Retorna `precisaConfirmarEmail` se o
+  /** Cria a conta — de síndico (+ 1 condomínio) ou de administradora (+ a
+   * empresa, sem condomínio ainda). Retorna `precisaConfirmarEmail` se o
    * projeto exigir confirmação por e-mail antes de liberar a sessão. */
   cadastrar: (dados: DadosCadastro) => Promise<{ precisaConfirmarEmail: boolean }>;
   logout: () => Promise<void>;
@@ -34,6 +41,8 @@ type AuthValue = {
   atualizarNome: (nome: string) => void;
   /** Recarrega o condomínio (ex.: depois de salvar as perguntas de onboarding). */
   recarregarCondominio: () => Promise<void>;
+  /** Recarrega perfil + condomínio (ex.: depois de trocar/criar condomínio como administradora). */
+  recarregarSessao: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -41,11 +50,18 @@ const AuthContext = createContext<AuthValue | null>(null);
 async function carregarPerfil(userId: string): Promise<Usuario | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, nome, papel, unidade_id, condominio_id')
+    .select('id, nome, papel, unidade_id, condominio_id, administradora_id')
     .eq('id', userId)
     .maybeSingle();
   if (error || !data) return null;
-  return { id: data.id, nome: data.nome, papel: data.papel, unidadeId: data.unidade_id, condominioId: data.condominio_id };
+  return {
+    id: data.id,
+    nome: data.nome,
+    papel: data.papel,
+    unidadeId: data.unidade_id,
+    condominioId: data.condominio_id,
+    administradoraId: data.administradora_id
+  };
 }
 
 async function carregarCondominio(condominioId: string): Promise<Condominio | null> {
@@ -121,24 +137,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCondominio(cond);
   }
 
+  /** Depois de trocar/criar condomínio (administradora), usuario.condominioId
+   * muda no banco — precisa recarregar o perfil inteiro, não só o condomínio. */
+  async function recarregarSessao() {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
+    const perfil = await carregarPerfil(data.session.user.id);
+    const cond = perfil?.condominioId ? await carregarCondominio(perfil.condominioId) : null;
+    setUsuario(perfil);
+    setCondominio(cond);
+  }
+
   async function login(email: string, senha: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
     if (error) throw new Error(mensagemErro(error.message));
   }
 
   async function cadastrar(dados: DadosCadastro) {
+    const meta: Record<string, string> =
+      dados.tipo === 'administradora'
+        ? {
+            nome: dados.nome,
+            papel: 'administradora',
+            administradora_nome: dados.administradoraNome ?? '',
+            administradora_cnpj: dados.administradoraCnpj ?? ''
+          }
+        : {
+            nome: dados.nome,
+            papel: 'sindico',
+            condominio_nome: dados.condominioNome ?? '',
+            condominio_endereco: dados.condominioEndereco ?? '',
+            condominio_cnpj: dados.condominioCnpj ?? ''
+          };
+
     const { data, error } = await supabase.auth.signUp({
       email: dados.email,
       password: dados.senha,
-      options: {
-        data: {
-          nome: dados.nome,
-          papel: 'sindico',
-          condominio_nome: dados.condominioNome,
-          condominio_endereco: dados.condominioEndereco,
-          condominio_cnpj: dados.condominioCnpj
-        }
-      }
+      options: { data: meta }
     });
     if (error) throw new Error(mensagemErro(error.message));
     // Com confirmação de e-mail ligada no projeto, signUp não devolve sessão
@@ -161,13 +196,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         usuario,
         condominio,
-        isSindico: usuario?.papel === 'sindico',
+        // Administradora tem, no condomínio ativo, as mesmas permissões de
+        // síndico (é o que a policy is_sindico() do banco também passou a
+        // considerar) — por isso entra nessa flag em vez de uma checagem à parte.
+        isSindico: usuario?.papel === 'sindico' || usuario?.papel === 'administradora',
+        isAdministradora: usuario?.papel === 'administradora',
         carregando,
         login,
         cadastrar,
         logout,
         atualizarNome,
-        recarregarCondominio
+        recarregarCondominio,
+        recarregarSessao
       }}
     >
       {children}
