@@ -16,9 +16,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const STATUS = [
-  ['aberto', 'Aberto'],
-  ['em_andamento', 'Em andamento'],
-  ['concluido', 'Concluído']
+  ['aberto', 'Em aberto'],
+  ['em_andamento', 'Pendente'],
+  ['concluido', 'Encerrado']
 ];
 
 export default function ChamadoDetalhe() {

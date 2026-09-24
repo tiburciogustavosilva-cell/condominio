@@ -63,6 +63,19 @@ export function useChamados(status?: string) {
         unidade_id: usuario.unidadeId
       });
       if (error) throw new Error(error.message);
+    },
+    /** Muda o status de um chamado da lista (ex.: arrastar entre colunas do kanban). */
+    atualizarStatus: async (id: string, status: string) => {
+      const anterior = chamados;
+      setChamados((atual) => atual?.map((c) => (c.id === id ? { ...c, status: status as Chamado['status'] } : c)) ?? atual);
+      const { error } = await supabase
+        .from('chamados')
+        .update({ status, atualizado_em: new Date().toISOString() })
+        .eq('id', id);
+      if (error) {
+        setChamados(anterior);
+        throw new Error(error.message);
+      }
     }
   };
 }

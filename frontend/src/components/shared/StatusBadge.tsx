@@ -9,9 +9,9 @@ type Entry = { label: string; variant: Variant };
  */
 const STATUS_MAP: Record<string, Entry> = {
   // chamados
-  aberto: { label: 'Aberto', variant: 'warning' },
-  em_andamento: { label: 'Em andamento', variant: 'info' },
-  concluido: { label: 'Concluído', variant: 'success' },
+  aberto: { label: 'Em aberto', variant: 'warning' },
+  em_andamento: { label: 'Pendente', variant: 'info' },
+  concluido: { label: 'Encerrado', variant: 'success' },
   // reservas
   pendente: { label: 'Pendente', variant: 'warning' },
   aprovada: { label: 'Aprovada', variant: 'success' },
@@ -31,7 +31,7 @@ const STATUS_MAP: Record<string, Entry> = {
 };
 
 const PRIORIDADE_MAP: Record<string, Entry> = {
-  baixa: { label: 'Baixa', variant: 'muted' },
+  baixa: { label: 'Baixa', variant: 'info' },
   media: { label: 'Média', variant: 'warning' },
   alta: { label: 'Alta', variant: 'destructive' },
   critica: { label: 'Crítica', variant: 'destructive' }
