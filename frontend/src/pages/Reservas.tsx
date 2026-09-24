@@ -11,10 +11,19 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { DatePicker } from '@/components/shared/DatePicker';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
+import { FilterPills } from '@/components/shared/FilterPills';
+import { ReservasCalendario, type ModoCalendario } from '@/components/reservas/ReservasCalendario';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+
+const VISOES = [
+  { value: 'mes', label: 'Calendário' },
+  { value: 'semana', label: 'Semana' },
+  { value: 'dia', label: 'Dia' },
+  { value: 'lista', label: 'Lista' }
+];
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -25,6 +34,8 @@ export default function Reservas() {
   const { reservas, areas, recarregar, criar, atualizarStatus, cancelar } = useReservas();
   const [form, setForm] = useState({ areaId: '', data: '', periodo: 'tarde', observacao: '' });
   const [loading, setLoading] = useState(false);
+  const [visao, setVisao] = useState<ModoCalendario | 'lista'>('mes');
+  const [dataRef, setDataRef] = useState(new Date());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,9 +149,22 @@ export default function Reservas() {
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground">Minhas solicitações</h3>
-        {reservas.length === 0 ? (
+      <div className="space-y-4">
+        <FilterPills options={VISOES} value={visao} onChange={(v) => setVisao(v as ModoCalendario | 'lista')} />
+
+        {visao !== 'lista' ? (
+          <ReservasCalendario
+            modo={visao}
+            dataRef={dataRef}
+            onDataRefChange={setDataRef}
+            onSelecionarDia={(d) => {
+              setDataRef(d);
+              setVisao('dia');
+            }}
+            reservas={reservas}
+            isSindico={isSindico}
+          />
+        ) : reservas.length === 0 ? (
           <EmptyState icon={PartyPopper} title="Nenhuma reserva ainda" />
         ) : (
           reservas.map((r) => (
