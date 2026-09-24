@@ -16,7 +16,12 @@ type Props = {
 export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
   const { usuario, isSindico, condominio, logout } = useAuth();
   const navigate = useNavigate();
-  const links = navItems.filter((l) => (!l.sindico || isSindico) && (!l.porteiro || condominio?.temPorteiro));
+  const links = navItems.filter(
+    (l) =>
+      (!l.sindico || isSindico) &&
+      (!l.porteiro || condominio?.temPorteiro) &&
+      (!l.areasReserva || condominio?.temAreasReserva)
+  );
 
   return (
     <motion.aside

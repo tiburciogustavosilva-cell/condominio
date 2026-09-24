@@ -14,6 +14,7 @@ export interface Condominio {
   qtdBlocos: number | null;
   temComercio: boolean;
   qtdComercio: number | null;
+  temAreasReserva: boolean;
   temPorteiro: boolean;
   onboardingConcluido: boolean;
 }
@@ -23,6 +24,7 @@ export interface RespostasOnboarding {
   qtdBlocos: number | null;
   temComercio: boolean;
   qtdComercio: number | null;
+  temAreasReserva: boolean;
   temPorteiro: boolean;
 }
 

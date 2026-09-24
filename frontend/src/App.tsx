@@ -2,7 +2,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { RequireAuth, RequireComPorteiro, RequireOnboardingConcluido, RequireSindico } from '@/components/layout/guards';
+import {
+  RequireAuth,
+  RequireComAreasReserva,
+  RequireComPorteiro,
+  RequireOnboardingConcluido,
+  RequireSindico
+} from '@/components/layout/guards';
 
 import Login from '@/pages/Login';
 import Cadastro from '@/pages/Cadastro';
@@ -36,7 +42,9 @@ export default function App() {
                 <Route path="chamados" element={<Chamados />} />
                 <Route path="chamados/novo" element={<NovoChamado />} />
                 <Route path="chamados/:id" element={<ChamadoDetalhe />} />
-                <Route path="reservas" element={<Reservas />} />
+                <Route element={<RequireComAreasReserva />}>
+                  <Route path="reservas" element={<Reservas />} />
+                </Route>
                 <Route element={<RequireComPorteiro />}>
                   <Route path="encomendas" element={<Encomendas />} />
                 </Route>

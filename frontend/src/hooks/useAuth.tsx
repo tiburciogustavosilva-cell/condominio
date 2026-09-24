@@ -51,7 +51,7 @@ async function carregarPerfil(userId: string): Promise<Usuario | null> {
 async function carregarCondominio(condominioId: string): Promise<Condominio | null> {
   const { data, error } = await supabase
     .from('condominios')
-    .select('id, nome, endereco, cnpj, tem_blocos, qtd_blocos, tem_comercio, qtd_comercio, tem_porteiro, onboarding_concluido')
+    .select('id, nome, endereco, cnpj, tem_blocos, qtd_blocos, tem_comercio, qtd_comercio, tem_areas_reserva, tem_porteiro, onboarding_concluido')
     .eq('id', condominioId)
     .maybeSingle();
   if (error || !data) return null;
@@ -64,6 +64,7 @@ async function carregarCondominio(condominioId: string): Promise<Condominio | nu
     qtdBlocos: data.qtd_blocos,
     temComercio: data.tem_comercio,
     qtdComercio: data.qtd_comercio,
+    temAreasReserva: data.tem_areas_reserva,
     temPorteiro: data.tem_porteiro,
     onboardingConcluido: data.onboarding_concluido
   };

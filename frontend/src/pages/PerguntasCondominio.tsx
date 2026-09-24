@@ -11,15 +11,20 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/shared/Field';
 import { cn } from '@/lib/utils';
 
-type Etapa = 'blocos' | 'qtd_blocos' | 'comercio' | 'qtd_comercio' | 'porteiro';
+type Etapa = 'blocos' | 'qtd_blocos' | 'comercio' | 'qtd_comercio' | 'areas' | 'areas_opcoes' | 'porteiro';
 
-const ORDEM: Etapa[] = ['blocos', 'qtd_blocos', 'comercio', 'qtd_comercio', 'porteiro'];
+const ORDEM: Etapa[] = ['blocos', 'qtd_blocos', 'comercio', 'qtd_comercio', 'areas', 'areas_opcoes', 'porteiro'];
+
+type OpcaoArea = 'salao' | 'churrasqueira' | 'outro';
 
 type Respostas = {
   temBlocos: boolean | null;
   qtdBlocos: string;
   temComercio: boolean | null;
   qtdComercio: string;
+  temAreasReserva: boolean | null;
+  areasEscolhidas: Record<OpcaoArea, boolean>;
+  areaOutroTexto: string;
   temPorteiro: boolean | null;
 };
 
@@ -28,16 +33,20 @@ const VAZIO: Respostas = {
   qtdBlocos: '',
   temComercio: null,
   qtdComercio: '',
+  temAreasReserva: null,
+  areasEscolhidas: { salao: false, churrasqueira: false, outro: false },
+  areaOutroTexto: '',
   temPorteiro: null
 };
 
-/** Próxima etapa visível, pulando as perguntas de quantidade quando a resposta anterior foi "não". */
+/** Próxima etapa visível, pulando perguntas de detalhe quando a resposta anterior foi "não". */
 function proximaEtapa(atual: Etapa, respostas: Respostas): Etapa | null {
   const indice = ORDEM.indexOf(atual);
   for (let i = indice + 1; i < ORDEM.length; i++) {
     const etapa = ORDEM[i];
     if (etapa === 'qtd_blocos' && !respostas.temBlocos) continue;
     if (etapa === 'qtd_comercio' && !respostas.temComercio) continue;
+    if (etapa === 'areas_opcoes' && !respostas.temAreasReserva) continue;
     return etapa;
   }
   return null;
@@ -53,7 +62,10 @@ export default function PerguntasCondominio() {
   const [salvando, setSalvando] = useState(false);
 
   const etapasVisiveis = ORDEM.filter(
-    (e) => (e !== 'qtd_blocos' || respostas.temBlocos !== false) && (e !== 'qtd_comercio' || respostas.temComercio !== false)
+    (e) =>
+      (e !== 'qtd_blocos' || respostas.temBlocos !== false) &&
+      (e !== 'qtd_comercio' || respostas.temComercio !== false) &&
+      (e !== 'areas_opcoes' || respostas.temAreasReserva !== false)
   );
   const indiceAtual = etapasVisiveis.indexOf(etapa);
   const totalEtapas = etapasVisiveis.length;
@@ -77,11 +89,27 @@ export default function PerguntasCondominio() {
           qtd_blocos: respostasFinais.temBlocos ? Number(respostasFinais.qtdBlocos) || 0 : null,
           tem_comercio: !!respostasFinais.temComercio,
           qtd_comercio: respostasFinais.temComercio ? Number(respostasFinais.qtdComercio) || 0 : null,
+          tem_areas_reserva: !!respostasFinais.temAreasReserva,
           tem_porteiro: !!respostasFinais.temPorteiro,
           onboarding_concluido: true
         })
         .eq('id', usuario.condominioId);
       if (error) throw error;
+
+      if (respostasFinais.temAreasReserva) {
+        const novasAreas: string[] = [];
+        if (respostasFinais.areasEscolhidas.salao) novasAreas.push('Salão de festas');
+        if (respostasFinais.areasEscolhidas.churrasqueira) novasAreas.push('Churrasqueira');
+        const outro = respostasFinais.areaOutroTexto.trim();
+        if (respostasFinais.areasEscolhidas.outro && outro) novasAreas.push(outro);
+        if (novasAreas.length > 0) {
+          const { error: erroAreas } = await supabase
+            .from('areas')
+            .insert(novasAreas.map((nome) => ({ nome })));
+          if (erroAreas) throw erroAreas;
+        }
+      }
+
       await recarregarCondominio();
       toast.success('Tudo certo! Seu condomínio está configurado.');
       navigate('/');
@@ -92,7 +120,7 @@ export default function PerguntasCondominio() {
     }
   }
 
-  function responderSimNao(campo: 'temBlocos' | 'temComercio' | 'temPorteiro', valor: boolean) {
+  function responderSimNao(campo: 'temBlocos' | 'temComercio' | 'temAreasReserva' | 'temPorteiro', valor: boolean) {
     const novasRespostas = { ...respostas, [campo]: valor };
     setRespostas(novasRespostas);
     const proxima = proximaEtapa(etapa, novasRespostas);
@@ -107,6 +135,28 @@ export default function PerguntasCondominio() {
     const valor = respostas[campo];
     if (!valor || Number(valor) <= 0) {
       toast.error('Informe um número maior que zero');
+      return;
+    }
+    const proxima = proximaEtapa(etapa, respostas);
+    if (proxima) {
+      setEtapa(proxima);
+    } else {
+      finalizar(respostas);
+    }
+  }
+
+  function alternarAreaEscolhida(opcao: OpcaoArea) {
+    setRespostas((r) => ({ ...r, areasEscolhidas: { ...r.areasEscolhidas, [opcao]: !r.areasEscolhidas[opcao] } }));
+  }
+
+  function confirmarAreasOpcoes() {
+    const { salao, churrasqueira, outro } = respostas.areasEscolhidas;
+    if (!salao && !churrasqueira && !outro) {
+      toast.error('Selecione pelo menos uma opção');
+      return;
+    }
+    if (outro && !respostas.areaOutroTexto.trim()) {
+      toast.error('Diga o nome da área em "Outro"');
       return;
     }
     const proxima = proximaEtapa(etapa, respostas);
@@ -188,6 +238,28 @@ export default function PerguntasCondominio() {
                 valor={respostas.qtdComercio}
                 onChange={(v) => setRespostas((r) => ({ ...r, qtdComercio: v }))}
                 onConfirmar={() => confirmarQuantidade('qtdComercio')}
+              />
+            )}
+
+            {etapa === 'areas' && (
+              <PerguntaSimNao
+                key="areas"
+                titulo="Seu condomínio tem área no qual precisa de reserva?"
+                subtitulo="Por exemplo: salão de festas, churrasqueira..."
+                onResponder={(v) => responderSimNao('temAreasReserva', v)}
+              />
+            )}
+
+            {etapa === 'areas_opcoes' && (
+              <PerguntaMultiEscolha
+                key="areas_opcoes"
+                titulo="Quais áreas o condomínio tem?"
+                subtitulo="Pode marcar mais de uma."
+                escolhidas={respostas.areasEscolhidas}
+                onAlternar={alternarAreaEscolhida}
+                outroTexto={respostas.areaOutroTexto}
+                onOutroTextoChange={(v) => setRespostas((r) => ({ ...r, areaOutroTexto: v }))}
+                onConfirmar={confirmarAreasOpcoes}
               />
             )}
 
@@ -292,6 +364,91 @@ function PerguntaQuantidade({
           onChange={(e) => onChange(e.target.value)}
         />
       </Field>
+      <Button type="submit" variant="brand" size="lg" className="w-full">
+        Continuar
+      </Button>
+    </motion.form>
+  );
+}
+
+const OPCOES_AREA: { opcao: OpcaoArea; label: string }[] = [
+  { opcao: 'salao', label: 'Salão de festas' },
+  { opcao: 'churrasqueira', label: 'Churrasqueira' },
+  { opcao: 'outro', label: 'Outro' }
+];
+
+function PerguntaMultiEscolha({
+  titulo,
+  subtitulo,
+  escolhidas,
+  onAlternar,
+  outroTexto,
+  onOutroTextoChange,
+  onConfirmar
+}: {
+  titulo: string;
+  subtitulo?: string;
+  escolhidas: Record<OpcaoArea, boolean>;
+  onAlternar: (opcao: OpcaoArea) => void;
+  outroTexto: string;
+  onOutroTextoChange: (valor: string) => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <motion.form
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -24 }}
+      transition={{ duration: 0.25 }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onConfirmar();
+      }}
+      className="space-y-6"
+    >
+      <div className="space-y-1.5 text-center">
+        <h2 className="font-heading text-xl font-extrabold">{titulo}</h2>
+        {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
+      </div>
+
+      <div className="space-y-2">
+        {OPCOES_AREA.map(({ opcao, label }) => {
+          const marcado = escolhidas[opcao];
+          return (
+            <button
+              key={opcao}
+              type="button"
+              onClick={() => onAlternar(opcao)}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left text-sm font-medium transition-colors',
+                marcado
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <span
+                className={cn(
+                  'grid h-5 w-5 shrink-0 place-items-center rounded border',
+                  marcado ? 'border-primary bg-primary text-primary-foreground' : 'border-input'
+                )}
+              >
+                {marcado && <Check className="h-3.5 w-3.5" />}
+              </span>
+              {label}
+            </button>
+          );
+        })}
+
+        {escolhidas.outro && (
+          <Input
+            autoFocus
+            placeholder="Digite o nome da área"
+            value={outroTexto}
+            onChange={(e) => onOutroTextoChange(e.target.value)}
+          />
+        )}
+      </div>
+
       <Button type="submit" variant="brand" size="lg" className="w-full">
         Continuar
       </Button>

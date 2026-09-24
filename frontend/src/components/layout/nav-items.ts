@@ -19,12 +19,14 @@ export type NavItem = {
   sindico?: boolean;
   /** Só aparece se o condomínio tiver porteiro (ver /perguntas-condominio). */
   porteiro?: boolean;
+  /** Só aparece se o condomínio tiver área que precisa de reserva. */
+  areasReserva?: boolean;
 };
 
 export const navItems: NavItem[] = [
   { to: '/', label: 'Painel', icon: LayoutDashboard, end: true },
   { to: '/chamados', label: 'Chamados', icon: Wrench },
-  { to: '/reservas', label: 'Reservas', icon: CalendarRange },
+  { to: '/reservas', label: 'Reservas', icon: CalendarRange, areasReserva: true },
   { to: '/encomendas', label: 'Encomendas', icon: Package, porteiro: true },
   { to: '/avisos', label: 'Avisos', icon: Megaphone },
   { to: '/prestadores', label: 'Prestadores', icon: HardHat, sindico: true },

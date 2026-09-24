@@ -37,3 +37,10 @@ export function RequireComPorteiro() {
   if (condominio && !condominio.temPorteiro) return <Navigate to="/" replace />;
   return <Outlet />;
 }
+
+/** Só libera a rota se o condomínio tiver área que precisa de reserva. */
+export function RequireComAreasReserva() {
+  const { condominio } = useAuth();
+  if (condominio && !condominio.temAreasReserva) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
