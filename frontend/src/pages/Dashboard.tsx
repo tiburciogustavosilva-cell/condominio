@@ -23,10 +23,17 @@ export default function Dashboard() {
   const { usuario } = useAuth();
   const { dados } = useDashboard();
 
+  const cabecalho = (
+    <PageHeader
+      title={`Olá, ${usuario?.nome?.split(' ')[0] ?? ''} 👋`}
+      description="Resumo do que precisa da sua atenção hoje."
+    />
+  );
+
   if (!dados) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-9 w-56" />
+        {cabecalho}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
@@ -42,14 +49,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Olá, ${usuario?.nome?.split(' ')[0] ?? ''} 👋`}
-        description="Resumo do que precisa da sua atenção hoje."
-      />
+      {cabecalho}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          index={0}
           to="/chamados"
           label="Chamados abertos"
           value={c.aberto}
@@ -58,7 +61,6 @@ export default function Dashboard() {
           tone="warning"
         />
         <StatCard
-          index={1}
           to="/reservas"
           label="Reservas pendentes"
           value={dados.reservas.pendentes}
@@ -67,7 +69,6 @@ export default function Dashboard() {
           tone="secondary"
         />
         <StatCard
-          index={2}
           to="/encomendas"
           label="Encomendas na portaria"
           value={dados.encomendas.aguardando}
@@ -77,7 +78,6 @@ export default function Dashboard() {
         />
         {dados.manutencoes && (
           <StatCard
-            index={3}
             to="/prestadores"
             label="Manutenções vencidas"
             value={dados.manutencoes.vencidas}

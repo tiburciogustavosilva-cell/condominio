@@ -1,6 +1,5 @@
 import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 
@@ -22,10 +21,9 @@ type Props = {
   icon?: ComponentType<{ className?: string }>;
   tone?: Tone;
   to?: string;
-  index?: number;
 };
 
-export function StatCard({ label, value, hint, icon: Icon, tone = 'primary', to, index = 0 }: Props) {
+export function StatCard({ label, value, hint, icon: Icon, tone = 'primary', to }: Props) {
   const body = (
     <Card
       className={cn(
@@ -49,18 +47,12 @@ export function StatCard({ label, value, hint, icon: Icon, tone = 'primary', to,
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.05 }}
-    >
-      {to ? (
-        <Link to={to} className="block">
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
-    </motion.div>
+    to ? (
+      <Link to={to} className="block">
+        {body}
+      </Link>
+    ) : (
+      body
+    )
   );
 }

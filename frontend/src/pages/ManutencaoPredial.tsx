@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -86,9 +87,10 @@ const OS_VAZIA = {
 };
 
 export default function ManutencaoPredial() {
-  const { ativos, recarregar: recarregarAtivos, criar: criarAtivo, atualizar: atualizarAtivo, remover: removerAtivo } = useAtivos();
+  const { ativos, carregando: carregandoAtivos, recarregar: recarregarAtivos, criar: criarAtivo, atualizar: atualizarAtivo, remover: removerAtivo } = useAtivos();
   const {
     manutencoes,
+    carregando: carregandoPlanos,
     recarregar: recarregarPlanos,
     criar: criarPlano,
     atualizar: atualizarPlano,
@@ -96,9 +98,10 @@ export default function ManutencaoPredial() {
     notificar: notificarPlano,
     remover: removerPlano
   } = useManutencoes();
-  const { prestadores } = usePrestadores();
+  const { prestadores, carregando: carregandoPrestadores } = usePrestadores();
   const {
     ordens,
+    carregando: carregandoOrdens,
     recarregar: recarregarOrdens,
     criar: criarOrdem,
     atualizar: atualizarOrdem,
@@ -106,6 +109,7 @@ export default function ManutencaoPredial() {
   } = useOrdensServico();
 
   const [gerando, setGerando] = useState(false);
+  const carregando = carregandoAtivos || carregandoPlanos || carregandoPrestadores || carregandoOrdens;
 
   async function baixarRelatorio() {
     setGerando(true);
@@ -132,6 +136,9 @@ export default function ManutencaoPredial() {
         }
       />
 
+      {carregando ? (
+        <ListSkeleton count={4} />
+      ) : (
       <Tabs defaultValue="dashboard">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -179,6 +186,7 @@ export default function ManutencaoPredial() {
           />
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }
@@ -204,18 +212,18 @@ function PainelDashboard({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard index={0} label="Equipamentos / áreas cadastrados" value={ativos.length} icon={Boxes} tone="secondary" />
-        <StatCard index={1} label="Manutenções planejadas" value={manutencoes.length} icon={CalendarClock} tone="info" />
-        <StatCard index={2} label="Ordens de serviço" value={ordens.length} icon={ClipboardList} tone="secondary" />
+        <StatCard label="Equipamentos / áreas cadastrados" value={ativos.length} icon={Boxes} tone="secondary" />
+        <StatCard label="Manutenções planejadas" value={manutencoes.length} icon={CalendarClock} tone="info" />
+        <StatCard label="Ordens de serviço" value={ordens.length} icon={ClipboardList} tone="secondary" />
         <StatCard
-          index={3}
+         
           label="Vencidas"
           value={vencidas}
           icon={Gauge}
           tone={vencidas ? 'destructive' : 'success'}
         />
-        <StatCard index={4} label="Vencem em até 30 dias" value={vencem30} icon={Gauge} tone="warning" />
-        <StatCard index={5} label="Custo previsto" value={moeda(custoPrevisto)} icon={Wallet} tone="secondary" />
+        <StatCard label="Vencem em até 30 dias" value={vencem30} icon={Gauge} tone="warning" />
+        <StatCard label="Custo previsto" value={moeda(custoPrevisto)} icon={Wallet} tone="secondary" />
       </div>
 
       <Card>

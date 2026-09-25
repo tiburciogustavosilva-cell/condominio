@@ -3,17 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light only" />
-    <meta name="theme-color" content="#ffffff" />
-    <title>Condomínio · Gestão</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F4F7FB" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#091526" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" href="/brand/emblema.png" />
+    <title>Alpha Condomínios</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Nunito:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
+    <script>
+      // aplica o tema antes do React montar (evita piscar claro→escuro)
+      try {
+        var t = localStorage.getItem('tema');
+        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

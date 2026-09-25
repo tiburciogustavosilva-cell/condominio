@@ -20,9 +20,10 @@ Stack: **Vite + React + TypeScript + Tailwind + shadcn/ui + framer-motion**, tud
 Em `src/index.css`, dentro de `:root`:
 
 ```css
---brand: 24 95% 53%;            /* laranja — CTA principal   */
---brand-support: 265 84% 62%;   /* roxo — apoio / destaque   */
+--brand: 213 72% 16%;           /* navy — primária            */
+--brand-support: 218 56% 42%;   /* azul polo do mascote       */
 --brand-foreground: 0 0% 100%;  /* texto sobre as cores acima */
+--gold: 40 50% 57%;             /* dourado — CTA e foco       */
 ```
 
 `--primary` e `--secondary` são **derivados** desses três (`--primary: var(--brand)`), então
@@ -33,13 +34,15 @@ Os valores são triplas HSL **sem** `hsl(...)` — o wrapper fica no Tailwind (`
 
 ## 2. Identidade
 
-- **CTA**: laranja `24 95% 53%` → `<Button variant="brand">` (gradiente + `shadow-glow`) ou `variant="default"` (chapado).
-- **Apoio**: roxo `265 84% 62%` → `variant="secondary"`, avatares, badge "fixado".
+- **Marca**: Alpha Condomínios. Cores da logo/mascote/LP (`landingpage-alphacondo`). Logo, emblema e mascote em `public/brand/`; `<Brand/>` e `<BrandPanel/>` em `components/shared/Brand.tsx`.
+- **CTA**: gradiente dourado com texto navy → `<Button variant="brand">` (+ `shadow-glow`); navy chapado → `variant="default"`.
+- **Apoio**: azul polo `218 56% 42%` → `variant="secondary"`, avatares, badge "fixado".
+- **Fontes da marca**: `Montserrat` só no wordmark (`font-brand`).
 - **Fontes**: `Nunito` nos títulos (`font-heading`, aplicado automático em `h1–h5`), `Plus Jakarta Sans` no corpo (`font-sans`). Carregadas via `<link>` no `index.html`.
 - **Raio**: `--radius: 0.75rem` → `rounded-lg/md/sm`.
 - **Densidade compacta**: inputs/botões `h-9`, cards `p-4/p-5`, textos meta em `text-xs`.
 - **Movimento**: `framer-motion` — fade-up nos `StatCard`, transição de rota no `AdminLayout`, drawer mobile, largura da sidebar.
-- **Tema**: só claro. `<meta name="color-scheme" content="light only">` + `color-scheme: light` no `body` impedem que o SO force modo escuro. Para reativar dark: `darkMode: ['class']` já está no `tailwind.config.ts`, basta recriar um bloco `.dark { ... }` no `index.css` e um toggle que adicione a classe no `<html>`.
+- **Tema**: claro + escuro (`darkMode: ['class']`). Tokens do escuro no bloco `.dark` do `index.css` (fundo navy, dourado vira `--primary`). Script no `index.html` aplica a classe antes do React (preferência salva em `localStorage.tema`, senão a do SO); `useTheme()` lê/alterna, botão "Modo escuro/claro" no `SidebarFooter`. Emblema claro para o escuro: `public/brand/emblema-dark.png`.
 
 ---
 
@@ -50,12 +53,12 @@ Padrão **sidebar no desktop + bottom-nav no mobile**.
 ```
 AdminLayout
 ├─ AppSidebar        (lg+, fixa, colapsável 256↔72, estado em localStorage)
-├─ MobileNav         (drawer < lg, abre pelo ícone ☰ do topo)
-├─ <header>          sticky: título da seção + avatar
+├─ MobileNav         (drawer < lg, abre pelo item "Menu" da BottomNav)
 ├─ <main><Outlet/>   rotas aninhadas, com AnimatePresence por pathname
-└─ BottomNav         (< lg, 5 itens)
+└─ BottomNav         (< lg, 4 itens + "Menu")
 ```
 
+- Sem topbar: o título vem do `PageHeader` de cada página. Usuário, trocar condomínio, tema e sair ficam no `SidebarFooter` (sidebar e drawer).
 - `nav-items.ts` centraliza os itens (`navItems` e `bottomNavItems`); `sindico: true` esconde do condômino.
 - `NavLink` (`components/layout/NavLink.tsx`) reexpõe a API `activeClassName` sobre o `NavLink` do react-router v6.
 - `App.tsx` faz o bootstrap: `<BrowserRouter><AuthProvider>` → `RequireAuth` → `AdminLayout` → rotas; `RequireSindico` protege `/moradores` e `/unidades`; `<Toaster/>` (sonner) no fim.

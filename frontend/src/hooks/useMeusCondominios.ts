@@ -26,7 +26,6 @@ export function useMeusCondominios() {
   const [condominios, setCondominios] = useState<Condominio[] | null>(null);
 
   const recarregar = useCallback(async () => {
-    setCondominios(null);
     const { data, error } = await supabase.from('condominios').select(SELECT).order('nome');
     setCondominios(error || !data ? [] : data.map(mapCondominio));
   }, []);

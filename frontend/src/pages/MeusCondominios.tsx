@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, CheckCircle2, Loader2, LogOut, Plus } from 'lucide-react';
+import { CheckCircle2, Loader2, LogOut, Plus } from 'lucide-react';
+import { Brand } from '@/components/shared/Brand';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeusCondominios } from '@/hooks/useMeusCondominios';
@@ -61,9 +62,7 @@ export default function MeusCondominios() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-primary text-primary-foreground">
-              <Building2 className="h-5 w-5" />
-            </div>
+            <Brand compact />
             <div>
               <h1 className="font-heading text-lg font-extrabold">Meus condomínios</h1>
               <p className="text-xs text-muted-foreground">{usuario?.nome}</p>

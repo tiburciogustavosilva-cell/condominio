@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Brand, BrandPanel } from '@/components/shared/Brand';
 import { Field } from '@/components/shared/Field';
 
 export default function Login() {
@@ -32,26 +33,10 @@ export default function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* painel de marca */}
-      <div className="relative hidden overflow-hidden bg-gradient-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-lg bg-white/15 backdrop-blur">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <span className="font-heading text-lg font-extrabold">Condomínio</span>
-        </div>
-        <div className="space-y-4">
-          <h1 className="font-heading text-4xl font-black leading-tight">
-            A gestão do seu condomínio, num só lugar.
-          </h1>
-          <p className="max-w-md text-primary-foreground/85">
-            Chamados, reservas de áreas comuns, encomendas e avisos — com o
-            síndico e os moradores na mesma página.
-          </p>
-        </div>
-        <p className="text-sm text-primary-foreground/70">© {new Date().getFullYear()} Condomínio</p>
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-white/10" />
-      </div>
+      <BrandPanel video="/brand/alpha.mp4" title={<>A gestão do seu condomínio, <span className="text-gradient">num só lugar.</span></>}>
+        Chamados, reservas de áreas comuns, encomendas e avisos — com o
+        síndico e os moradores na mesma página.
+      </BrandPanel>
 
       {/* formulário */}
       <div className="flex items-center justify-center p-6 app-surface">
@@ -59,26 +44,23 @@ export default function Login() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="w-full max-w-sm"
+          className="w-full max-w-md"
         >
-          <div className="mb-6 flex items-center gap-2 lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-primary text-primary-foreground">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <span className="font-heading text-lg font-extrabold">Condomínio</span>
-          </div>
+          <Brand className="mb-6 lg:hidden" />
 
-          <Card className="p-6 shadow-md">
-            <div className="mb-5 space-y-1">
-              <h2 className="font-heading text-xl font-extrabold">Entrar</h2>
-              <p className="text-sm text-muted-foreground">Use suas credenciais de acesso.</p>
+          <Card className="p-8 shadow-md">
+            <div className="mb-6 space-y-1">
+              <h2 className="font-heading text-2xl font-extrabold">Entrar</h2>
+              <p className="text-muted-foreground">Use suas credenciais de acesso.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <Field label="E-mail" htmlFor="email">
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
+                  className="h-12 px-4 text-base"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -88,12 +70,14 @@ export default function Login() {
                 <Input
                   id="senha"
                   type="password"
+                  autoComplete="current-password"
+                  className="h-12 px-4 text-base"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   required
                 />
               </Field>
-              <Button type="submit" variant="brand" className="w-full" disabled={loading}>
+              <Button type="submit" variant="brand" className="h-12 w-full text-base" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Entrar
               </Button>

@@ -37,7 +37,6 @@ export function useChamados(status?: string) {
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
 
   const recarregar = useCallback(async () => {
-    setChamados(null);
     let query = supabase.from('chamados').select(SELECT).order('criado_em', { ascending: false });
     if (status) query = query.eq('status', status);
     const { data, error } = await query;

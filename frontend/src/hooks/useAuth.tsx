@@ -10,6 +10,8 @@ export type Usuario = {
   unidadeId: string | null;
   condominioId: string | null;
   administradoraId: string | null;
+  /** false até concluir/pular o tutorial de primeiro acesso. */
+  tutorialVisto: boolean;
 };
 
 export type DadosCadastro = {
@@ -39,6 +41,8 @@ type AuthValue = {
   logout: () => Promise<void>;
   /** Atualiza só o nome exibido (topbar/sidebar) após editar o perfil. */
   atualizarNome: (nome: string) => void;
+  /** Marca o tutorial de primeiro acesso como visto (no banco). */
+  concluirTutorial: () => Promise<void>;
   /** Recarrega o condomínio (ex.: depois de salvar as perguntas de onboarding). */
   recarregarCondominio: () => Promise<void>;
   /** Recarrega perfil + condomínio (ex.: depois de trocar/criar condomínio como administradora). */
@@ -48,9 +52,11 @@ type AuthValue = {
 const AuthContext = createContext<AuthValue | null>(null);
 
 async function carregarPerfil(userId: string): Promise<Usuario | null> {
+  // `*` em vez de listar colunas: se a migration do tutorial (tutorial_visto_em)
+  // ainda não foi aplicada, o login continua funcionando — só não mostra o tutorial.
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, nome, papel, unidade_id, condominio_id, administradora_id')
+    .select('*')
     .eq('id', userId)
     .maybeSingle();
   if (error || !data) return null;
@@ -60,7 +66,8 @@ async function carregarPerfil(userId: string): Promise<Usuario | null> {
     papel: data.papel,
     unidadeId: data.unidade_id,
     condominioId: data.condominio_id,
-    administradoraId: data.administradora_id
+    administradoraId: data.administradora_id,
+    tutorialVisto: data.tutorial_visto_em !== null // undefined (coluna ausente) conta como visto
   };
 }
 
@@ -191,6 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario((u) => (u ? { ...u, nome } : u));
   }
 
+  async function concluirTutorial() {
+    if (!usuario) return;
+    // fecha na hora; se o update falhar, o pior caso é o tutorial voltar no próximo acesso
+    setUsuario((u) => (u ? { ...u, tutorialVisto: true } : u));
+    await supabase.from('profiles').update({ tutorial_visto_em: new Date().toISOString() }).eq('id', usuario.id);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -206,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cadastrar,
         logout,
         atualizarNome,
+        concluirTutorial,
         recarregarCondominio,
         recarregarSessao
       }}

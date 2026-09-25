@@ -29,7 +29,6 @@ export function useOcorrencias() {
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[] | null>(null);
 
   const recarregar = useCallback(async () => {
-    setOcorrencias(null);
     const { data, error } = await supabase
       .from('ocorrencias')
       .select(SELECT)

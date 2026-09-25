@@ -13,13 +13,14 @@ import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 export default function Encomendas() {
   const { isSindico } = useAuth();
-  const { encomendas, recarregar, criar, entregar, remover } = useEncomendas();
+  const { encomendas, carregando, recarregar, criar, entregar, remover } = useEncomendas();
   const { unidades } = useUnidades();
   const [form, setForm] = useState({ unidadeId: '', descricao: '', remetente: '' });
   const [loading, setLoading] = useState(false);
@@ -105,7 +106,9 @@ export default function Encomendas() {
       )}
 
       <div className="space-y-3">
-        {encomendas.length === 0 ? (
+        {carregando ? (
+          <ListSkeleton />
+        ) : encomendas.length === 0 ? (
           <EmptyState icon={Package} title="Nenhuma encomenda registrada" />
         ) : (
           encomendas.map((e) => (

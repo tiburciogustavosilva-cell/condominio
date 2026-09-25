@@ -14,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 export default function Avisos() {
   const { isSindico } = useAuth();
-  const { avisos, recarregar, criar, atualizar, remover } = useAvisos();
+  const { avisos, carregando, recarregar, criar, atualizar, remover } = useAvisos();
   const [form, setForm] = useState({ titulo: '', mensagem: '', fixado: false });
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +94,9 @@ export default function Avisos() {
         </Card>
       )}
 
-      {avisos.length === 0 ? (
+      {carregando ? (
+        <ListSkeleton />
+      ) : avisos.length === 0 ? (
         <EmptyState icon={Megaphone} title="Nenhum aviso publicado" />
       ) : (
         <div className="space-y-3">

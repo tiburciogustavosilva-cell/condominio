@@ -5,19 +5,23 @@
 @layer base {
   :root {
     /* ============================================================
-       RECOLORIR TUDO = mexer só nestes 3 tokens
+       Alpha Condomínios — cores da logo, do mascote e da LP
+       navy #0B2545 · polo #2F5BA8 · dourado #C9A45C
        ============================================================ */
-    --brand: 24 95% 53%;            /* laranja — CTA principal   */
-    --brand-support: 265 84% 62%;   /* roxo — apoio / destaque   */
+    --navy: 213 72% 16%;
+    --brand: var(--navy);           /* navy — primária            */
+    --brand-support: 218 56% 42%;   /* azul polo do mascote       */
     --brand-foreground: 0 0% 100%;  /* texto sobre as cores acima */
+    --gold: 40 50% 57%;             /* dourado — CTA (variant brand) e foco */
+    --gold-deep: 38 51% 40%;
 
     /* ---- superfícies ---- */
-    --background: 30 33% 99%;
-    --foreground: 24 12% 12%;
+    --background: 214 47% 97%;
+    --foreground: 213 72% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 24 12% 12%;
+    --card-foreground: 213 72% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 24 12% 12%;
+    --popover-foreground: 213 72% 16%;
 
     /* ---- papéis semânticos (derivados da marca) ---- */
     --primary: var(--brand);
@@ -25,54 +29,102 @@
     --secondary: var(--brand-support);
     --secondary-foreground: var(--brand-foreground);
 
-    --muted: 24 16% 95%;
-    --muted-foreground: 24 8% 42%;
-    --accent: 265 60% 96%;
-    --accent-foreground: 265 55% 32%;
+    --muted: 216 42% 95%;
+    --muted-foreground: 216 18% 41%;
+    --accent: 216 42% 95%;
+    --accent-foreground: 213 72% 16%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 69% 53%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 62% 40%;
+    --success: 145 67% 37%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 24 45% 14%;
-    --info: 214 84% 55%;
+    --warning: 39 83% 51%;
+    --warning-foreground: 213 72% 16%;
+    --info: 218 72% 53%;
     --info-foreground: 0 0% 100%;
 
-    --border: 24 16% 90%;
-    --input: 24 16% 87%;
-    --ring: var(--brand);
+    --border: 213 35% 90%;
+    --input: 213 35% 87%;
+    --ring: var(--gold);
 
     --radius: 0.75rem;
 
     /* ---- sidebar ---- */
-    --sidebar-background: 24 33% 98%;
-    --sidebar-foreground: 24 10% 28%;
-    --sidebar-border: 24 16% 91%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 216 18% 34%;
+    --sidebar-border: 213 35% 90%;
     --sidebar-accent: var(--brand);
     --sidebar-accent-foreground: var(--brand-foreground);
 
     /* ---- sombras ---- */
-    --shadow-sm: 0 1px 2px 0 hsl(24 40% 20% / 0.05);
-    --shadow: 0 1px 3px 0 hsl(24 40% 20% / 0.1), 0 1px 2px -1px hsl(24 40% 20% / 0.1);
-    --shadow-md: 0 4px 10px -2px hsl(24 40% 20% / 0.12), 0 2px 4px -2px hsl(24 40% 20% / 0.08);
-    --shadow-lg: 0 16px 36px -10px hsl(24 40% 20% / 0.18);
-    --shadow-glow: 0 8px 30px -8px hsl(var(--brand) / 0.45);
+    --shadow-sm: 0 1px 2px 0 hsl(213 72% 16% / 0.05);
+    --shadow: 0 1px 3px 0 hsl(213 72% 16% / 0.1), 0 1px 2px -1px hsl(213 72% 16% / 0.1);
+    --shadow-md: 0 4px 10px -2px hsl(213 72% 16% / 0.12), 0 2px 4px -2px hsl(213 72% 16% / 0.08);
+    --shadow-lg: 0 10px 30px -12px hsl(213 72% 16% / 0.18);
+    --shadow-glow: 0 8px 30px -8px hsl(var(--gold) / 0.6);
 
     /* ---- gradientes ---- */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--brand)), hsl(14 90% 55%));
-    --gradient-support: linear-gradient(135deg, hsl(var(--brand-support)), hsl(288 70% 60%));
-    --gradient-subtle: linear-gradient(180deg, hsl(30 33% 99%), hsl(24 22% 96%));
+    --gradient-primary: linear-gradient(135deg, #D8B873, #B88E43);
+    --gradient-support: linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand-support)));
+    --gradient-subtle: linear-gradient(180deg, hsl(214 47% 97%), hsl(214 40% 95%));
+    color-scheme: light;
+  }
+
+  /* ---- modo escuro: fundo navy (seção kanban da LP), dourado vira a primária ---- */
+  .dark {
+    --brand: 40 55% 62%;
+    --brand-support: 218 60% 58%;
+    --brand-foreground: 213 72% 12%;
+    --gold-deep: 40 50% 57%;
+
+    --background: 214 55% 8%;
+    --foreground: 214 40% 95%;
+    --card: 213 50% 12%;
+    --card-foreground: 214 40% 95%;
+    --popover: 213 50% 12%;
+    --popover-foreground: 214 40% 95%;
+
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 213 40% 16%;
+    --muted-foreground: 215 25% 68%;
+    --accent: 213 40% 18%;
+    --accent-foreground: 214 40% 95%;
+
+    --destructive: 0 72% 58%;
+    --success: 145 55% 45%;
+    --warning: 39 85% 55%;
+    --info: 218 80% 62%;
+
+    --border: 213 35% 20%;
+    --input: 213 35% 24%;
+
+    --sidebar-background: 214 55% 10%;
+    --sidebar-foreground: 215 25% 75%;
+    --sidebar-border: 213 35% 18%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 10px -2px hsl(0 0% 0% / 0.45), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 10px 30px -12px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 8px 30px -8px hsl(var(--gold) / 0.35);
+
+    --gradient-subtle: linear-gradient(180deg, hsl(214 55% 8%), hsl(214 50% 10%));
+    color-scheme: dark;
   }
 
   * {
     @apply border-border;
   }
 
+  /* reserva o espaço da scrollbar: a página não "anda pro lado" quando o conteúdo cresce */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-height: 100vh;
-    color-scheme: light;
   }
 
   h1, h2, h3, h4, h5 {
@@ -80,7 +132,7 @@
   }
 
   ::selection {
-    background: hsl(var(--brand) / 0.25);
+    background: hsl(var(--gold) / 0.3);
   }
 }
 
@@ -94,7 +146,7 @@
 
 @layer utilities {
   .text-gradient {
-    background: var(--gradient-primary);
+    background: linear-gradient(90deg, hsl(var(--gold-deep)), hsl(var(--gold)));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

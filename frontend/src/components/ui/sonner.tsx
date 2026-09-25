@@ -1,12 +1,14 @@
 import type { ComponentProps } from 'react';
 import { Toaster as Sonner } from 'sonner';
+import { useTheme } from '@/hooks/useTheme';
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 
 export function Toaster(props: ToasterProps) {
+  const { tema } = useTheme();
   return (
     <Sonner
-      theme="light"
+      theme={tema}
       position="top-center"
       richColors
       toastOptions={{

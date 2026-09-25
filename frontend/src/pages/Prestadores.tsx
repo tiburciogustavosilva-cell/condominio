@@ -12,12 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 const PRESTADOR_VAZIO = { nome: '', email: '', servico: '', empresa: '', telefone: '', observacao: '' };
 
 export default function Prestadores() {
   const {
     prestadores,
+    carregando,
     recarregar: recarregarPrestadores,
     criar: criarPrestador,
     atualizar: atualizarPrestador,
@@ -140,7 +142,9 @@ export default function Prestadores() {
         </CardContent>
       </Card>
 
-      {prestadores.length === 0 ? (
+      {carregando ? (
+        <ListSkeleton />
+      ) : prestadores.length === 0 ? (
         <EmptyState icon={HardHat} title="Nenhum prestador cadastrado" />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

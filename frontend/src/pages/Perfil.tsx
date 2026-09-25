@@ -49,8 +49,8 @@ export default function Perfil() {
 
   if (!perfil) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <Skeleton className="h-9 w-40" />
+      <div className="mx-auto max-w-2xl space-y-6">
+        <PageHeader title="Meu perfil" />
         <Skeleton className="h-56" />
       </div>
     );

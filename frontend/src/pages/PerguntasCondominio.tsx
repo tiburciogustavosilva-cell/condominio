@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, Check, Loader2, Plus, X } from 'lucide-react';
+import { Check, Loader2, Plus, X } from 'lucide-react';
+import { Brand } from '@/components/shared/Brand';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -183,19 +184,14 @@ export default function PerguntasCondominio() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-primary p-6">
+    <div className="flex min-h-screen items-center justify-center app-surface p-6">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="w-full max-w-lg"
       >
-        <div className="mb-6 flex items-center justify-center gap-2 text-primary-foreground">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/15 backdrop-blur">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <span className="font-heading text-lg font-extrabold">Condomínio</span>
-        </div>
+        <Brand className="mb-6 justify-center" />
 
         <Card className="overflow-hidden p-6 shadow-md sm:p-8">
           {modoTeste && (

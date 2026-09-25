@@ -11,13 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '' };
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 export default function Unidades() {
-  const { unidades, recarregar, criar, atualizar, remover } = useUnidades();
+  const { unidades, carregando, recarregar, criar, atualizar, remover } = useUnidades();
   const [form, setForm] = useState<any>(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -113,7 +114,9 @@ export default function Unidades() {
         </CardContent>
       </Card>
 
-      {unidades.length === 0 ? (
+      {carregando ? (
+        <ListSkeleton />
+      ) : unidades.length === 0 ? (
         <EmptyState icon={Building2} title="Nenhuma unidade cadastrada" />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

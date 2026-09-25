@@ -13,7 +13,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif']
+        heading: ['Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        brand: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif']
       },
       colors: {
         border: 'hsl(var(--border))',

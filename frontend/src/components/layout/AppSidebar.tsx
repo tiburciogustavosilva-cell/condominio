@@ -1,21 +1,20 @@
 import { motion } from 'framer-motion';
-import { Building2, ChevronLeft, LogOut, Repeat } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
+import { Brand } from '@/components/shared/Brand';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { iniciais } from '@/lib/format';
 import { navItems } from './nav-items';
 import { NavLink } from './NavLink';
+import { SidebarFooter } from './SidebarFooter';
 
 type Props = {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onTutorial: () => void;
 };
 
-export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
-  const { usuario, isSindico, isAdministradora, condominio, logout } = useAuth();
-  const navigate = useNavigate();
+export function AppSidebar({ collapsed, onToggleCollapse, onTutorial }: Props) {
+  const { isSindico, condominio } = useAuth();
   const links = navItems.filter(
     (l) =>
       (!l.sindico || isSindico) &&
@@ -32,15 +31,7 @@ export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
     >
       {/* marca */}
       <div className={cn('flex h-16 items-center gap-2 px-4', collapsed && 'justify-center px-0')}>
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-gradient-primary text-primary-foreground shadow-glow">
-          <Building2 className="h-5 w-5" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate font-heading text-sm font-extrabold leading-tight">Condomínio</p>
-            <p className="truncate text-xs text-muted-foreground">Gestão</p>
-          </div>
-        )}
+        <Brand compact={collapsed} />
       </div>
 
       {/* navegação */}
@@ -63,51 +54,7 @@ export function AppSidebar({ collapsed, onToggleCollapse }: Props) {
         ))}
       </nav>
 
-      {/* rodapé */}
-      <div className="border-t border-sidebar-border p-3">
-        <div
-          className={cn(
-            'mb-2 flex items-center gap-3 rounded-md px-2 py-2',
-            collapsed && 'justify-center px-0'
-          )}
-        >
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
-            {iniciais(usuario?.nome)}
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{usuario?.nome}</p>
-              <p className="truncate text-xs capitalize text-muted-foreground">{usuario?.papel}</p>
-              {isAdministradora && condominio && <p className="truncate text-xs text-muted-foreground">{condominio.nome}</p>}
-            </div>
-          )}
-        </div>
-
-        {isAdministradora && (
-          <Button
-            variant="ghost"
-            size={collapsed ? 'icon' : 'sm'}
-            className={cn('w-full text-muted-foreground', !collapsed && 'justify-start')}
-            onClick={() => navigate('/meus-condominios')}
-          >
-            <Repeat className="h-4 w-4" />
-            {!collapsed && 'Trocar condomínio'}
-          </Button>
-        )}
-
-        <Button
-          variant="ghost"
-          size={collapsed ? 'icon' : 'sm'}
-          className={cn('w-full text-muted-foreground', !collapsed && 'justify-start')}
-          onClick={() => {
-            logout();
-            navigate('/login');
-          }}
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && 'Sair'}
-        </Button>
-      </div>
+      <SidebarFooter collapsed={collapsed} onTutorial={onTutorial} />
 
       {/* colapsar */}
       <button

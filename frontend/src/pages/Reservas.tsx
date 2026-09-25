@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
 const VISOES = [
   { value: 'mes', label: 'Calendário' },
@@ -31,7 +32,7 @@ const hoje = new Date();
 
 export default function Reservas() {
   const { isSindico } = useAuth();
-  const { reservas, areas, recarregar, criar, atualizarStatus, cancelar } = useReservas();
+  const { reservas, areas, carregando, recarregar, criar, atualizarStatus, cancelar } = useReservas();
   const [form, setForm] = useState({ areaId: '', data: '', periodo: 'tarde', observacao: '' });
   const [loading, setLoading] = useState(false);
   const [visao, setVisao] = useState<ModoCalendario | 'lista'>('mes');
@@ -152,7 +153,9 @@ export default function Reservas() {
       <div className="space-y-4">
         <FilterPills options={VISOES} value={visao} onChange={(v) => setVisao(v as ModoCalendario | 'lista')} />
 
-        {visao !== 'lista' ? (
+        {carregando ? (
+          <ListSkeleton />
+        ) : visao !== 'lista' ? (
           <ReservasCalendario
             modo={visao}
             dataRef={dataRef}

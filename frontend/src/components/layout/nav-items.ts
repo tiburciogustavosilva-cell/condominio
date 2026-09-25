@@ -37,11 +37,5 @@ export const navItems: NavItem[] = [
   { to: '/unidades', label: 'Unidades', icon: Building2, sindico: true }
 ];
 
-/** Barra inferior (mobile) — no máximo 5 itens. */
-export const bottomNavItems: NavItem[] = [
-  navItems[0],
-  navItems[1],
-  navItems[2],
-  navItems[3],
-  navItems[4]
-];
+/** Barra inferior (mobile) — no máximo 4 itens; o 5º é o botão "Menu" que abre o drawer. */
+export const bottomNavItems: NavItem[] = [navItems[0], navItems[1], navItems[2], navItems[3]];

@@ -1,17 +1,20 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { Brand } from '@/components/shared/Brand';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { navItems } from './nav-items';
 import { NavLink } from './NavLink';
+import { SidebarFooter } from './SidebarFooter';
 
 type Props = {
   open: boolean;
   onClose: () => void;
+  onTutorial: () => void;
 };
 
-export function MobileNav({ open, onClose }: Props) {
+export function MobileNav({ open, onClose, onTutorial }: Props) {
   const { isSindico, condominio } = useAuth();
   const links = navItems.filter(
     (l) =>
@@ -39,12 +42,7 @@ export function MobileNav({ open, onClose }: Props) {
             className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-lg"
           >
             <div className="flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-2">
-                <div className="grid h-9 w-9 place-items-center rounded-md bg-gradient-primary text-primary-foreground">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <span className="font-heading text-sm font-extrabold">Condomínio</span>
-              </div>
+              <Brand />
               <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar menu">
                 <X className="h-4 w-4" />
               </Button>
@@ -66,6 +64,7 @@ export function MobileNav({ open, onClose }: Props) {
                 </NavLink>
               ))}
             </nav>
+            <SidebarFooter onTutorial={onTutorial} />
           </motion.aside>
         </div>
       )}
