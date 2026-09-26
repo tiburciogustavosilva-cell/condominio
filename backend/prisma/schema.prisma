@@ -1,0 +1,343 @@
+// Espelha o estado final das antigas migrations do Supabase.
+// Enums (status, papel, tipo...) ficam como String e são validados nos services.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Administradora {
+  id          String       @id @default(uuid()) @db.Uuid
+  nome        String
+  cnpj        String       @default("")
+  criadoEm    DateTime     @default(now()) @map("criado_em") @db.Timestamptz
+  profiles    Profile[]
+  condominios Condominio[]
+
+  @@map("administradoras")
+}
+
+model Condominio {
+  id                  String          @id @default(uuid()) @db.Uuid
+  nome                String
+  endereco            String          @default("")
+  cnpj                String          @default("")
+  temBlocos           Boolean         @default(false) @map("tem_blocos")
+  qtdBlocos           Int?            @map("qtd_blocos")
+  temComercio         Boolean         @default(false) @map("tem_comercio")
+  qtdComercio         Int?            @map("qtd_comercio")
+  temPorteiro         Boolean         @default(false) @map("tem_porteiro")
+  temAreasReserva     Boolean         @default(false) @map("tem_areas_reserva")
+  onboardingConcluido Boolean         @default(false) @map("onboarding_concluido")
+  administradoraId    String?         @map("administradora_id") @db.Uuid
+  administradora      Administradora? @relation(fields: [administradoraId], references: [id], onDelete: Restrict)
+  criadoEm            DateTime        @default(now()) @map("criado_em") @db.Timestamptz
+
+  profiles      Profile[]
+  unidades      Unidade[]
+  areas         Area[]
+  chamados      Chamado[]
+  comentarios   ChamadoComentario[]
+  avisos        Aviso[]
+  reservas      Reserva[]
+  encomendas    Encomenda[]
+  prestadores   Prestador[]
+  manutencoes   Manutencao[]
+  historicos    ManutencaoHistorico[]
+  ativos        Ativo[]
+  ordensServico OrdemServico[]
+  ocorrencias   Ocorrencia[]
+
+  @@map("condominios")
+}
+
+model Profile {
+  id               String          @id @default(uuid()) @db.Uuid
+  nome             String
+  email            String          @unique
+  senhaHash        String          @map("senha_hash")
+  telefone         String?
+  papel            String          @default("condomino") // sindico | condomino | administradora | funcionario
+  cargo            String? // só funcionário: porteiro | zelador | limpeza | ... (define o acesso)
+  unidadeId        String?         @map("unidade_id") @db.Uuid
+  unidade          Unidade?        @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  condominioId     String?         @map("condominio_id") @db.Uuid
+  condominio       Condominio?     @relation(fields: [condominioId], references: [id], onDelete: Restrict)
+  administradoraId String?         @map("administradora_id") @db.Uuid
+  administradora   Administradora? @relation(fields: [administradoraId], references: [id], onDelete: Restrict)
+  tutorialVistoEm  DateTime?       @map("tutorial_visto_em") @db.Timestamptz
+  criadoEm         DateTime        @default(now()) @map("criado_em") @db.Timestamptz
+
+  chamados              Chamado[]
+  comentarios           ChamadoComentario[]
+  avisos                Aviso[]
+  reservas              Reserva[]
+  ocorrencias           Ocorrencia[]
+  encomendasRegistradas Encomenda[]         @relation("EncomendasRegistradas")
+  encomendasLiberadas   Encomenda[]         @relation("EncomendasLiberadas")
+
+  @@map("profiles")
+}
+
+model Unidade {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  numero       String
+  bloco        String     @default("-")
+  tipo         String     @default("apartamento")
+  fracaoIdeal  Decimal    @default(0) @map("fracao_ideal") @db.Decimal(10, 4)
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  profiles    Profile[]
+  chamados    Chamado[]
+  reservas    Reserva[]
+  encomendas  Encomenda[]
+  ocorrencias Ocorrencia[]
+
+  @@map("unidades")
+}
+
+model Area {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  nome         String
+  descricao    String     @default("")
+  capacidade   Int        @default(0)
+  taxa         Decimal    @default(0) @db.Decimal(12, 2)
+  horario      String     @default("")
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+  reservas     Reserva[]
+
+  @@map("areas")
+}
+
+model Chamado {
+  id           String              @id @default(uuid()) @db.Uuid
+  condominioId String              @map("condominio_id") @db.Uuid
+  condominio   Condominio          @relation(fields: [condominioId], references: [id])
+  titulo       String
+  descricao    String
+  categoria    String              @default("geral")
+  status       String              @default("aberto") // aberto | em_andamento | concluido
+  prioridade   String              @default("media") // baixa | media | alta
+  usuarioId    String              @map("usuario_id") @db.Uuid
+  usuario      Profile             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  unidadeId    String?             @map("unidade_id") @db.Uuid
+  unidade      Unidade?            @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  criadoEm     DateTime            @default(now()) @map("criado_em") @db.Timestamptz
+  atualizadoEm DateTime            @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz
+  comentarios  ChamadoComentario[]
+
+  @@index([usuarioId])
+  @@map("chamados")
+}
+
+model ChamadoComentario {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  chamadoId    String     @map("chamado_id") @db.Uuid
+  chamado      Chamado    @relation(fields: [chamadoId], references: [id], onDelete: Cascade)
+  autorId      String     @map("autor_id") @db.Uuid
+  autor        Profile    @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  texto        String
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@index([chamadoId])
+  @@map("chamado_comentarios")
+}
+
+model Aviso {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  titulo       String
+  mensagem     String
+  fixado       Boolean    @default(false)
+  autorId      String     @map("autor_id") @db.Uuid
+  autor        Profile    @relation(fields: [autorId], references: [id])
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@map("avisos")
+}
+
+model Reserva {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  areaId       String     @map("area_id") @db.Uuid
+  area         Area       @relation(fields: [areaId], references: [id])
+  usuarioId    String     @map("usuario_id") @db.Uuid
+  usuario      Profile    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  unidadeId    String?    @map("unidade_id") @db.Uuid
+  unidade      Unidade?   @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  data         DateTime   @db.Date
+  periodo      String // manha | tarde | noite | dia_todo
+  status       String     @default("pendente") // pendente | aprovada | rejeitada | cancelada
+  observacao   String     @default("")
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+  atualizadoEm DateTime   @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz
+
+  @@index([usuarioId])
+  @@map("reservas")
+}
+
+model Encomenda {
+  id                 String     @id @default(uuid()) @db.Uuid
+  condominioId       String     @map("condominio_id") @db.Uuid
+  condominio         Condominio @relation(fields: [condominioId], references: [id])
+  unidadeId          String     @map("unidade_id") @db.Uuid
+  unidade            Unidade    @relation(fields: [unidadeId], references: [id])
+  descricao          String
+  remetente          String     @default("")
+  status             String     @default("aguardando") // aguardando | entregue
+  recebidoPor        String?    @map("recebido_por") // quem retirou (informou o código)
+  // Portaria: foto .webp do pacote, quem trouxe, e o código que o morador informa na retirada
+  foto               Bytes?
+  entregadorNome     String?    @map("entregador_nome")
+  entregadorCpf      String?    @map("entregador_cpf")
+  codigoRetirada     String?    @map("codigo_retirada")
+  codigoRastreio     String?    @map("codigo_rastreio") // da etiqueta (Correios, transportadora)
+  registradoPorId    String?    @map("registrado_por_id") @db.Uuid
+  registradoPor      Profile?   @relation("EncomendasRegistradas", fields: [registradoPorId], references: [id], onDelete: SetNull)
+  liberadoPorId      String?    @map("liberado_por_id") @db.Uuid // funcionário que entregou
+  liberadoPor        Profile?   @relation("EncomendasLiberadas", fields: [liberadoPorId], references: [id], onDelete: SetNull)
+  tentativasRetirada Int        @default(0) @map("tentativas_retirada") // códigos errados; bloqueia no limite
+  volumeGrande       Boolean    @default(false) @map("volume_grande")
+  perecivel          Boolean    @default(false)
+  criadoEm           DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+  entregueEm         DateTime?  @map("entregue_em") @db.Timestamptz
+
+  @@index([unidadeId])
+  @@map("encomendas")
+}
+
+model Prestador {
+  id           String       @id @default(uuid()) @db.Uuid
+  condominioId String       @map("condominio_id") @db.Uuid
+  condominio   Condominio   @relation(fields: [condominioId], references: [id])
+  nome         String
+  email        String
+  servico      String       @default("")
+  empresa      String       @default("")
+  telefone     String       @default("")
+  observacao   String       @default("")
+  criadoEm     DateTime     @default(now()) @map("criado_em") @db.Timestamptz
+  manutencoes  Manutencao[]
+
+  @@map("prestadores")
+}
+
+model Manutencao {
+  id                  String                @id @default(uuid()) @db.Uuid
+  condominioId        String                @map("condominio_id") @db.Uuid
+  condominio          Condominio            @relation(fields: [condominioId], references: [id])
+  prestadorId         String                @map("prestador_id") @db.Uuid
+  prestador           Prestador             @relation(fields: [prestadorId], references: [id], onDelete: Cascade)
+  ativoId             String?               @map("ativo_id") @db.Uuid
+  equipamento         Ativo?                @relation(fields: [ativoId], references: [id], onDelete: Restrict)
+  titulo              String
+  descricao           String                @default("")
+  ultimaManutencao    DateTime              @map("ultima_manutencao") @db.Date
+  frequenciaUnidade   String                @map("frequencia_unidade") // semanal | mensal | anual
+  frequenciaIntervalo Int                   @default(1) @map("frequencia_intervalo")
+  diasAntecedencia    Int                   @default(0) @map("dias_antecedencia")
+  ativo               Boolean               @default(true)
+  ultimoLembreteCiclo DateTime?             @map("ultimo_lembrete_ciclo") @db.Date
+  tipo                String                @default("preventiva")
+  prioridade          String                @default("media")
+  statusManual        String                @default("programada") @map("status_manual")
+  custoPrevisto       Decimal?              @map("custo_previsto") @db.Decimal(12, 2)
+  numeroOs            String?               @map("numero_os")
+  criadoEm            DateTime              @default(now()) @map("criado_em") @db.Timestamptz
+  historico           ManutencaoHistorico[]
+
+  @@index([prestadorId])
+  @@map("manutencoes")
+}
+
+model ManutencaoHistorico {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  manutencaoId String     @map("manutencao_id") @db.Uuid
+  manutencao   Manutencao @relation(fields: [manutencaoId], references: [id], onDelete: Cascade)
+  tipo         String // lembrete | realizada
+  data         DateTime   @db.Date
+  em           DateTime   @default(now()) @db.Timestamptz
+  detalhe      String     @default("")
+
+  @@index([manutencaoId])
+  @@map("manutencao_historico")
+}
+
+model Ativo {
+  id               String         @id @default(uuid()) @db.Uuid
+  condominioId     String         @map("condominio_id") @db.Uuid
+  condominio       Condominio     @relation(fields: [condominioId], references: [id])
+  codigo           String
+  nome             String
+  categoria        String         @default("outros")
+  localizacao      String         @default("")
+  fabricanteModelo String         @default("") @map("fabricante_modelo")
+  numeroSerie      String         @default("") @map("numero_serie")
+  dataInstalacao   DateTime?      @map("data_instalacao") @db.Date
+  vidaUtilAnos     Int?           @map("vida_util_anos")
+  responsavel      String         @default("")
+  observacoes      String         @default("")
+  criadoEm         DateTime       @default(now()) @map("criado_em") @db.Timestamptz
+  manutencoes      Manutencao[]
+  ordensServico    OrdemServico[]
+
+  @@map("ativos")
+}
+
+model OrdemServico {
+  id             String     @id @default(uuid()) @db.Uuid
+  condominioId   String     @map("condominio_id") @db.Uuid
+  condominio     Condominio @relation(fields: [condominioId], references: [id])
+  numeroOs       String?    @map("numero_os")
+  dataAbertura   DateTime   @default(now()) @map("data_abertura") @db.Date
+  dataExecucao   DateTime?  @map("data_execucao") @db.Date
+  ativoId        String?    @map("ativo_id") @db.Uuid
+  ativo          Ativo?     @relation(fields: [ativoId], references: [id], onDelete: Restrict)
+  tipo           String     @default("corretiva")
+  descricao      String
+  diagnostico    String     @default("")
+  acaoExecutada  String     @default("") @map("acao_executada")
+  responsavel    String     @default("")
+  prioridade     String     @default("media")
+  status         String     @default("programada")
+  custoMaterial  Decimal    @default(0) @map("custo_material") @db.Decimal(12, 2)
+  custoMaoDeObra Decimal    @default(0) @map("custo_mao_obra") @db.Decimal(12, 2)
+  observacoes    String     @default("")
+  criadoEm       DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@index([ativoId])
+  @@map("ordens_servico")
+}
+
+model Ocorrencia {
+  id           String     @id @default(uuid()) @db.Uuid
+  condominioId String     @map("condominio_id") @db.Uuid
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  titulo       String
+  descricao    String
+  categoria    String     @default("outro")
+  status       String     @default("aberto")
+  usuarioId    String     @map("usuario_id") @db.Uuid
+  usuario      Profile    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  unidadeId    String?    @map("unidade_id") @db.Uuid
+  unidade      Unidade?   @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+  atualizadoEm DateTime   @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz
+
+  @@index([usuarioId])
+  @@map("ocorrencias")
+}
