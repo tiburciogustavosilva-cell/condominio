@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookText,
   CalendarRange,
@@ -11,11 +11,11 @@ import {
   Users,
   Wrench,
   X,
-  type LucideIcon
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 type Passo = {
   icon?: LucideIcon;
@@ -33,95 +33,108 @@ type Passo = {
 const PASSOS: Passo[] = [
   {
     icon: LayoutDashboard,
-    titulo: 'Painel',
-    to: '/',
-    texto: 'Sua página inicial: um resumo dos chamados, reservas, encomendas e avisos que precisam da sua atenção.'
+    titulo: "Painel",
+    to: "/",
+    texto:
+      "Sua página inicial: um resumo dos chamados, reservas, encomendas e avisos que precisam da sua atenção.",
   },
   {
     icon: Wrench,
-    titulo: 'Chamados',
-    to: '/chamados',
+    titulo: "Chamados",
+    to: "/chamados",
     sindico: true,
-    texto: 'Tudo o que os moradores pedem de manutenção cai aqui, num quadro. Arraste o card entre "Em aberto", "Pendente" e "Encerrado" para atualizar o status.'
+    texto:
+      'Tudo o que os moradores pedem de manutenção cai aqui, num quadro. Arraste o card entre "Em aberto", "Pendente" e "Encerrado" para atualizar o status.',
   },
   {
     icon: Wrench,
-    titulo: 'Chamados',
-    to: '/chamados',
+    titulo: "Chamados",
+    to: "/chamados",
     morador: true,
-    texto: 'Algo quebrou ou precisa de reparo? Abra um chamado e acompanhe o andamento até ser resolvido.'
+    texto:
+      "Algo quebrou ou precisa de reparo? Abra um chamado e acompanhe o andamento até ser resolvido.",
   },
   {
     icon: Users,
-    titulo: 'Unidades e moradores',
-    to: '/unidades',
+    titulo: "Unidades e moradores",
+    to: "/unidades",
     sindico: true,
-    texto: 'Cadastre as unidades do condomínio e vincule cada morador à sua unidade. É o primeiro passo para todo mundo usar o sistema.'
+    texto:
+      "Cadastre as unidades do condomínio e vincule cada morador à sua unidade. É o primeiro passo para todo mundo usar o sistema.",
   },
   {
     icon: CalendarRange,
-    titulo: 'Reservas',
-    to: '/reservas',
+    titulo: "Reservas",
+    to: "/reservas",
     areasReserva: true,
     sindico: true,
-    texto: 'Veja no calendário quem reservou cada área comum e aprove ou recuse os pedidos.'
+    texto:
+      "Veja no calendário quem reservou cada área comum e aprove ou recuse os pedidos.",
   },
   {
     icon: CalendarRange,
-    titulo: 'Reservas',
-    to: '/reservas',
+    titulo: "Reservas",
+    to: "/reservas",
     areasReserva: true,
     morador: true,
-    texto: 'Reserve o salão de festas, a churrasqueira e as outras áreas comuns direto pelo calendário.'
+    texto:
+      "Reserve o salão de festas, a churrasqueira e as outras áreas comuns direto pelo calendário.",
   },
   {
     icon: Package,
-    titulo: 'Encomendas',
-    to: '/encomendas',
+    titulo: "Encomendas",
+    to: "/encomendas",
     porteiro: true,
     sindico: true,
-    texto: 'A portaria registra as entregas que chegam e o morador é avisado. Depois, é só marcar como entregue.'
+    texto:
+      "A portaria registra as entregas que chegam e o morador é avisado. Depois, é só marcar como entregue.",
   },
   {
     icon: Package,
-    titulo: 'Encomendas',
-    to: '/encomendas',
+    titulo: "Encomendas",
+    to: "/encomendas",
     porteiro: true,
     morador: true,
-    texto: 'Chegou pacote na portaria? Ele aparece aqui, e você fica sabendo sem precisar descer para perguntar.'
+    texto:
+      "Chegou pacote na portaria? Ele aparece aqui, e você fica sabendo sem precisar descer para perguntar.",
   },
   {
     icon: Megaphone,
-    titulo: 'Avisos',
-    to: '/avisos',
+    titulo: "Avisos",
+    to: "/avisos",
     sindico: true,
-    texto: 'Publique comunicados para o condomínio inteiro. Fixe os mais importantes para que fiquem sempre no topo.'
+    texto:
+      "Publique comunicados para o condomínio inteiro. Fixe os mais importantes para que fiquem sempre no topo.",
   },
   {
     icon: Megaphone,
-    titulo: 'Avisos',
-    to: '/avisos',
+    titulo: "Avisos",
+    to: "/avisos",
     morador: true,
-    texto: 'Os comunicados do síndico ficam aqui. Os fixados são os mais importantes.'
+    texto:
+      "Os comunicados do síndico ficam aqui. Os fixados são os mais importantes.",
   },
   {
     icon: BookText,
-    titulo: 'Livro de Ocorrência',
-    to: '/ocorrencias',
-    texto: 'Registro de reclamações e ocorridos: barulho, segurança, convivência, danos. Fica tudo documentado.'
+    titulo: "Livro de Ocorrência",
+    to: "/ocorrencias",
+    texto:
+      "Registro de reclamações e ocorridos: barulho, segurança, convivência, danos. Fica tudo documentado.",
   },
   {
     icon: ClipboardList,
-    titulo: 'Manutenção predial e prestadores',
-    to: '/manutencao-predial',
+    titulo: "Manutenção predial e prestadores",
+    to: "/manutencao-predial",
     sindico: true,
-    texto: 'Cadastre os equipamentos e os prestadores, monte o plano de manutenção e baixe o relatório em planilha quando precisar.'
+    texto:
+      "Cadastre os equipamentos e os prestadores, monte o plano de manutenção e baixe o relatório em planilha quando precisar.",
   },
   {
     icon: Menu,
-    titulo: 'Menu lateral',
-    texto: 'Tudo fica no menu à esquerda (no celular, em "Menu"). Lá embaixo estão seu perfil, o modo escuro e o botão de sair.'
-  }
+    titulo: "Menu lateral",
+    texto:
+      'Tudo fica no menu à esquerda (no celular, em "Menu"). Lá embaixo estão seu perfil, o modo escuro e o botão de sair.',
+  },
 ];
 
 /** Tutorial guiado (primeiro acesso ou botão "Ver tutorial"): cada passo abre a tela que explica,
@@ -133,11 +146,13 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
 
   const passos: Passo[] = [
     {
-      to: '/',
-      titulo: `Olá, ${usuario?.nome?.split(' ')[0] ?? ''}! Bem-vindo à Alpha Condomínios`,
+      to: "/",
+      titulo: `Olá, ${
+        usuario?.nome?.split(" ")[0] ?? ""
+      }! Bem-vindo à Áquila Condomínios`,
       texto: isSindico
-        ? 'Eu sou a águia da Alpha e vou te mostrar em um minuto como gerenciar o seu condomínio por aqui.'
-        : 'Eu sou a águia da Alpha e vou te mostrar em um minuto como resolver as coisas do seu condomínio por aqui.'
+        ? "Eu sou a águia da Áquila e vou te mostrar em um minuto como gerenciar o seu condomínio por aqui."
+        : "Eu sou a águia da Áquila e vou te mostrar em um minuto como resolver as coisas do seu condomínio por aqui.",
     },
     ...PASSOS.filter(
       (p) =>
@@ -145,7 +160,7 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
         (!p.morador || !isSindico) &&
         (!p.porteiro || condominio?.temPorteiro) &&
         (!p.areasReserva || condominio?.temAreasReserva)
-    )
+    ),
   ];
   const atual = passos[passo];
   const ultimo = passo === passos.length - 1;
@@ -187,7 +202,10 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
               {passo + 1} de {passos.length}
             </p>
           </div>
-          <h2 id="tutorial-titulo" className="font-heading text-lg font-bold leading-snug tracking-tight">
+          <h2
+            id="tutorial-titulo"
+            className="font-heading text-lg font-bold leading-snug tracking-tight"
+          >
             {atual.titulo}
           </h2>
           <p className="text-sm text-muted-foreground">{atual.texto}</p>
@@ -199,7 +217,10 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
           {passos.map((_, i) => (
             <span
               key={i}
-              className={cn('h-1.5 rounded-full bg-border transition-all', i === passo ? 'w-5 bg-primary' : 'w-1.5')}
+              className={cn(
+                "h-1.5 rounded-full bg-border transition-all",
+                i === passo ? "w-5 bg-primary" : "w-1.5"
+              )}
             />
           ))}
         </div>
@@ -209,12 +230,20 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
               Pular
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => setPasso(passo - 1)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPasso(passo - 1)}
+            >
               Voltar
             </Button>
           )}
-          <Button variant="brand" size="sm" onClick={ultimo ? onClose : () => setPasso(passo + 1)}>
-            {ultimo ? 'Começar' : 'Próximo'}
+          <Button
+            variant="brand"
+            size="sm"
+            onClick={ultimo ? onClose : () => setPasso(passo + 1)}
+          >
+            {ultimo ? "Começar" : "Próximo"}
           </Button>
         </div>
       </div>

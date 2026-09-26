@@ -20,6 +20,8 @@ type Props = {
   cancelLabel?: string;
   confirmVariant?: ButtonProps['variant'];
   successMessage?: string;
+  /** Conteúdo extra entre o título e os botões (ex.: campos de um formulário curto). */
+  children?: ReactNode;
   onConfirm: () => Promise<unknown>;
 };
 
@@ -35,6 +37,7 @@ export function AsyncConfirmDialog({
   cancelLabel = 'Cancelar',
   confirmVariant = 'default',
   successMessage,
+  children,
   onConfirm
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -61,6 +64,7 @@ export function AsyncConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
+        {children}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
             {cancelLabel}

@@ -40,3 +40,9 @@ export function prazoTexto(dias: number | null | undefined) {
   const d = Math.abs(dias);
   return d === 1 ? 'há 1 dia' : `há ${d} dias`;
 }
+
+/** "A - 101"; sem bloco (salvo como "-") vira só "101". */
+export function rotuloUnidade(u: { bloco: string; numero: string } | null | undefined) {
+  if (!u) return null;
+  return !u.bloco || u.bloco === '-' ? u.numero : `${u.bloco} - ${u.numero}`;
+}

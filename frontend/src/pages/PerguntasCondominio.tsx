@@ -5,7 +5,7 @@ import { Check, Loader2, Plus, X } from 'lucide-react';
 import { Brand } from '@/components/shared/Brand';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -84,35 +84,22 @@ export default function PerguntasCondominio() {
     }
     setSalvando(true);
     try {
-      const { error } = await supabase
-        .from('condominios')
-        .update({
-          tem_blocos: !!respostasFinais.temBlocos,
-          qtd_blocos: respostasFinais.temBlocos ? Number(respostasFinais.qtdBlocos) || 0 : null,
-          tem_comercio: !!respostasFinais.temComercio,
-          qtd_comercio: respostasFinais.temComercio ? Number(respostasFinais.qtdComercio) || 0 : null,
-          tem_areas_reserva: !!respostasFinais.temAreasReserva,
-          tem_porteiro: !!respostasFinais.temPorteiro,
-          onboarding_concluido: true
-        })
-        .eq('id', usuario.condominioId);
-      if (error) throw error;
-
+      const areas: string[] = [];
       if (respostasFinais.temAreasReserva) {
-        const novasAreas: string[] = [];
-        if (respostasFinais.areasEscolhidas.salao) novasAreas.push('Salão de festas');
-        if (respostasFinais.areasEscolhidas.churrasqueira) novasAreas.push('Churrasqueira');
-        for (const nome of respostasFinais.areasPersonalizadas) {
-          const limpo = nome.trim();
-          if (limpo) novasAreas.push(limpo);
-        }
-        if (novasAreas.length > 0) {
-          const { error: erroAreas } = await supabase
-            .from('areas')
-            .insert(novasAreas.map((nome) => ({ nome })));
-          if (erroAreas) throw erroAreas;
-        }
+        if (respostasFinais.areasEscolhidas.salao) areas.push('Salão de festas');
+        if (respostasFinais.areasEscolhidas.churrasqueira) areas.push('Churrasqueira');
+        areas.push(...respostasFinais.areasPersonalizadas);
       }
+      // O backend grava as respostas e cria as áreas numa transação só.
+      await api.put('/condominios/atual', {
+        temBlocos: respostasFinais.temBlocos,
+        qtdBlocos: respostasFinais.qtdBlocos,
+        temComercio: respostasFinais.temComercio,
+        qtdComercio: respostasFinais.qtdComercio,
+        temAreasReserva: respostasFinais.temAreasReserva,
+        temPorteiro: respostasFinais.temPorteiro,
+        areas
+      });
 
       await recarregarCondominio();
       toast.success('Tudo certo! Seu condomínio está configurado.');

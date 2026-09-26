@@ -6,11 +6,7 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (carregando) {
-    return (
-      <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">
-        Carregando…
-      </div>
-    );
+    return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Carregando…</div>;
   }
   if (!usuario) return <Navigate to="/login" state={{ from: location }} replace />;
   return <Outlet />;
@@ -42,10 +38,18 @@ export function RequireOnboardingConcluido() {
   return <Outlet />;
 }
 
+/** Funcionário (portaria) só usa Encomendas/Avisos/Perfil — o resto manda pra lá. */
+export function BloqueiaFuncionario() {
+  const { isFuncionario, isEquipe, condominio } = useAuth();
+  if (isFuncionario) return <Navigate to={isEquipe && condominio?.temPorteiro ? '/encomendas' : '/avisos'} replace />;
+  return <Outlet />;
+}
+
 /** Só libera a rota se o condomínio tiver porteiro (ex.: módulo de Encomendas). */
 export function RequireComPorteiro() {
-  const { condominio } = useAuth();
+  const { condominio, isFuncionario, isEquipe } = useAuth();
   if (condominio && !condominio.temPorteiro) return <Navigate to="/" replace />;
+  if (isFuncionario && !isEquipe) return <Navigate to="/avisos" replace />; // só porteiro usa Encomendas
   return <Outlet />;
 }
 

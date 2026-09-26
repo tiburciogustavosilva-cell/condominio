@@ -3,6 +3,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import {
+  BloqueiaFuncionario,
   RequireAuth,
   RequireComAreasReserva,
   RequireComPorteiro,
@@ -26,6 +27,7 @@ import Ocorrencias from '@/pages/Ocorrencias';
 import Prestadores from '@/pages/Prestadores';
 import ManutencaoPredial from '@/pages/ManutencaoPredial';
 import Moradores from '@/pages/Moradores';
+import Funcionarios from '@/pages/Funcionarios';
 import Unidades from '@/pages/Unidades';
 import Perfil from '@/pages/Perfil';
 
@@ -44,24 +46,27 @@ export default function App() {
             <Route element={<RequireCondominioAtivo />}>
               <Route element={<RequireOnboardingConcluido />}>
                 <Route element={<AdminLayout />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="chamados" element={<Chamados />} />
-                  <Route path="chamados/novo" element={<NovoChamado />} />
-                  <Route path="chamados/:id" element={<ChamadoDetalhe />} />
-                  <Route element={<RequireComAreasReserva />}>
-                    <Route path="reservas" element={<Reservas />} />
+                  <Route element={<BloqueiaFuncionario />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="chamados" element={<Chamados />} />
+                    <Route path="chamados/novo" element={<NovoChamado />} />
+                    <Route path="chamados/:id" element={<ChamadoDetalhe />} />
+                    <Route element={<RequireComAreasReserva />}>
+                      <Route path="reservas" element={<Reservas />} />
+                    </Route>
+                    <Route path="ocorrencias" element={<Ocorrencias />} />
                   </Route>
                   <Route element={<RequireComPorteiro />}>
                     <Route path="encomendas" element={<Encomendas />} />
                   </Route>
                   <Route path="avisos" element={<Avisos />} />
-                  <Route path="ocorrencias" element={<Ocorrencias />} />
                   <Route path="perfil" element={<Perfil />} />
 
                   <Route element={<RequireSindico />}>
                     <Route path="prestadores" element={<Prestadores />} />
                     <Route path="manutencao-predial" element={<ManutencaoPredial />} />
                     <Route path="moradores" element={<Moradores />} />
+                    <Route path="funcionarios" element={<Funcionarios />} />
                     <Route path="unidades" element={<Unidades />} />
                   </Route>
                 </Route>

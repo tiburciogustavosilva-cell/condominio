@@ -5,14 +5,14 @@
 @layer base {
   :root {
     /* ============================================================
-       Alpha Condomínios — cores da logo, do mascote e da LP
+       Áquila Condomínios — cores da logo, do mascote e da LP
        navy #0B2545 · polo #2F5BA8 · dourado #C9A45C
        ============================================================ */
     --navy: 213 72% 16%;
-    --brand: var(--navy);           /* navy — primária            */
-    --brand-support: 218 56% 42%;   /* azul polo do mascote       */
-    --brand-foreground: 0 0% 100%;  /* texto sobre as cores acima */
-    --gold: 40 50% 57%;             /* dourado — CTA (variant brand) e foco */
+    --brand: var(--navy); /* navy — primária            */
+    --brand-support: 218 56% 42%; /* azul polo do mascote       */
+    --brand-foreground: 0 0% 100%; /* texto sobre as cores acima */
+    --gold: 40 50% 57%; /* dourado — CTA (variant brand) e foco */
     --gold-deep: 38 51% 40%;
 
     /* ---- superfícies ---- */
@@ -58,15 +58,25 @@
 
     /* ---- sombras ---- */
     --shadow-sm: 0 1px 2px 0 hsl(213 72% 16% / 0.05);
-    --shadow: 0 1px 3px 0 hsl(213 72% 16% / 0.1), 0 1px 2px -1px hsl(213 72% 16% / 0.1);
-    --shadow-md: 0 4px 10px -2px hsl(213 72% 16% / 0.12), 0 2px 4px -2px hsl(213 72% 16% / 0.08);
+    --shadow: 0 1px 3px 0 hsl(213 72% 16% / 0.1),
+      0 1px 2px -1px hsl(213 72% 16% / 0.1);
+    --shadow-md: 0 4px 10px -2px hsl(213 72% 16% / 0.12),
+      0 2px 4px -2px hsl(213 72% 16% / 0.08);
     --shadow-lg: 0 10px 30px -12px hsl(213 72% 16% / 0.18);
     --shadow-glow: 0 8px 30px -8px hsl(var(--gold) / 0.6);
 
     /* ---- gradientes ---- */
-    --gradient-primary: linear-gradient(135deg, #D8B873, #B88E43);
-    --gradient-support: linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand-support)));
-    --gradient-subtle: linear-gradient(180deg, hsl(214 47% 97%), hsl(214 40% 95%));
+    --gradient-primary: linear-gradient(135deg, #d8b873, #b88e43);
+    --gradient-support: linear-gradient(
+      135deg,
+      hsl(var(--brand)),
+      hsl(var(--brand-support))
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(214 47% 97%),
+      hsl(214 40% 95%)
+    );
     color-scheme: light;
   }
 
@@ -105,11 +115,16 @@
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
-    --shadow-md: 0 4px 10px -2px hsl(0 0% 0% / 0.45), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 10px -2px hsl(0 0% 0% / 0.45),
+      0 2px 4px -2px hsl(0 0% 0% / 0.3);
     --shadow-lg: 0 10px 30px -12px hsl(0 0% 0% / 0.6);
     --shadow-glow: 0 8px 30px -8px hsl(var(--gold) / 0.35);
 
-    --gradient-subtle: linear-gradient(180deg, hsl(214 55% 8%), hsl(214 50% 10%));
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(214 55% 8%),
+      hsl(214 50% 10%)
+    );
     color-scheme: dark;
   }
 
@@ -127,7 +142,11 @@
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4, h5 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
     @apply font-heading font-bold tracking-tight;
   }
 

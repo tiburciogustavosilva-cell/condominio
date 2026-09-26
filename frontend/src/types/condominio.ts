@@ -1,9 +1,25 @@
 /**
  * Types + enums + labels compartilhados entre páginas, hooks e componentes.
- * Espelha as tabelas do Supabase (ver supabase/migrations/). IDs são uuid (string).
+ * Espelha as respostas da API (backend/prisma/schema.prisma). IDs são uuid (string).
  */
 
-export type Papel = 'sindico' | 'condomino' | 'administradora';
+export type Papel = 'sindico' | 'condomino' | 'administradora' | 'funcionario';
+
+/** Cargos de funcionário (espelha CARGOS em backend/src/utils/acesso.js). */
+export type Cargo = 'porteiro' | 'zelador' | 'limpeza' | 'jardineiro' | 'manutencao' | 'seguranca' | 'outro';
+/** Cargos que usam Encomendas (espelha CARGOS_PORTARIA no backend). */
+export const CARGOS_PORTARIA: Cargo[] = ['porteiro'];
+
+export interface Funcionario {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  cargo: Cargo;
+  criadoEm: string;
+}
+
+export type PessoaComFuncao = { nome: string; papel: Papel; cargo: Cargo | null };
 
 export interface Administradora {
   id: string;
@@ -139,8 +155,25 @@ export interface Encomenda {
   descricao: string;
   remetente: string;
   status: StatusEncomenda;
+  /** Quem retirou (nome registrado pela portaria junto com o código). */
   recebidoPor: string | null;
   unidadeLabel?: string;
+  entregadorNome: string | null;
+  /** Código de rastreio da etiqueta (opcional). */
+  codigoRastreio: string | null;
+  /** Usuário (portaria/síndico) que registrou no sistema; null se foi removido. */
+  registradoPor: PessoaComFuncao | null;
+  /** Funcionário que liberou a retirada (conferiu o código). */
+  liberadoPor: PessoaComFuncao | null;
+  /** Travada após 5 códigos errados — só o síndico desbloqueia. */
+  bloqueada: boolean;
+  volumeGrande: boolean;
+  perecivel: boolean;
+  /** Só vem para a portaria/síndico. */
+  entregadorCpf?: string | null;
+  /** Só vem para o morador da unidade, e só enquanto aguardando. */
+  codigoRetirada?: string | null;
+  temFoto: boolean;
   criadoEm: string;
   entregueEm: string | null;
 }
@@ -257,7 +290,21 @@ export interface DashboardResumo {
 }
 
 export const LABEL = {
-  papel: { sindico: 'Síndico', condomino: 'Condômino', administradora: 'Administradora' } as Record<string, string>,
+  papel: {
+    sindico: 'Síndico',
+    condomino: 'Condômino',
+    administradora: 'Administradora',
+    funcionario: 'Funcionário'
+  } as Record<string, string>,
+  cargo: {
+    porteiro: 'Porteiro',
+    zelador: 'Zelador',
+    limpeza: 'Limpeza / Faxina',
+    jardineiro: 'Jardineiro',
+    manutencao: 'Manutenção',
+    seguranca: 'Segurança',
+    outro: 'Outro'
+  } as Record<string, string>,
   periodo: {
     manha: 'Manhã',
     tarde: 'Tarde',
@@ -304,3 +351,9 @@ export const LABEL = {
     outro: 'Outro'
   } as Record<string, string>
 };
+
+/** "Porteiro João", "Síndico Maria": cargo (funcionário) ou papel antes do nome. */
+export function nomeComFuncao(p: { nome: string; papel: Papel; cargo?: Cargo | null }) {
+  const funcao = (p.cargo && LABEL.cargo[p.cargo]) || LABEL.papel[p.papel];
+  return funcao ? `${funcao} ${p.nome}` : p.nome;
+}

@@ -6,24 +6,24 @@ Stack: **Vite + React + TypeScript + Tailwind + shadcn/ui + framer-motion**, tud
 
 ## 1. Fundação
 
-| Arquivo | Papel |
-|---|---|
-| `src/index.css` | Tokens HSL (tema claro), gradientes, sombras, camadas `base/components/utilities` |
+| Arquivo              | Papel                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `src/index.css`      | Tokens HSL (tema claro), gradientes, sombras, camadas `base/components/utilities`                                      |
 | `tailwind.config.ts` | Mapeia os tokens para classes (`bg-primary`, `shadow-glow`, `bg-gradient-primary`…), fontes, `borderRadius`, animações |
-| `components.json` | Config do shadcn/ui (style `new-york`, alias `@/`, baseColor `orange`) |
-| `src/lib/utils.ts` | `cn()` = `twMerge(clsx(...))` |
-| `postcss.config.js` | `tailwindcss` + `autoprefixer` |
-| `vite.config.ts` | porta `8080`, alias `@ → src` |
+| `components.json`    | Config do shadcn/ui (style `new-york`, alias `@/`, baseColor `orange`)                                                 |
+| `src/lib/utils.ts`   | `cn()` = `twMerge(clsx(...))`                                                                                          |
+| `postcss.config.js`  | `tailwindcss` + `autoprefixer`                                                                                         |
+| `vite.config.ts`     | porta `8080`, alias `@ → src`                                                                                          |
 
 ### Recolorir TUDO mexendo em 3 tokens
 
 Em `src/index.css`, dentro de `:root`:
 
 ```css
---brand: 213 72% 16%;           /* navy — primária            */
---brand-support: 218 56% 42%;   /* azul polo do mascote       */
---brand-foreground: 0 0% 100%;  /* texto sobre as cores acima */
---gold: 40 50% 57%;             /* dourado — CTA e foco       */
+--brand: 213 72% 16%; /* navy — primária            */
+--brand-support: 218 56% 42%; /* azul polo do mascote       */
+--brand-foreground: 0 0% 100%; /* texto sobre as cores acima */
+--gold: 40 50% 57%; /* dourado — CTA e foco       */
 ```
 
 `--primary` e `--secondary` são **derivados** desses três (`--primary: var(--brand)`), então
@@ -34,7 +34,7 @@ Os valores são triplas HSL **sem** `hsl(...)` — o wrapper fica no Tailwind (`
 
 ## 2. Identidade
 
-- **Marca**: Alpha Condomínios. Cores da logo/mascote/LP (`landingpage-alphacondo`). Logo, emblema e mascote em `public/brand/`; `<Brand/>` e `<BrandPanel/>` em `components/shared/Brand.tsx`.
+- **Marca**: Áquila Condomínios. Cores da logo/mascote/LP (`landingpage-alphacondo`). Logo, emblema e mascote em `public/brand/`; `<Brand/>` e `<BrandPanel/>` em `components/shared/Brand.tsx`.
 - **CTA**: gradiente dourado com texto navy → `<Button variant="brand">` (+ `shadow-glow`); navy chapado → `variant="default"`.
 - **Apoio**: azul polo `218 56% 42%` → `variant="secondary"`, avatares, badge "fixado".
 - **Fontes da marca**: `Montserrat` só no wordmark (`font-brand`).
@@ -42,7 +42,7 @@ Os valores são triplas HSL **sem** `hsl(...)` — o wrapper fica no Tailwind (`
 - **Raio**: `--radius: 0.75rem` → `rounded-lg/md/sm`.
 - **Densidade compacta**: inputs/botões `h-9`, cards `p-4/p-5`, textos meta em `text-xs`.
 - **Movimento**: `framer-motion` — fade-up nos `StatCard`, transição de rota no `AdminLayout`, drawer mobile, largura da sidebar.
-- **Tema**: claro + escuro (`darkMode: ['class']`). Tokens do escuro no bloco `.dark` do `index.css` (fundo navy, dourado vira `--primary`). Script no `index.html` aplica a classe antes do React (preferência salva em `localStorage.tema`, senão a do SO); `useTheme()` lê/alterna, botão "Modo escuro/claro" no `SidebarFooter`. Emblema claro para o escuro: `public/brand/emblema-dark.png`.
+- **Tema**: claro + escuro (`darkMode: ['class']`). Tokens do escuro no bloco `.dark` do `index.css` (fundo navy, dourado vira `--primary`). Script no `index.html` aplica a classe antes do React (padrão sempre claro; escuro só se `localStorage.tema === 'dark'`, escolhido no menu); `useTheme()` lê/alterna, botão "Modo escuro/claro" no `SidebarFooter`. Emblema claro para o escuro: `public/brand/emblema-dark.png`.
 
 ---
 
@@ -67,33 +67,33 @@ AdminLayout
 
 ## 4. Primitivos (`src/components/ui/`)
 
-| Componente | Variantes / notas |
-|---|---|
-| `button` | `default`, `brand`, `secondary`, `destructive`, `outline`, `ghost`, `link` × `sm/default/lg/icon`; `asChild` p/ virar `<Link>` |
-| `card` | `Card` + `CardHeader/Title/Description/Content/Footer` |
-| `badge` | `default`, `secondary`, `destructive`, `outline`, `success`, `warning`, `info`, `muted` |
-| `input`, `textarea`, `label` | estilo shadcn, foco com `ring` |
-| `dialog`, `popover` | Radix + animações `data-[state]` |
-| `calendar` | `react-day-picker` v8, locale `ptBR` |
-| `progress` | Radix, aceita `indicatorClassName` |
-| `skeleton`, `sonner` | loading e toasts |
+| Componente                   | Variantes / notas                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `button`                     | `default`, `brand`, `secondary`, `destructive`, `outline`, `ghost`, `link` × `sm/default/lg/icon`; `asChild` p/ virar `<Link>` |
+| `card`                       | `Card` + `CardHeader/Title/Description/Content/Footer`                                                                         |
+| `badge`                      | `default`, `secondary`, `destructive`, `outline`, `success`, `warning`, `info`, `muted`                                        |
+| `input`, `textarea`, `label` | estilo shadcn, foco com `ring`                                                                                                 |
+| `dialog`, `popover`          | Radix + animações `data-[state]`                                                                                               |
+| `calendar`                   | `react-day-picker` v8, locale `ptBR`                                                                                           |
+| `progress`                   | Radix, aceita `indicatorClassName`                                                                                             |
+| `skeleton`, `sonner`         | loading e toasts                                                                                                               |
 
 ---
 
 ## 5. Padrões (`src/components/shared/`)
 
-| Componente | Uso |
-|---|---|
-| `PageHeader` | título Nunito + descrição + `actions` + `backTo` |
-| `StatCard` | métrica com ícone, `tone`, opcional `to` (clicável) e `index` (delay do fade) |
-| `StatusBadge` / `PrioridadeBadge` | **mapa único** status→(rótulo PT-BR, variante); fallback `muted` para status desconhecido |
-| `ListCard` | card de lista clicável (title/subtitle/meta/trailing + chevron) |
-| `FilterPills` | pills de filtro, seleção única |
-| `DatePicker` | `Popover` + `Calendar`, entra/sai como `"yyyy-MM-dd"` |
-| `EmptyState` | ícone + título + descrição + ação |
-| `AsyncConfirmDialog` | `Dialog` com `onConfirm: () => Promise`; spinner no botão, fecha no sucesso, erro vira `toast` |
-| `ProgressStat` | barra rotulada `valor/total · %` |
-| `Field` | `Label` + controle + `hint`, espaçamento `space-y-1.5` |
+| Componente                        | Uso                                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PageHeader`                      | título Nunito + descrição + `actions` + `backTo`                                               |
+| `StatCard`                        | métrica com ícone, `tone`, opcional `to` (clicável) e `index` (delay do fade)                  |
+| `StatusBadge` / `PrioridadeBadge` | **mapa único** status→(rótulo PT-BR, variante); fallback `muted` para status desconhecido      |
+| `ListCard`                        | card de lista clicável (title/subtitle/meta/trailing + chevron)                                |
+| `FilterPills`                     | pills de filtro, seleção única                                                                 |
+| `DatePicker`                      | `Popover` + `Calendar`, entra/sai como `"yyyy-MM-dd"`                                          |
+| `EmptyState`                      | ícone + título + descrição + ação                                                              |
+| `AsyncConfirmDialog`              | `Dialog` com `onConfirm: () => Promise`; spinner no botão, fecha no sucesso, erro vira `toast` |
+| `ProgressStat`                    | barra rotulada `valor/total · %`                                                               |
+| `Field`                           | `Label` + controle + `hint`, espaçamento `space-y-1.5`                                         |
 
 ---
 
@@ -103,8 +103,8 @@ AdminLayout
 - **Grid de cards**: `grid gap-4 sm:grid-cols-2 xl:grid-cols-4`.
 - **Ícones**: `lucide-react`, `h-4 w-4` em botões/meta, `h-5 w-5` em headers/StatCard.
 - **Feedback assíncrono**: `toast.success/error` do `sonner`; botões desabilitam e mostram `<Loader2 className="animate-spin"/>` enquanto aguardam.
-- **Permissões**: `useAuth().isSindico` no client (esconder UI) — a autorização real é sempre RLS no Postgres (ver `docs/SUPABASE_MIGRATION.md`).
-- **Fetch**: tudo via `supabase-js` dentro dos hooks (`src/hooks/useX.ts`), nunca direto nas páginas; sessão expirada é tratada pelo próprio `onAuthStateChange` do `useAuth`, que redireciona pra `/login`.
+- **Permissões**: `useAuth().isSindico` no client (esconder UI) — a autorização real é sempre no backend (`backend/src/services`).
+- **Fetch**: tudo via `api` (`src/lib/api.ts`) dentro dos hooks (`src/hooks/useX.ts`), nunca direto nas páginas; um 401 limpa o token e o `useAuth` volta pra `/login`.
 
 ## 7. Dependências-chave
 

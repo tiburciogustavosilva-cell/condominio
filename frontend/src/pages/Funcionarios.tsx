@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Loader2, Users } from 'lucide-react';
+import { IdCard, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useMoradores } from '@/hooks/useMoradores';
-import { useUnidades } from '@/hooks/useUnidades';
-import { rotuloUnidade } from '@/lib/format';
-import { LABEL } from '@/types/condominio';
-import type { Morador } from '@/types/condominio';
+import { useFuncionarios, type DadosFuncionario } from '@/hooks/useFuncionarios';
+import { CARGOS_PORTARIA, LABEL } from '@/types/condominio';
+import type { Cargo, Funcionario } from '@/types/condominio';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
@@ -19,27 +17,30 @@ import { ListSkeleton } from '@/components/shared/ListSkeleton';
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-export default function Moradores() {
-  const { moradores, carregando, recarregar, criar, atualizar, remover } = useMoradores();
-  const { unidades } = useUnidades();
-  const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', papel: 'condomino' };
-  const [form, setForm] = useState(vazio);
+const VAZIO: DadosFuncionario = { nome: '', email: '', senha: '', telefone: '', cargo: 'porteiro' };
+
+/** O que cada cargo acessa no app (espelha CARGOS_PORTARIA). */
+const acessoDo = (cargo: string) => (CARGOS_PORTARIA.includes(cargo as Cargo) ? 'Encomendas e Avisos' : 'Avisos');
+
+export default function Funcionarios() {
+  const { funcionarios, carregando, recarregar, criar, atualizar, remover } = useFuncionarios();
+  const [form, setForm] = useState(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function set(campo: string, valor: string) {
+  function set(campo: keyof DadosFuncionario, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }));
   }
 
-  function editar(m: Morador) {
-    setEditandoId(m.id);
-    setForm({ ...vazio, nome: m.nome, telefone: m.telefone || '', unidadeId: m.unidadeId || '', papel: m.papel });
+  function editar(f: Funcionario) {
+    setEditandoId(f.id);
+    setForm({ ...VAZIO, nome: f.nome, telefone: f.telefone || '', cargo: f.cargo });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cancelarEdicao() {
     setEditandoId(null);
-    setForm(vazio);
+    setForm(VAZIO);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,16 +48,11 @@ export default function Moradores() {
     setLoading(true);
     try {
       if (editandoId) {
-        await atualizar(editandoId, {
-          nome: form.nome,
-          telefone: form.telefone,
-          papel: form.papel,
-          unidadeId: form.unidadeId || null
-        });
+        await atualizar(editandoId, { nome: form.nome, telefone: form.telefone, cargo: form.cargo });
       } else {
         await criar(form);
       }
-      toast.success(editandoId ? 'Morador atualizado' : 'Morador cadastrado');
+      toast.success(editandoId ? 'Funcionário atualizado' : 'Funcionário cadastrado');
       cancelarEdicao();
       recarregar();
     } catch (err) {
@@ -66,18 +62,16 @@ export default function Moradores() {
     }
   }
 
-  function nomeUnidade(id: string | null) {
-    const u = unidades.find((x) => x.id === id);
-    return rotuloUnidade(u) ?? '—';
-  }
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Moradores" description="Cadastro de usuários e vínculo com as unidades." />
+      <PageHeader
+        title="Funcionários"
+        description="Porteiros, zeladores, limpeza e demais funcionários do prédio. O cargo define o que cada um acessa."
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar morador' : 'Novo morador'}</CardTitle>
+          <CardTitle className="text-base">{editandoId ? 'Editar funcionário' : 'Novo funcionário'}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,10 +79,33 @@ export default function Moradores() {
               <Field label="Nome" htmlFor="nome">
                 <Input id="nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
               </Field>
+              <Field label="Cargo" htmlFor="cargo" hint={`Acessa: ${acessoDo(form.cargo)}.`}>
+                <select
+                  id="cargo"
+                  className={selectCls}
+                  value={form.cargo}
+                  onChange={(e) => set('cargo', e.target.value)}
+                >
+                  {Object.entries(LABEL.cargo).map(([valor, rotulo]) => (
+                    <option key={valor} value={valor}>
+                      {rotulo}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Telefone" htmlFor="tel">
+                <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
+              </Field>
               {!editandoId && (
                 <>
                   <Field label="E-mail (login)" htmlFor="email">
-                    <Input id="email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => set('email', e.target.value)}
+                      required
+                    />
                   </Field>
                   <Field label="Senha inicial" htmlFor="senha">
                     <Input
@@ -102,35 +119,6 @@ export default function Moradores() {
                   </Field>
                 </>
               )}
-              <Field label="Telefone" htmlFor="tel">
-                <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
-              </Field>
-              <Field label="Unidade" htmlFor="uni">
-                <select
-                  id="uni"
-                  className={selectCls}
-                  value={form.unidadeId}
-                  onChange={(e) => set('unidadeId', e.target.value)}
-                >
-                  <option value="">Sem unidade</option>
-                  {unidades.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {rotuloUnidade(u)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Papel" htmlFor="papel">
-                <select
-                  id="papel"
-                  className={selectCls}
-                  value={form.papel}
-                  onChange={(e) => set('papel', e.target.value)}
-                >
-                  <option value="condomino">Condômino</option>
-                  <option value="sindico">Síndico</option>
-                </select>
-              </Field>
             </div>
             <div className="flex justify-end gap-2">
               {editandoId && (
@@ -149,26 +137,24 @@ export default function Moradores() {
 
       {carregando ? (
         <ListSkeleton />
-      ) : moradores.length === 0 ? (
-        <EmptyState icon={Users} title="Nenhum morador cadastrado" />
+      ) : funcionarios.length === 0 ? (
+        <EmptyState icon={IdCard} title="Nenhum funcionário cadastrado" />
       ) : (
         <div className="space-y-3">
-          {moradores.map((m) => (
-            <Card key={m.id}>
+          {funcionarios.map((f) => (
+            <Card key={f.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
                 <div className="space-y-1">
                   <p className="flex items-center gap-2 font-semibold">
-                    {m.nome}
-                    <Badge variant={m.papel === 'sindico' ? 'secondary' : 'muted'}>
-                      {LABEL.papel[m.papel] ?? m.papel}
-                    </Badge>
+                    {f.nome}
+                    <Badge variant="secondary">{LABEL.cargo[f.cargo] ?? f.cargo}</Badge>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {m.email} · {m.telefone || 'sem telefone'} · {nomeUnidade(m.unidadeId)}
+                    {f.email} · {f.telefone || 'sem telefone'} · acessa {acessoDo(f.cargo)}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => editar(m)}>
+                  <Button size="sm" variant="outline" onClick={() => editar(f)}>
                     Editar
                   </Button>
                   <AsyncConfirmDialog
@@ -177,12 +163,12 @@ export default function Moradores() {
                         Remover
                       </Button>
                     }
-                    title={`Remover ${m.nome}?`}
-                    description="Remove o acesso e os chamados/reservas/ocorrências abertos por essa pessoa."
+                    title={`Remover ${f.nome}?`}
+                    description="A pessoa perde o acesso ao app. Encomendas que ela registrou continuam no histórico."
                     confirmLabel="Remover"
                     confirmVariant="destructive"
-                    successMessage="Morador removido"
-                    onConfirm={() => remover(m.id).then(recarregar)}
+                    successMessage="Funcionário removido"
+                    onConfirm={() => remover(f.id).then(recarregar)}
                   />
                 </div>
               </CardContent>

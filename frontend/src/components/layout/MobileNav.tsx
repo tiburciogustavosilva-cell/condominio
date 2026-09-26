@@ -4,7 +4,8 @@ import { Brand } from '@/components/shared/Brand';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { navItems } from './nav-items';
+import { Badge } from '@/components/ui/badge';
+import { itemVisivel, navItems } from './nav-items';
 import { NavLink } from './NavLink';
 import { SidebarFooter } from './SidebarFooter';
 
@@ -15,13 +16,8 @@ type Props = {
 };
 
 export function MobileNav({ open, onClose, onTutorial }: Props) {
-  const { isSindico, condominio } = useAuth();
-  const links = navItems.filter(
-    (l) =>
-      (!l.sindico || isSindico) &&
-      (!l.porteiro || condominio?.temPorteiro) &&
-      (!l.areasReserva || condominio?.temAreasReserva)
-  );
+  const auth = useAuth();
+  const links = navItems.filter((l) => itemVisivel(l, auth));
 
   return (
     <AnimatePresence>
@@ -48,21 +44,35 @@ export function MobileNav({ open, onClose, onTutorial }: Props) {
               </Button>
             </div>
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-              {links.map(({ to, label, icon: Icon, end }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'
-                  )}
-                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                  {label}
-                </NavLink>
-              ))}
+              {links.map(({ to, label, icon: Icon, end, emBreve }) =>
+                emBreve ? (
+                  <div
+                    key={to}
+                    aria-disabled="true"
+                    className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-60"
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    {label}
+                    <Badge variant="muted" className="ml-auto text-[10px]">
+                      Em breve
+                    </Badge>
+                  </div>
+                ) : (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={onClose}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'
+                    )}
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    {label}
+                  </NavLink>
+                )
+              )}
             </nav>
             <SidebarFooter onTutorial={onTutorial} />
           </motion.aside>

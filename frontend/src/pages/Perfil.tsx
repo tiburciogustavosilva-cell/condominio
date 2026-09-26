@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { rotuloUnidade } from '@/lib/format';
 
 export default function Perfil() {
   const { perfil, atualizarDados, trocarSenha } = usePerfil();
@@ -87,7 +88,7 @@ export default function Perfil() {
               </Field>
               <Field label="Unidade">
                 <Input
-                  value={perfil.unidade ? `${perfil.unidade.bloco} - ${perfil.unidade.numero}` : 'Sem unidade'}
+                  value={rotuloUnidade(perfil.unidade) ?? 'Sem unidade'}
                   disabled
                 />
               </Field>
