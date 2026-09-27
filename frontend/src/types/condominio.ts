@@ -107,12 +107,16 @@ export interface Area {
   horario: string;
 }
 
+/** Relação da pessoa com a unidade — só organizativo, não muda o acesso (todo mundo aqui é condômino). */
+export type Vinculo = 'proprietario' | 'inquilino' | 'procurador';
+
 export interface Morador {
   id: string;
   nome: string;
   email: string;
   telefone: string | null;
   papel: Papel;
+  vinculo: Vinculo;
   unidadeId: string | null;
 }
 
@@ -339,6 +343,11 @@ export const LABEL = {
     condomino: 'Condômino',
     administradora: 'Administradora',
     funcionario: 'Funcionário'
+  } as Record<string, string>,
+  vinculo: {
+    proprietario: 'Proprietário',
+    inquilino: 'Inquilino',
+    procurador: 'Procurador'
   } as Record<string, string>,
   cargo: {
     porteiro: 'Porteiro',

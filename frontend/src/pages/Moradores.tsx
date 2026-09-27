@@ -23,7 +23,7 @@ const selectCls =
 export default function Moradores() {
   const { moradores, carregando, recarregar, criar, atualizar, remover } = useMoradores();
   const { unidades } = useUnidades();
-  const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', papel: 'condomino' };
+  const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', papel: 'condomino', vinculo: 'proprietario' };
   const [form, setForm] = useState(vazio);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,14 @@ export default function Moradores() {
 
   function editar(m: Morador) {
     setEditandoId(m.id);
-    setForm({ ...vazio, nome: m.nome, telefone: m.telefone || '', unidadeId: m.unidadeId || '', papel: m.papel });
+    setForm({
+      ...vazio,
+      nome: m.nome,
+      telefone: m.telefone || '',
+      unidadeId: m.unidadeId || '',
+      papel: m.papel,
+      vinculo: m.vinculo
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -52,6 +59,7 @@ export default function Moradores() {
           nome: form.nome,
           telefone: form.telefone,
           papel: form.papel,
+          vinculo: form.vinculo,
           unidadeId: form.unidadeId || null
         });
       } else {
@@ -115,6 +123,24 @@ export default function Moradores() {
                   opcaoVazia="Sem unidade"
                 />
               </Field>
+              <Field
+                label="Vínculo com a unidade"
+                htmlFor="vinculo"
+                hint="Marido e mulher, por exemplo, cadastram-se como dois proprietários da mesma unidade."
+              >
+                <select
+                  id="vinculo"
+                  className={selectCls}
+                  value={form.vinculo}
+                  onChange={(e) => set('vinculo', e.target.value)}
+                >
+                  {Object.entries(LABEL.vinculo).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Papel" htmlFor="papel">
                 <select
                   id="papel"
@@ -157,6 +183,9 @@ export default function Moradores() {
                     <Badge variant={m.papel === 'sindico' ? 'secondary' : 'muted'}>
                       {LABEL.papel[m.papel] ?? m.papel}
                     </Badge>
+                    {m.papel === 'condomino' && (
+                      <Badge variant="outline">{LABEL.vinculo[m.vinculo] ?? m.vinculo}</Badge>
+                    )}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {m.email} · {m.telefone || 'sem telefone'} · {nomeUnidade(m.unidadeId)}

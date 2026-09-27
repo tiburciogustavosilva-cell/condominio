@@ -20,12 +20,20 @@ export function useMoradores() {
     moradores,
     carregando,
     recarregar,
-    criar: async (dados: { nome: string; email: string; senha: string; telefone: string; papel: string; unidadeId: string }) => {
+    criar: async (dados: {
+      nome: string;
+      email: string;
+      senha: string;
+      telefone: string;
+      papel: string;
+      vinculo: string;
+      unidadeId: string;
+    }) => {
       await api.post('/moradores', dados);
     },
     atualizar: async (
       id: string,
-      dados: { nome?: string; telefone?: string; papel?: string; unidadeId?: string | null }
+      dados: { nome?: string; telefone?: string; papel?: string; vinculo?: string; unidadeId?: string | null }
     ) => {
       await api.put(`/moradores/${id}`, dados);
     },

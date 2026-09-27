@@ -6,7 +6,9 @@ const { obrigatorio, umDe } = require('../utils/validar');
 const { validarSenha, normalizarEmail } = require('./auth.service');
 
 const PAPEIS = ['sindico', 'condomino'];
-const SELECT = { id: true, nome: true, email: true, telefone: true, papel: true, unidadeId: true };
+// Relação com a unidade — só organizativo (quem é dono, quem aluga, quem tem procuração pra resolver assuntos).
+const VINCULOS = ['proprietario', 'inquilino', 'procurador'];
+const SELECT = { id: true, nome: true, email: true, telefone: true, papel: true, unidadeId: true, vinculo: true };
 // Administradora e funcionários têm telas próprias; aqui só quem mora/administra o prédio.
 const SO_MORADORES = { papel: { in: PAPEIS } };
 
@@ -49,6 +51,7 @@ async function criar(usuario, dados) {
   if (dados.unidadeId) await validarUnidade(condominioId, dados.unidadeId);
   return criarPerfil(condominioId, dados, {
     papel: umDe(dados.papel || 'condomino', PAPEIS, 'papel'),
+    vinculo: umDe(dados.vinculo || 'proprietario', VINCULOS, 'vinculo'),
     unidadeId: dados.unidadeId || null
   });
 }
@@ -60,6 +63,7 @@ async function atualizar(usuario, id, dados) {
   if (dados.nome) data.nome = dados.nome;
   if (dados.telefone !== undefined && dados.telefone !== null) data.telefone = dados.telefone;
   if (dados.papel) data.papel = umDe(dados.papel, PAPEIS, 'papel');
+  if (dados.vinculo) data.vinculo = umDe(dados.vinculo, VINCULOS, 'vinculo');
   if (dados.unidadeId === null) data.unidadeId = null;
   else if (dados.unidadeId) {
     await validarUnidade(condominioId, dados.unidadeId);

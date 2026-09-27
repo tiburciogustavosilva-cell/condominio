@@ -69,6 +69,9 @@ model Profile {
   telefone         String?
   papel            String          @default("condomino") // sindico | condomino | administradora | funcionario
   cargo            String? // só funcionário: porteiro | zelador | limpeza | ... (define o acesso)
+  // Relação da pessoa com a unidade — só organizativo/informativo, não muda
+  // nada de acesso (proprietário, inquilino e procurador são todos "condomino").
+  vinculo          String          @default("proprietario")
   unidadeId        String?         @map("unidade_id") @db.Uuid
   unidade          Unidade?        @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
   condominioId     String?         @map("condominio_id") @db.Uuid
