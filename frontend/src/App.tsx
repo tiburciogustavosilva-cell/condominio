@@ -26,6 +26,8 @@ import Encomendas from '@/pages/Encomendas';
 import Tarefas from '@/pages/Tarefas';
 import Avisos from '@/pages/Avisos';
 import Ocorrencias from '@/pages/Ocorrencias';
+import Votacoes from '@/pages/Votacoes';
+import Assembleia from '@/pages/Assembleia';
 import Prestadores from '@/pages/Prestadores';
 import ManutencaoPredial from '@/pages/ManutencaoPredial';
 import Moradores from '@/pages/Moradores';
@@ -57,6 +59,8 @@ export default function App() {
                       <Route path="reservas" element={<Reservas />} />
                     </Route>
                     <Route path="ocorrencias" element={<Ocorrencias />} />
+                    <Route path="votacoes" element={<Votacoes />} />
+                    <Route path="votacoes/:id" element={<Assembleia />} />
                   </Route>
                   <Route element={<RequireStaff />}>
                     <Route path="tarefas" element={<Tarefas />} />

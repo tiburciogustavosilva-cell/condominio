@@ -11,6 +11,7 @@ import {
   Users,
   IdCard,
   Building2,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 import type { Condominio } from "@/types/condominio";
@@ -81,6 +82,7 @@ export const navItems: NavItem[] = [
 
   { to: "/avisos", label: "Avisos", icon: Megaphone, funcionario: true },
   { to: "/ocorrencias", label: "Livro de Ocorrência", icon: BookText },
+  { to: "/votacoes", label: "Votações", icon: Vote },
   { to: "/prestadores", label: "Prestadores", icon: HardHat, sindico: true },
   {
     to: "/manutencao-predial",

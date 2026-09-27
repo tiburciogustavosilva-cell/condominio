@@ -8,7 +8,11 @@ export function RequireAuth() {
   if (carregando) {
     return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Carregando…</div>;
   }
-  if (!usuario) return <Navigate to="/login" state={{ from: location }} replace />;
+  // o destino vai na URL (sobrevive a recarregar): ex. QR da assembleia → login → volta pra votação
+  if (!usuario) {
+    const voltar = location.pathname + location.search;
+    return <Navigate to={voltar === '/' ? '/login' : `/login?voltar=${encodeURIComponent(voltar)}`} replace />;
+  }
   return <Outlet />;
 }
 

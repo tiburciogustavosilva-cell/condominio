@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,8 +11,13 @@ import { Brand, BrandPanel } from '@/components/shared/Brand';
 import { Field } from '@/components/shared/Field';
 
 export default function Login() {
-  const [email, setEmail] = useState('sindico@condominio.com');
-  const [senha, setSenha] = useState('admin123');
+  const [params] = useSearchParams();
+  // só caminho interno ("/..."), nunca "//site" — senão vira redirecionamento para fora
+  const voltar = params.get('voltar');
+  const destino = voltar?.startsWith('/') && !voltar.startsWith('//') ? voltar : '/';
+  // vindo de um link (ex.: QR da assembleia) é um condômino de verdade: sem os dados de demonstração
+  const [email, setEmail] = useState(voltar ? '' : 'sindico@condominio.com');
+  const [senha, setSenha] = useState(voltar ? '' : 'admin123');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -22,7 +27,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, senha);
-      navigate('/');
+      navigate(destino, { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Falha no login');
     } finally {

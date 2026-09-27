@@ -415,3 +415,44 @@ export function textoRecorrencia(t: Pick<Tarefa, 'recorrencia' | 'diasSemana' | 
       return t.data ? `Em ${t.data.split('-').reverse().join('/')}` : 'Uma vez';
   }
 }
+
+// ---------- Votações (assembleias) ----------
+
+export type StatusPauta = 'rascunho' | 'votando' | 'encerrada';
+
+export interface AssembleiaResumo {
+  id: string;
+  titulo: string;
+  status: 'aberta' | 'encerrada';
+  criadoEm: string;
+  encerradaEm: string | null;
+  presentes: number;
+  pautas: number;
+}
+
+export interface Pauta {
+  id: string;
+  titulo: string;
+  descricao: string;
+  ordem: number;
+  status: StatusPauta;
+  /** Só o total por opção (o voto é secreto) e só depois de encerrada: em votação, `votos` vem null. */
+  opcoes: { id: string; texto: string; votos: number | null }[];
+  /** Quantas unidades já votaram. */
+  votantes: number;
+}
+
+/** Estado da assembleia (GET /assembleias/:id), recarregado a cada 2 s. */
+export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
+  totalUnidades: number;
+  pautas: Pauta[];
+  minhaUnidade: { presente: boolean; pautasVotadas: string[] } | null;
+  /** Só síndico. */
+  presencas?: { manual: boolean; criadoEm: string; unidade: { id: string; numero: string; bloco: string } }[];
+  /** Só síndico, com a assembleia aberta: código de check-in que troca a cada minuto. */
+  codigo?: string;
+  codigoExpiraEm?: string;
+  /** Só síndico: token do QR do telão (vale 10 min, dá tempo de fazer login). */
+  qr?: string;
+  agora?: string;
+}

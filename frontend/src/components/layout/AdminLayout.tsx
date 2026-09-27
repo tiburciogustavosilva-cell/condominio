@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { AvisoAssembleia } from '@/components/votacoes/AvisoAssembleia';
 import { AppSidebar } from './AppSidebar';
 import { BottomNav } from './BottomNav';
 import { MobileNav } from './MobileNav';
@@ -38,6 +39,7 @@ export function AdminLayout() {
       <div className={cn('transition-[padding] duration-300', collapsed ? 'lg:pl-[72px]' : 'lg:pl-64')}>
         {/* conteúdo */}
         <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 lg:px-6 lg:pb-10">
+          <AvisoAssembleia />
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0 }}
