@@ -4,6 +4,7 @@ require('dotenv').config();
 const assert = require('assert');
 const app = require('../src/app');
 const prisma = require('../src/models/prisma');
+const { codigo: codigoCheckin, JANELA_MS } = require('../src/services/assembleias.service');
 
 const sufixo = Date.now();
 const email = (nome) => `smoke-${nome}-${sufixo}@teste.local`;
@@ -15,6 +16,7 @@ async function limpar() {
     .map((p) => p.condominioId)
     .filter(Boolean);
   const where = { condominioId: { in: condominioIds } };
+  await prisma.assembleia.deleteMany({ where }); // presenças, pautas, opções e votantes caem em cascata
   await prisma.encomenda.deleteMany({ where });
   await prisma.tarefaExecucao.deleteMany({ where }); // fotos caem em cascata
   await prisma.tarefa.deleteMany({ where });
@@ -193,6 +195,97 @@ async function main() {
     );
     assert.ok(!(await api('GET', '/tarefas/hoje', { token: zelador })).json.tarefas.some((t) => t.id === tarefa.json.id), 'desativada some');
 
+    // --- Assembleia: check-in com código rotativo, 1 voto secreto por unidade ---
+    const assembleia = await api('POST', '/assembleias', {
+      token: sindico,
+      body: { titulo: 'AGO', pautas: [{ titulo: 'Pintar a fachada', opcoes: ['Verde', 'Azul', 'Não pintar'] }] }
+    });
+    assert.equal(assembleia.status, 201);
+    assert.equal((await api('POST', '/assembleias', { token: morador, body: { titulo: 'x' } })).status, 403);
+    assert.equal((await api('GET', '/assembleias', { token: zelador })).status, 403, 'funcionário fora');
+    const rotaA = `/assembleias/${assembleia.json.id}`;
+    let estado = (await api('GET', rotaA, { token: morador })).json;
+    const pauta = estado.pautas[0];
+    assert.deepEqual(pauta.opcoes.map((o) => o.texto), ['Verde', 'Azul', 'Não pintar']);
+    assert.equal(estado.codigo, undefined, 'condômino não vê o código');
+    assert.equal(estado.minhaUnidade.presente, false);
+    const votar = (token, opcaoId) => api('POST', `/assembleias/pautas/${pauta.id}/votar`, { token, body: { opcaoId } });
+    assert.equal((await votar(morador, pauta.opcoes[0].id)).status, 400, 'pauta ainda em rascunho');
+    assert.equal((await api('PATCH', `/assembleias/pautas/${pauta.id}`, { token: sindico, body: { status: 'votando' } })).status, 204);
+    assert.equal((await votar(morador, pauta.opcoes[0].id)).status, 403, 'sem check-in');
+    const { codigo: codigoTela } = (await api('GET', rotaA, { token: sindico })).json;
+    const { segredo } = await prisma.assembleia.findUnique({ where: { id: assembleia.json.id } });
+    assert.equal(codigoTela, codigoCheckin(segredo, Math.floor(Date.now() / JANELA_MS)));
+    const antigo = codigoCheckin(segredo, Math.floor(Date.now() / JANELA_MS) - 5);
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: antigo } })).status, 400, 'código velho');
+    const { qr } = (await api('GET', rotaA, { token: sindico })).json;
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { qr: codigoTela } })).status, 400, 'número não serve como QR');
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { qr } })).status, 204, 'check-in pelo QR');
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: codigoTela } })).status, 204, 'repetir não dá erro');
+    assert.equal((await votar(morador, pauta.opcoes[1].id)).status, 204);
+    assert.equal((await votar(morador, pauta.opcoes[0].id)).status, 409, 'unidade já votou');
+    // voto pela mesa: unidade sem celular, síndico marca presença e entrega o aparelho
+    const semCelular = (await api('POST', '/unidades', { token: sindico, body: { numero: '102', bloco: 'A' } })).json;
+    const pelaMesa = (unidadeId) =>
+      api('POST', `/assembleias/pautas/${pauta.id}/votar`, { token: sindico, body: { opcaoId: pauta.opcoes[2].id, unidadeId } });
+    assert.equal((await pelaMesa(semCelular.id)).status, 403, 'mesa exige presença marcada');
+    assert.equal((await api('POST', `${rotaA}/presencas`, { token: sindico, body: { unidadeId: semCelular.id } })).status, 204);
+    assert.equal((await pelaMesa(semCelular.id)).status, 204);
+    assert.equal((await pelaMesa(semCelular.id)).status, 409, 'mesa também é 1 voto por unidade');
+    assert.equal((await pelaMesa(unidade.id)).status, 409, 'unidade que já votou pelo celular');
+    estado = (await api('GET', rotaA, { token: sindico })).json;
+    assert.deepEqual(estado.pautas[0].opcoes.map((o) => o.votos), [null, null, null], 'placar escondido durante a votação');
+    assert.equal(estado.pautas[0].votantes, 2);
+    assert.equal(estado.presentes, 2);
+    assert.ok(!JSON.stringify(estado.pautas).includes(unidade.id), 'placar não liga voto a unidade');
+    assert.ok(!JSON.stringify(estado.pautas).includes(semCelular.id));
+    assert.deepEqual((await api('GET', rotaA, { token: morador })).json.minhaUnidade, { presente: true, pautasVotadas: [pauta.id] });
+    assert.equal((await api('PATCH', `/assembleias/pautas/${pauta.id}`, { token: sindico, body: { status: 'rascunho' } })).status, 400, 'não volta');
+    // limite de tentativas: 5 erros e nem o código certo passa (por 1 minuto)
+    for (let i = 0; i < 5; i++) {
+      assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: '000000' } })).status, 400);
+    }
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: codigoTela } })).status, 429, 'bloqueado');
+
+    // desfazer: pauta em rascunho se edita/exclui; aberta não
+    const extra = await api('POST', `${rotaA}/pautas`, { token: sindico, body: { titulo: 'Tipo errado' } });
+    const rotaExtra = `/assembleias/pautas/${extra.json.id}`;
+    assert.equal((await api('PUT', rotaExtra, { token: sindico, body: { titulo: 'Trocar portão', opcoes: ['Sim', 'Não'] } })).status, 204);
+    estado = (await api('GET', rotaA, { token: sindico })).json;
+    assert.deepEqual(estado.pautas[1].opcoes.map((o) => o.texto), ['Sim', 'Não']);
+    assert.equal(estado.pautas[1].titulo, 'Trocar portão');
+    assert.equal((await api('DELETE', rotaExtra, { token: morador })).status, 403);
+    assert.equal((await api('DELETE', rotaExtra, { token: sindico })).status, 204);
+    assert.equal((await api('PUT', `/assembleias/pautas/${pauta.id}`, { token: sindico, body: { titulo: 'x' } })).status, 400, 'aberta não edita');
+    // presença marcada por engano sai; de quem já votou, não
+    const engano = (await api('POST', '/unidades', { token: sindico, body: { numero: '103', bloco: 'A' } })).json;
+    await api('POST', `${rotaA}/presencas`, { token: sindico, body: { unidadeId: engano.id } });
+    assert.equal((await api('DELETE', `${rotaA}/presencas/${engano.id}`, { token: sindico })).status, 204);
+    assert.equal((await api('DELETE', `${rotaA}/presencas/${semCelular.id}`, { token: sindico })).status, 409, 'já votou');
+    // assembleia com votos não se exclui; sem votos, sim
+    assert.equal((await api('DELETE', rotaA, { token: sindico })).status, 409);
+    const vazia = await api('POST', '/assembleias', { token: sindico, body: { titulo: 'Criada por engano' } });
+    assert.equal((await api('DELETE', `/assembleias/${vazia.json.id}`, { token: sindico })).status, 204);
+
+    // síndico que também é morador vota pela própria unidade, sem marcar presença antes
+    const doSindicoUnidade = (await api('POST', '/unidades', { token: sindico, body: { numero: '104', bloco: 'A' } })).json;
+    await prisma.profile.update({ where: { email: email('sindico') }, data: { unidadeId: doSindicoUnidade.id } });
+    const votoSindico = await api('POST', `/assembleias/pautas/${pauta.id}/votar`, {
+      token: sindico,
+      body: { opcaoId: pauta.opcoes[0].id }
+    });
+    assert.equal(votoSindico.status, 204);
+    assert.deepEqual((await api('GET', rotaA, { token: sindico })).json.minhaUnidade, { presente: true, pautasVotadas: [pauta.id] });
+    await prisma.profile.update({ where: { email: email('sindico') }, data: { unidadeId: null } });
+
+    assert.equal((await api('POST', `${rotaA}/encerrar`, { token: sindico })).status, 204);
+    assert.equal((await pelaMesa(engano.id)).status, 400, 'pauta encerrada não recebe voto');
+    estado = (await api('GET', rotaA, { token: sindico })).json;
+    assert.equal(estado.pautas[0].status, 'encerrada');
+    assert.deepEqual(estado.pautas[0].opcoes.map((o) => o.votos), [1, 1, 1], 'placar aparece ao encerrar');
+    assert.equal(estado.codigo, undefined, 'encerrada não tem código');
+    assert.equal(estado.qr, undefined);
+
     // --- Isolamento entre condomínios ---
     const outro = await api('POST', '/auth/cadastro', {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }
@@ -202,6 +295,7 @@ async function main() {
     assert.equal((await api('GET', '/unidades', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/encomendas', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/tarefas/execucoes', { token: tokenOutro })).json.length, 0);
+    assert.equal((await api('GET', `/assembleias/${assembleia.json.id}`, { token: tokenOutro })).status, 404);
     assert.equal(
       (await api('PATCH', `/chamados/${doSindico.json.id}/status`, { token: tokenOutro, body: { status: 'concluido' } })).status,
       404

@@ -54,6 +54,8 @@ model Condominio {
   tarefaExecucoes TarefaExecucao[]
   tarefaFotos     TarefaFoto[]
   ocorrencias     Ocorrencia[]
+  assembleias     Assembleia[]
+  pautas          Pauta[]
 
   @@map("condominios")
 }
@@ -80,9 +82,10 @@ model Profile {
   avisos                Aviso[]
   reservas              Reserva[]
   ocorrencias           Ocorrencia[]
-  encomendasRegistradas Encomenda[]         @relation("EncomendasRegistradas")
-  encomendasLiberadas   Encomenda[]         @relation("EncomendasLiberadas")
+  encomendasRegistradas Encomenda[]          @relation("EncomendasRegistradas")
+  encomendasLiberadas   Encomenda[]          @relation("EncomendasLiberadas")
   tarefasConcluidas     TarefaExecucao[]
+  checkins              AssembleiaPresenca[]
 
   @@map("profiles")
 }
@@ -102,6 +105,8 @@ model Unidade {
   reservas    Reserva[]
   encomendas  Encomenda[]
   ocorrencias Ocorrencia[]
+  presencas   AssembleiaPresenca[]
+  votos       PautaVotante[]
 
   @@map("unidades")
 }
@@ -392,4 +397,75 @@ model TarefaFoto {
 
   @@index([execucaoId])
   @@map("tarefa_fotos")
+}
+
+model Assembleia {
+  id           String               @id @default(uuid()) @db.Uuid
+  condominioId String               @map("condominio_id") @db.Uuid
+  condominio   Condominio           @relation(fields: [condominioId], references: [id])
+  titulo       String
+  segredo      String // gera o código de check-in rotativo; nunca sai da API
+  status       String               @default("aberta") // aberta | encerrada
+  criadoEm     DateTime             @default(now()) @map("criado_em") @db.Timestamptz
+  encerradaEm  DateTime?            @map("encerrada_em") @db.Timestamptz
+  presencas    AssembleiaPresenca[]
+  pautas       Pauta[]
+
+  @@map("assembleias")
+}
+
+model AssembleiaPresenca {
+  id           String     @id @default(uuid()) @db.Uuid
+  assembleiaId String     @map("assembleia_id") @db.Uuid
+  assembleia   Assembleia @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
+  unidadeId    String     @map("unidade_id") @db.Uuid
+  unidade      Unidade    @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  profileId    String?    @map("profile_id") @db.Uuid // quem fez o check-in (null = marcada pelo síndico)
+  profile      Profile?   @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  manual       Boolean    @default(false)
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@unique([assembleiaId, unidadeId])
+  @@map("assembleia_presencas")
+}
+
+model Pauta {
+  id           String         @id @default(uuid()) @db.Uuid
+  condominioId String         @map("condominio_id") @db.Uuid
+  condominio   Condominio     @relation(fields: [condominioId], references: [id])
+  assembleiaId String         @map("assembleia_id") @db.Uuid
+  assembleia   Assembleia     @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
+  titulo       String
+  descricao    String         @default("")
+  ordem        Int            @default(0)
+  status       String         @default("rascunho") // rascunho | votando | encerrada
+  opcoes       PautaOpcao[]
+  votantes     PautaVotante[]
+
+  @@index([assembleiaId])
+  @@map("pautas")
+}
+
+model PautaOpcao {
+  id      String @id @default(uuid()) @db.Uuid
+  pautaId String @map("pauta_id") @db.Uuid
+  pauta   Pauta  @relation(fields: [pautaId], references: [id], onDelete: Cascade)
+  texto   String
+  ordem   Int    @default(0)
+  votos   Int    @default(0) // só o total: o voto é secreto
+
+  @@index([pautaId])
+  @@map("pauta_opcoes")
+}
+
+/// Quem já votou (uma vez por unidade). Sem a opção nem a hora — é o que mantém o voto secreto.
+model PautaVotante {
+  id        String  @id @default(uuid()) @db.Uuid
+  pautaId   String  @map("pauta_id") @db.Uuid
+  pauta     Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
+  unidadeId String  @map("unidade_id") @db.Uuid
+  unidade   Unidade @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+
+  @@unique([pautaId, unidadeId])
+  @@map("pauta_votantes")
 }
