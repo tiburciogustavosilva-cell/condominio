@@ -29,6 +29,12 @@ module.exports = {
     await service.removerPresenca(req.usuario, req.params.id, req.params.unidadeId);
     res.status(204).end();
   },
+  adicionarProcuracao: async (req, res) =>
+    res.status(201).json(await service.adicionarProcuracao(req.usuario, req.params.id, req.body)),
+  removerProcuracao: async (req, res) => {
+    await service.removerProcuracao(req.usuario, req.params.id, req.params.procuracaoId);
+    res.status(204).end();
+  },
   encerrar: async (req, res) => {
     await service.encerrar(req.usuario, req.params.id);
     res.status(204).end();

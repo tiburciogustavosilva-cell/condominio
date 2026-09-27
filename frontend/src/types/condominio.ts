@@ -454,6 +454,13 @@ export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
   minhaUnidade: { presente: boolean; pautasVotadas: string[] } | null;
   /** Só síndico. */
   presencas?: { manual: boolean; criadoEm: string; unidade: { id: string; numero: string; bloco: string } }[];
+  /** Só síndico: registro (ata) de procurações concedidas nessa assembleia. */
+  procuracoes?: {
+    id: string;
+    criadoEm: string;
+    unidadeOutorgante: { id: string; numero: string; bloco: string };
+    unidadeProcuradora: { id: string; numero: string; bloco: string };
+  }[];
   /** Só síndico, com a assembleia aberta: código de check-in que troca a cada minuto. */
   codigo?: string;
   codigoExpiraEm?: string;

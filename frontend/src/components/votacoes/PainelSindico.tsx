@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Expand, Loader2, Pencil, Play, Plus, Square, Trash2, UserCheck, Vote, X } from 'lucide-react';
+import { Expand, FileSignature, Loader2, Pencil, Play, Plus, Square, Trash2, UserCheck, Vote, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import type { NovaPauta, useAssembleia } from '@/hooks/useAssembleias';
@@ -40,6 +40,7 @@ export function PainelSindico({ assembleia: a, acoes }: { assembleia: Assembleia
     <div className="space-y-4">
       {aberta && <CodigoPresenca assembleia={a} />}
       {aberta && <PresencaManual assembleia={a} acoes={acoes} />}
+      {aberta && <Procuracoes assembleia={a} acoes={acoes} />}
 
       {a.pautas.map((p, i) => (
         <CardPauta key={p.id} pauta={p} numero={i + 1} assembleia={a} acoes={acoes} />
@@ -224,6 +225,109 @@ function PresencaManual({ assembleia: a, acoes }: { assembleia: Assembleia; acoe
             <Button variant="outline" onClick={enviar} disabled={!unidadeId || enviando}>
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
               Presente
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Registro (ata) de procurações: qual unidade concedeu (outorgante, ausente) a
+ * procuração pra qual unidade a representar (procuradora). Só documentação —
+ * não marca presença nem muda quem pode votar.
+ */
+function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: Acoes }) {
+  const { unidades } = useUnidades();
+  const [outorganteId, setOutorganteId] = useState('');
+  const [procuradoraId, setProcuradoraId] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const jaOutorgaram = new Set(a.procuracoes?.map((p) => p.unidadeOutorgante.id));
+  const disponiveis = unidades.filter((u) => !jaOutorgaram.has(u.id));
+  const opcoesProcuradora = unidades.filter((u) => u.id !== outorganteId);
+
+  async function enviar() {
+    setEnviando(true);
+    try {
+      await acoes.adicionarProcuracao(outorganteId, procuradoraId);
+      setOutorganteId('');
+      setProcuradoraId('');
+      toast.success('Procuração registrada');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao registrar');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-5">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <FileSignature className="h-4 w-4" /> Procurações
+        </p>
+        {a.procuracoes?.length ? (
+          <div className="flex flex-wrap gap-2">
+            {a.procuracoes.map((p) => (
+              <Badge key={p.id} variant="outline" className="gap-1 pr-1">
+                {rotuloUnidade(p.unidadeOutorgante)} → {rotuloUnidade(p.unidadeProcuradora)}
+                <AsyncConfirmDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label={`Remover procuração de ${rotuloUnidade(p.unidadeOutorgante)}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  }
+                  title="Remover essa procuração?"
+                  confirmLabel="Remover"
+                  confirmVariant="destructive"
+                  successMessage="Procuração removida"
+                  onConfirm={() => acoes.removerProcuracao(p.id)}
+                />
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhuma procuração registrada.</p>
+        )}
+        {disponiveis.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <select
+              aria-label="Unidade que concede a procuração"
+              className={selectCls}
+              value={outorganteId}
+              onChange={(e) => {
+                setOutorganteId(e.target.value);
+                if (e.target.value === procuradoraId) setProcuradoraId('');
+              }}
+            >
+              <option value="">Unidade que concede…</option>
+              {disponiveis.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {rotuloUnidade(u)}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Unidade que recebe a procuração"
+              className={selectCls}
+              value={procuradoraId}
+              onChange={(e) => setProcuradoraId(e.target.value)}
+            >
+              <option value="">Unidade que representa…</option>
+              {opcoesProcuradora.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {rotuloUnidade(u)}
+                </option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={enviar} disabled={!outorganteId || !procuradoraId || enviando}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-4 w-4" />}
+              Registrar
             </Button>
           </div>
         )}

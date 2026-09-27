@@ -181,6 +181,42 @@ async function marcarPresenca(usuario, id, unidadeId) {
   });
 }
 
+/**
+ * Registro de procuração (documento da assembleia): a unidade outorgante
+ * concede a procuração pra unidade procuradora representá-la. É só ata —
+ * não muda check-in nem contagem de voto.
+ */
+async function adicionarProcuracao(usuario, id, d) {
+  const assembleia = await buscar(usuario, id);
+  exigirAberta(assembleia);
+  const outorganteId = String(obrigatorio(d.unidadeOutorganteId, 'unidadeOutorganteId'));
+  const procuradoraId = String(obrigatorio(d.unidadeProcuradoraId, 'unidadeProcuradoraId'));
+  if (outorganteId === procuradoraId) {
+    throw new HttpError(400, 'A unidade não pode conceder procuração a si mesma');
+  }
+  const condominioId = assembleia.condominioId;
+  const [outorgante, procuradora] = await Promise.all([
+    prisma.unidade.findFirst({ where: { id: outorganteId, condominioId } }),
+    prisma.unidade.findFirst({ where: { id: procuradoraId, condominioId } })
+  ]);
+  if (!outorgante || !procuradora) throw new HttpError(404, 'Unidade não encontrada');
+  try {
+    return await prisma.procuracao.create({
+      data: { condominioId, assembleiaId: id, unidadeOutorganteId: outorganteId, unidadeProcuradoraId: procuradoraId },
+      select: { id: true }
+    });
+  } catch (err) {
+    if (err.code === 'P2002') throw new HttpError(409, 'Essa unidade já concedeu procuração a alguém nessa assembleia');
+    throw err;
+  }
+}
+
+async function removerProcuracao(usuario, id, procuracaoId) {
+  const assembleia = await buscar(usuario, id);
+  exigirAberta(assembleia);
+  exigirAfetado(await prisma.procuracao.deleteMany({ where: { id: procuracaoId, assembleiaId: id } }));
+}
+
 async function encerrar(usuario, id) {
   const assembleia = await buscar(usuario, id);
   exigirAberta(assembleia);
@@ -277,7 +313,7 @@ const UNIDADE = { select: { id: true, numero: true, bloco: true } };
 async function estado(usuario, id) {
   const assembleia = await buscar(usuario, id);
   const sindico = isSindico(usuario);
-  const [pautas, presencas, totalUnidades, votadas] = await Promise.all([
+  const [pautas, presencas, totalUnidades, votadas, procuracoes] = await Promise.all([
     prisma.pauta.findMany({
       where: { assembleiaId: id },
       include: { opcoes: { orderBy: { ordem: 'asc' } }, _count: { select: { votantes: true } } },
@@ -291,6 +327,13 @@ async function estado(usuario, id) {
     prisma.unidade.count({ where: { condominioId: assembleia.condominioId } }),
     usuario.unidadeId
       ? prisma.pautaVotante.findMany({ where: { unidadeId: usuario.unidadeId, pauta: { assembleiaId: id } }, select: { pautaId: true } })
+      : [],
+    isSindico(usuario)
+      ? prisma.procuracao.findMany({
+          where: { assembleiaId: id },
+          select: { id: true, criadoEm: true, unidadeOutorgante: UNIDADE, unidadeProcuradora: UNIDADE },
+          orderBy: { criadoEm: 'asc' }
+        })
       : []
   ]);
 
@@ -313,6 +356,7 @@ async function estado(usuario, id) {
       : null,
     ...(sindico && {
       presencas: presencas.map(({ unidadeId, ...p }) => p),
+      procuracoes,
       ...(assembleia.status === 'aberta' && {
         agora: new Date(agora), // a contagem regressiva usa a hora do servidor, não a do aparelho
         codigo: codigo(assembleia.segredo, janelaAtual(agora)),
@@ -333,6 +377,8 @@ module.exports = {
   removerPresenca,
   mudarStatusPauta,
   marcarPresenca,
+  adicionarProcuracao,
+  removerProcuracao,
   encerrar,
   checkin,
   votar,

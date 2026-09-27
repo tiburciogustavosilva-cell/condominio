@@ -56,6 +56,7 @@ model Condominio {
   ocorrencias     Ocorrencia[]
   assembleias     Assembleia[]
   pautas          Pauta[]
+  procuracoes     Procuracao[]
 
   @@map("condominios")
 }
@@ -107,6 +108,9 @@ model Unidade {
   ocorrencias Ocorrencia[]
   presencas   AssembleiaPresenca[]
   votos       PautaVotante[]
+
+  procuracoesConcedidas Procuracao[] @relation("ProcuracaoOutorgante")
+  procuracoesRecebidas  Procuracao[] @relation("ProcuracaoProcuradora")
 
   @@map("unidades")
 }
@@ -424,6 +428,7 @@ model Assembleia {
   encerradaEm  DateTime?            @map("encerrada_em") @db.Timestamptz
   presencas    AssembleiaPresenca[]
   pautas       Pauta[]
+  procuracoes  Procuracao[]
 
   @@map("assembleias")
 }
@@ -482,4 +487,23 @@ model PautaVotante {
 
   @@unique([pautaId, unidadeId])
   @@map("pauta_votantes")
+}
+
+/// Registro da procuração (documento) de uma assembleia: qual unidade recebeu
+/// (procuradora) a procuração de qual unidade ausente (outorgante). É só
+/// registro/ata — não altera check-in nem contagem de voto.
+model Procuracao {
+  id                   String     @id @default(uuid()) @db.Uuid
+  condominioId         String     @map("condominio_id") @db.Uuid
+  condominio           Condominio @relation(fields: [condominioId], references: [id])
+  assembleiaId         String     @map("assembleia_id") @db.Uuid
+  assembleia           Assembleia @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
+  unidadeOutorganteId  String     @map("unidade_outorgante_id") @db.Uuid // quem liberou/concedeu a procuração (ausente)
+  unidadeOutorgante    Unidade    @relation("ProcuracaoOutorgante", fields: [unidadeOutorganteId], references: [id], onDelete: Restrict)
+  unidadeProcuradoraId String     @map("unidade_procuradora_id") @db.Uuid // quem tem/recebeu a procuração (representa)
+  unidadeProcuradora   Unidade    @relation("ProcuracaoProcuradora", fields: [unidadeProcuradoraId], references: [id], onDelete: Restrict)
+  criadoEm             DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@unique([assembleiaId, unidadeOutorganteId]) // uma unidade só concede procuração a 1 pessoa por assembleia
+  @@map("procuracoes")
 }
