@@ -207,10 +207,8 @@ model Encomenda {
   remetente          String     @default("")
   status             String     @default("aguardando") // aguardando | entregue
   recebidoPor        String?    @map("recebido_por") // quem retirou (informou o código)
-  // Portaria: foto .webp do pacote, quem trouxe, e o código que o morador informa na retirada
+  // Portaria: foto .webp do pacote, e o código que o morador informa na retirada
   foto               Bytes?
-  entregadorNome     String?    @map("entregador_nome")
-  entregadorCpf      String?    @map("entregador_cpf")
   codigoRetirada     String?    @map("codigo_retirada")
   codigoRastreio     String?    @map("codigo_rastreio") // da etiqueta (Correios, transportadora)
   registradoPorId    String?    @map("registrado_por_id") @db.Uuid

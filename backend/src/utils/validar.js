@@ -26,17 +26,4 @@ function parcial(dados, campos) {
   return saida;
 }
 
-/** CPF só com dígitos, validado pelos dígitos verificadores. */
-function cpf(valor) {
-  const d = String(valor || '').replace(/\D/g, '');
-  const digito = (n) => {
-    const soma = [...d.slice(0, n)].reduce((acc, c, i) => acc + Number(c) * (n + 1 - i), 0);
-    return ((soma * 10) % 11) % 10;
-  };
-  if (d.length !== 11 || /^(\d)\1{10}$/.test(d) || digito(9) !== Number(d[9]) || digito(10) !== Number(d[10])) {
-    throw new HttpError(400, 'CPF inválido');
-  }
-  return d;
-}
-
-module.exports = { obrigatorio, umDe, paraData, numeroOuNull, parcial, cpf };
+module.exports = { obrigatorio, umDe, paraData, numeroOuNull, parcial };

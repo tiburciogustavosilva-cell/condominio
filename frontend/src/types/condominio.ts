@@ -195,7 +195,6 @@ export interface Encomenda {
   /** Quem retirou (nome registrado pela portaria junto com o código). */
   recebidoPor: string | null;
   unidadeLabel?: string;
-  entregadorNome: string | null;
   /** Código de rastreio da etiqueta (opcional). */
   codigoRastreio: string | null;
   /** Usuário (portaria/síndico) que registrou no sistema; null se foi removido. */
@@ -206,8 +205,6 @@ export interface Encomenda {
   bloqueada: boolean;
   volumeGrande: boolean;
   perecivel: boolean;
-  /** Só vem para a portaria/síndico. */
-  entregadorCpf?: string | null;
   /** Só vem para o morador da unidade, e só enquanto aguardando. */
   codigoRetirada?: string | null;
   temFoto: boolean;

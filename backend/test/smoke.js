@@ -109,14 +109,11 @@ async function main() {
       unidadeId: unidade.id,
       descricao: 'Caixa teste',
       codigoRastreio: ' aa123456789br ',
-      entregadorNome: 'Zé',
-      entregadorCpf: '529.982.247-25',
       volumeGrande: true,
       foto: webp
     };
     assert.equal((await api('POST', '/encomendas', { token: morador, body: pacote })).status, 403);
     assert.equal((await api('POST', '/encomendas', { token: zelador, body: pacote })).status, 403, 'só porteiro registra');
-    assert.equal((await api('POST', '/encomendas', { token: portaria, body: { ...pacote, entregadorCpf: '111.111.111-11' } })).status, 400);
     assert.equal((await api('POST', '/encomendas', { token: portaria, body: { ...pacote, foto: Buffer.from('jpeg').toString('base64') } })).status, 400);
     const criada = await api('POST', '/encomendas', { token: portaria, body: pacote });
     assert.equal(criada.status, 201);

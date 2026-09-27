@@ -132,8 +132,6 @@ async function main() {
       unidadeId: morador.unidadeId,
       descricao: 'Caixa média - Mercado Livre',
       remetente: 'Correios',
-      entregadorNome: 'João Entregador',
-      entregadorCpf: '52998224725',
       codigoRetirada: '12345',
       condominioId
     }

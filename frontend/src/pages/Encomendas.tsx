@@ -48,8 +48,6 @@ const VAZIO: NovaEncomenda = {
   descricao: "",
   remetente: "",
   codigoRastreio: "",
-  entregadorNome: "",
-  entregadorCpf: "",
   foto: "",
   volumeGrande: false,
   perecivel: false,
@@ -66,16 +64,6 @@ const FILTROS = [
   { value: "entregue", label: "Retiradas" },
   { value: "", label: "Todas" },
 ];
-
-/** 52998224725 → 529.982.247-25 (vai formatando enquanto digita). */
-function mascaraCpf(valor: string) {
-  return valor
-    .replace(/\D/g, "")
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-}
 
 export default function Encomendas() {
   const { isEquipe, isSindico } = useAuth();
@@ -224,26 +212,6 @@ export default function Encomendas() {
                     onChange={(e) => set("codigoRastreio", e.target.value)}
                   />
                 </Field>
-                <Field label="Nome do entregador" htmlFor="ent-nome">
-                  <Input
-                    id="ent-nome"
-                    value={form.entregadorNome}
-                    onChange={(e) => set("entregadorNome", e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="CPF do entregador" htmlFor="ent-cpf">
-                  <Input
-                    id="ent-cpf"
-                    inputMode="numeric"
-                    placeholder="000.000.000-00"
-                    value={form.entregadorCpf}
-                    onChange={(e) =>
-                      set("entregadorCpf", mascaraCpf(e.target.value))
-                    }
-                    required
-                  />
-                </Field>
               </div>
               <Field label="Descrição" htmlFor="desc">
                 <div className="flex gap-2">
@@ -387,17 +355,6 @@ export default function Encomendas() {
                   <Info rotulo="Registrada por">
                     {e.registradoPor ? nomeComFuncao(e.registradoPor) : "—"}
                   </Info>
-                  {isEquipe && e.entregadorNome && (
-                    <Info rotulo="Entregador">
-                      {e.entregadorNome}
-                      {e.entregadorCpf && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · CPF {mascaraCpf(e.entregadorCpf)}
-                        </span>
-                      )}
-                    </Info>
-                  )}
                   {e.status === "entregue" && (
                     <Info rotulo="Retirada por">
                       {e.recebidoPor}

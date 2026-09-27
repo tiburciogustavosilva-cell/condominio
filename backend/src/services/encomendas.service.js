@@ -3,7 +3,7 @@ const prisma = require('../models/prisma');
 const { rotuloUnidade } = require('../utils/unidade');
 const HttpError = require('../utils/httpError');
 const { isEquipe, condominioDe, exigirAfetado } = require('../utils/acesso');
-const { obrigatorio, cpf } = require('../utils/validar');
+const { obrigatorio } = require('../utils/validar');
 const { lerFotoWebp } = require('../utils/foto');
 
 const LIMITE_TENTATIVAS = 5; // códigos errados até bloquear; só o síndico desbloqueia
@@ -29,13 +29,13 @@ async function listar(usuario) {
   const comFoto = new Set(
     (await prisma.encomenda.findMany({ where: { ...where, foto: { not: null } }, select: { id: true } })).map((e) => e.id)
   );
-  return encomendas.map(({ unidade, codigoRetirada, entregadorCpf, tentativasRetirada, ...e }) => ({
+  return encomendas.map(({ unidade, codigoRetirada, tentativasRetirada, ...e }) => ({
     ...e, // inclui registradoPor/liberadoPor: { nome, papel, cargo } | null
     bloqueada: tentativasRetirada >= LIMITE_TENTATIVAS,
     unidadeLabel: rotuloUnidade(unidade) ?? '-',
     temFoto: comFoto.has(e.id),
     // O código é só do morador: a portaria nunca vê, só digita o que foi informado.
-    ...(equipe ? { entregadorCpf } : { codigoRetirada: e.status === 'aguardando' ? codigoRetirada : null })
+    ...(equipe ? {} : { codigoRetirada: e.status === 'aguardando' ? codigoRetirada : null })
   }));
 }
 
@@ -52,8 +52,6 @@ async function criar(usuario, d) {
       codigoRastreio: String(d.codigoRastreio || '').trim().toUpperCase() || null,
       volumeGrande: !!d.volumeGrande,
       perecivel: !!d.perecivel,
-      entregadorNome: String(obrigatorio(d.entregadorNome, 'entregadorNome')).trim(),
-      entregadorCpf: cpf(d.entregadorCpf),
       foto: lerFotoWebp(d.foto),
       codigoRetirada: String(randomInt(0, 100000)).padStart(5, '0'),
       registradoPorId: usuario.id,

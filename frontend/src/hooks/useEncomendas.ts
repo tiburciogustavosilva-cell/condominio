@@ -7,8 +7,6 @@ export type NovaEncomenda = {
   descricao: string;
   remetente: string;
   codigoRastreio: string;
-  entregadorNome: string;
-  entregadorCpf: string;
   /** data URL .webp (ver lib/imagem.ts) */
   foto: string;
   volumeGrande: boolean;
