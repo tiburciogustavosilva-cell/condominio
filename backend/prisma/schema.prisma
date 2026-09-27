@@ -456,30 +456,33 @@ model AssembleiaPresenca {
 }
 
 model Pauta {
-  id           String         @id @default(uuid()) @db.Uuid
-  condominioId String         @map("condominio_id") @db.Uuid
-  condominio   Condominio     @relation(fields: [condominioId], references: [id])
-  assembleiaId String         @map("assembleia_id") @db.Uuid
-  assembleia   Assembleia     @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
-  titulo       String
-  descricao    String         @default("")
-  ordem        Int            @default(0)
-  status       String         @default("rascunho") // rascunho | votando | encerrada
-  opcoes       PautaOpcao[]
-  votantes     PautaVotante[]
+  id                 String         @id @default(uuid()) @db.Uuid
+  condominioId       String         @map("condominio_id") @db.Uuid
+  condominio         Condominio     @relation(fields: [condominioId], references: [id])
+  assembleiaId       String         @map("assembleia_id") @db.Uuid
+  assembleia         Assembleia     @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
+  titulo             String
+  descricao          String         @default("")
+  ordem              Int            @default(0)
+  status             String         @default("rascunho") // rascunho | votando | encerrada
+  // Vínculos que podem votar nessa pauta (proprietario/inquilino/procurador).
+  // Por padrão todos podem; o síndico restringe ao criar/editar a pauta.
+  vinculosPermitidos String[]       @default(["proprietario", "inquilino", "procurador"]) @map("vinculos_permitidos")
+  opcoes             PautaOpcao[]
+  votantes           PautaVotante[]
 
   @@index([assembleiaId])
   @@map("pautas")
 }
 
 model PautaOpcao {
-  id         String  @id @default(uuid()) @db.Uuid
-  pautaId    String  @map("pauta_id") @db.Uuid
-  pauta      Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
-  texto      String
-  ordem      Int     @default(0)
-  votos      Int     @default(0) // total de unidades (1 unidade = 1): só o total, o voto é secreto
-  pesoVotos  Decimal @default(0) @map("peso_votos") @db.Decimal(14, 4) // soma do peso_voto de quem escolheu — decide o resultado
+  id        String  @id @default(uuid()) @db.Uuid
+  pautaId   String  @map("pauta_id") @db.Uuid
+  pauta     Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
+  texto     String
+  ordem     Int     @default(0)
+  votos     Int     @default(0) // total de unidades (1 unidade = 1): só o total, o voto é secreto
+  pesoVotos Decimal @default(0) @map("peso_votos") @db.Decimal(14, 4) // soma do peso_voto de quem escolheu — decide o resultado
 
   @@index([pautaId])
   @@map("pauta_opcoes")

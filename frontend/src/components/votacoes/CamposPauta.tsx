@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { NovaPauta } from '@/hooks/useAssembleias';
+import { LABEL, type Vinculo } from '@/types/condominio';
 import { Field } from '@/components/shared/Field';
 import { BotaoDitado, juntarDitado } from '@/components/shared/BotaoDitado';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+const VINCULOS: Vinculo[] = ['proprietario', 'inquilino', 'procurador'];
+
 export const PAUTA_VAZIA: NovaPauta = {
   titulo: '',
   descricao: '',
-  opcoes: ['Sim', 'Não', 'Abstenção']
+  opcoes: ['Sim', 'Não', 'Abstenção'],
+  vinculosPermitidos: [...VINCULOS]
 };
 
 type Props = {
@@ -82,6 +86,33 @@ export function CamposPauta({ id, pauta, onChange }: Props) {
           <Button type="button" variant="outline" onClick={adicionarOpcao} disabled={!novaOpcao.trim()}>
             <Plus className="h-4 w-4" /> Adicionar
           </Button>
+        </div>
+      </Field>
+      <Field
+        label="Quem pode votar"
+        htmlFor={`${id}-vinculo-proprietario`}
+        hint="Por padrão todos podem. Desmarque pra deixar essa pauta só pra alguns vínculos."
+      >
+        <div className="flex flex-wrap gap-4">
+          {VINCULOS.map((v) => (
+            <label key={v} htmlFor={`${id}-vinculo-${v}`} className="flex items-center gap-2 text-sm">
+              <input
+                id={`${id}-vinculo-${v}`}
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={pauta.vinculosPermitidos.includes(v)}
+                disabled={pauta.vinculosPermitidos.length <= 1 && pauta.vinculosPermitidos.includes(v)}
+                onChange={(e) =>
+                  set({
+                    vinculosPermitidos: e.target.checked
+                      ? [...pauta.vinculosPermitidos, v]
+                      : pauta.vinculosPermitidos.filter((x) => x !== v)
+                  })
+                }
+              />
+              {LABEL.vinculo[v]}
+            </label>
+          ))}
         </div>
       </Field>
     </div>

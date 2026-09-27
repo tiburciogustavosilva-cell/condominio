@@ -1,13 +1,11 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
-const { condominioDe, exigirAfetado } = require('../utils/acesso');
+const { condominioDe, exigirAfetado, VINCULOS } = require('../utils/acesso');
 const { obrigatorio, umDe } = require('../utils/validar');
 const { validarSenha, normalizarEmail } = require('./auth.service');
 
 const PAPEIS = ['sindico', 'condomino'];
-// Relação com a unidade — só organizativo (quem é dono, quem aluga, quem tem procuração pra resolver assuntos).
-const VINCULOS = ['proprietario', 'inquilino', 'procurador'];
 const SELECT = { id: true, nome: true, email: true, telefone: true, papel: true, unidadeId: true, vinculo: true };
 // Administradora e funcionários têm telas próprias; aqui só quem mora/administra o prédio.
 const SO_MORADORES = { papel: { in: PAPEIS } };

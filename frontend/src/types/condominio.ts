@@ -460,6 +460,8 @@ export interface Pauta {
   opcoes: { id: string; texto: string; votos: number | null; pesoVotos: number | null }[];
   /** Quantas unidades já votaram. */
   votantes: number;
+  /** Quem pode votar por conta própria (condômino, ou síndico pela própria unidade). Por padrão, todos. */
+  vinculosPermitidos: Vinculo[];
 }
 
 /** Estado da assembleia (GET /assembleias/:id), recarregado a cada 2 s. */

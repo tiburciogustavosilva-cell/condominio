@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
-const { isSindico, condominioDe, exigirAfetado } = require('../utils/acesso');
+const { isSindico, condominioDe, exigirAfetado, VINCULOS } = require('../utils/acesso');
 const { obrigatorio } = require('../utils/validar');
 
 const JANELA_MS = 60_000; // muitos idosos: código troca devagar e vale por até 3 min (janela atual + 2)
@@ -61,6 +61,14 @@ function registrarFalha(chave, agora = Date.now()) {
 
 // ---------- Validação ----------
 
+/** Quem pode votar (proprietário/inquilino/procurador): por padrão todos, o síndico pode restringir. */
+function vinculosDaPauta(p) {
+  if (p.vinculosPermitidos === undefined) return VINCULOS;
+  const vinculos = [...new Set((p.vinculosPermitidos ?? []).filter((v) => VINCULOS.includes(v)))];
+  if (vinculos.length === 0) throw new HttpError(400, 'Selecione pelo menos um vínculo que pode votar');
+  return vinculos;
+}
+
 function dadosPauta(p, ordem) {
   const opcoes = [...new Set((p.opcoes?.length ? p.opcoes : OPCOES_PADRAO).map((o) => String(o).trim()).filter(Boolean))];
   if (opcoes.length < 2) throw new HttpError(400, 'A pauta precisa de pelo menos 2 opções');
@@ -68,6 +76,7 @@ function dadosPauta(p, ordem) {
     titulo: obrigatorio(String(p.titulo ?? '').trim(), 'titulo da pauta'),
     descricao: String(p.descricao ?? '').trim(),
     ordem,
+    vinculosPermitidos: vinculosDaPauta(p),
     opcoes: { create: opcoes.map((texto, i) => ({ texto, ordem: i })) }
   };
 }
@@ -276,6 +285,12 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
   if (!pauta) throw new HttpError(404, 'Pauta não encontrada');
   if (pauta.status !== 'votando') throw new HttpError(400, 'Essa pauta não está em votação');
   if (!pauta.opcoes.some((o) => o.id === opcaoId)) throw new HttpError(400, 'Opção inválida');
+  // Vínculo restringe quem vota com a própria conta (condômino, ou síndico pela própria unidade).
+  // "Pela mesa" (síndico votando por outra unidade) não tem uma pessoa/vínculo específico pra checar.
+  const votandoPelaPropriaConta = !sindico || unidadeId === usuario.unidadeId;
+  if (votandoPelaPropriaConta && !pauta.vinculosPermitidos.includes(usuario.vinculo)) {
+    throw new HttpError(403, 'Essa pauta não está aberta para quem tem esse vínculo com a unidade');
+  }
   const presenca = { assembleiaId_unidadeId: { assembleiaId: pauta.assembleiaId, unidadeId } };
   if (sindico && unidadeId === usuario.unidadeId) {
     // o síndico está na reunião: votar pela própria unidade já registra a presença dela

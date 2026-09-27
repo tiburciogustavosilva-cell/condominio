@@ -6,6 +6,10 @@ const isSindico = (usuario) => usuario.papel === 'sindico' || usuario.papel === 
 const CARGOS = ['porteiro', 'zelador', 'limpeza', 'jardineiro', 'manutencao', 'seguranca', 'outro'];
 const CARGOS_PORTARIA = ['porteiro']; // registram e liberam encomendas
 
+// Vínculo da pessoa com a unidade — só organizativo (moradores.service), mas
+// também usado pra restringir quem pode votar em cada pauta (assembleias.service).
+const VINCULOS = ['proprietario', 'inquilino', 'procurador'];
+
 // Equipe da portaria: quem registra e libera encomendas.
 const isEquipe = (usuario) =>
   isSindico(usuario) || (usuario.papel === 'funcionario' && CARGOS_PORTARIA.includes(usuario.cargo));
@@ -15,7 +19,7 @@ function condominioDe(usuario) {
   return usuario.condominioId;
 }
 
-module.exports = { isSindico, isEquipe, condominioDe, CARGOS };
+module.exports = { isSindico, isEquipe, condominioDe, CARGOS, VINCULOS };
 
 // updateMany/deleteMany com filtro de condomínio: 0 linhas = não existe *para este usuário*.
 function exigirAfetado({ count }) {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Assembleia, AssembleiaResumo, StatusPauta } from '@/types/condominio';
 
-export type NovaPauta = { titulo: string; descricao: string; opcoes: string[] };
+export type NovaPauta = { titulo: string; descricao: string; opcoes: string[]; vinculosPermitidos: string[] };
 
 export const criarAssembleia = (dados: { titulo: string; pautas: NovaPauta[] }) =>
   api.post<{ id: string }>('/assembleias', dados);

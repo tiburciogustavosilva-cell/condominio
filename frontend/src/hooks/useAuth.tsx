@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, tokenStore, EVENTO_SESSAO_EXPIRADA } from '@/lib/api';
-import { CARGOS_PORTARIA, type Cargo, type Condominio, type Papel } from '@/types/condominio';
+import { CARGOS_PORTARIA, type Cargo, type Condominio, type Papel, type Vinculo } from '@/types/condominio';
 
 export type Usuario = {
   id: string;
@@ -8,6 +8,8 @@ export type Usuario = {
   papel: Papel;
   /** Só funcionário: define o acesso (porteiro usa Encomendas). */
   cargo: Cargo | null;
+  /** Relação com a unidade (proprietário/inquilino/procurador) — restringe algumas pautas de votação. */
+  vinculo: Vinculo | null;
   unidadeId: string | null;
   condominioId: string | null;
   administradoraId: string | null;

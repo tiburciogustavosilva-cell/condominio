@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Hourglass, Loader2, LogIn, ThumbsDown, ThumbsUp, type LucideIcon } from 'lucide-react';
 import type { useAssembleia } from '@/hooks/useAssembleias';
+import { useAuth } from '@/hooks/useAuth';
 import type { Assembleia, Pauta } from '@/types/condominio';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -20,10 +21,15 @@ type Opcao = Pauta['opcoes'][number];
  * Check-in pelo QR (automático) ou pelo número do telão → a votação aberta aparece sozinha → toca na opção → confirma.
  */
 export function VotacaoCondomino({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: Acoes }) {
+  const { usuario } = useAuth();
   const aberta = a.status === 'aberta';
   const minha = a.minhaUnidade;
   const votadas = minha?.pautasVotadas ?? [];
-  const daVez = aberta ? a.pautas.find((p) => p.status === 'votando' && !votadas.includes(p.id)) : undefined;
+  // Pauta que não permite o vínculo da pessoa pula pra frente sozinha — nunca trava esperando um voto que não vai rolar.
+  const podeVotar = (p: Pauta) => !usuario?.vinculo || p.vinculosPermitidos.includes(usuario.vinculo);
+  const daVez = aberta
+    ? a.pautas.find((p) => p.status === 'votando' && !votadas.includes(p.id) && podeVotar(p))
+    : undefined;
   // andamento das que já votei (ainda abertas) e, embaixo, o resultado final: a última encerrada primeiro
   const parciais = a.pautas.filter((p) => p.status === 'votando' && votadas.includes(p.id));
   const encerradas = a.pautas.filter((p) => p.status === 'encerrada').reverse();

@@ -11,6 +11,7 @@ function formatarUsuario(p) {
     email: p.email,
     papel: p.papel,
     cargo: p.cargo,
+    vinculo: p.vinculo,
     unidadeId: p.unidadeId,
     condominioId: p.condominioId,
     administradoraId: p.administradoraId,

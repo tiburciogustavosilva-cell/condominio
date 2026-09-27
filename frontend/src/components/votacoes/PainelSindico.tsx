@@ -7,7 +7,7 @@ import type { NovaPauta, useAssembleia } from '@/hooks/useAssembleias';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnidades } from '@/hooks/useUnidades';
 import { rotuloUnidade } from '@/lib/format';
-import type { Assembleia, Pauta } from '@/types/condominio';
+import { LABEL, type Assembleia, type Pauta } from '@/types/condominio';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
 import { UnidadeSelect } from '@/components/shared/UnidadeSelect';
 import { Badge } from '@/components/ui/badge';
@@ -340,6 +340,12 @@ function CardPauta({ pauta: p, numero, assembleia, acoes }: PropsPauta) {
           {STATUS_PAUTA[p.status]}
         </div>
 
+        {p.vinculosPermitidos.length < 3 && (
+          <p className="text-xs text-muted-foreground">
+            Só vota: {p.vinculosPermitidos.map((v) => LABEL.vinculo[v]).join(', ')}
+          </p>
+        )}
+
         {p.status === 'rascunho' ? (
           <p className="text-sm text-muted-foreground">Opções: {p.opcoes.map((o) => o.texto).join(' · ')}</p>
         ) : (
@@ -367,7 +373,12 @@ function CardPauta({ pauta: p, numero, assembleia, acoes }: PropsPauta) {
                 </Button>
               }
               titulo="Editar pauta"
-              inicial={{ titulo: p.titulo, descricao: p.descricao, opcoes: p.opcoes.map((o) => o.texto) }}
+              inicial={{
+                titulo: p.titulo,
+                descricao: p.descricao,
+                opcoes: p.opcoes.map((o) => o.texto),
+                vinculosPermitidos: p.vinculosPermitidos
+              }}
               rotulo="Salvar"
               sucesso="Pauta atualizada"
               salvar={(dados) => acoes.editarPauta(p.id, dados)}
@@ -481,6 +492,7 @@ function VotarMinhaUnidade({
   const { usuario } = useAuth();
   const [aberto, setAberto] = useState(false);
   if (!usuario?.unidadeId) return null;
+  if (usuario.vinculo && !pauta.vinculosPermitidos.includes(usuario.vinculo)) return null;
   if (assembleia.minhaUnidade?.pautasVotadas.includes(pauta.id)) {
     return <Badge variant="success">Sua unidade votou</Badge>;
   }
