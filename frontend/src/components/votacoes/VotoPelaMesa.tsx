@@ -4,14 +4,12 @@ import type { useAssembleia } from '@/hooks/useAssembleias';
 import { rotuloUnidade } from '@/lib/format';
 import type { Assembleia, Pauta } from '@/types/condominio';
 import { Field } from '@/components/shared/Field';
+import { UnidadeSelect } from '@/components/shared/UnidadeSelect';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VotarAgora } from './VotacaoCondomino';
 
 type Acoes = ReturnType<typeof useAssembleia>;
-
-const selectCls =
-  'flex h-12 w-full rounded-md border border-input bg-background px-3 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * Quem não tem celular: o síndico escolhe a unidade presente e entrega o aparelho;
@@ -62,19 +60,13 @@ export function VotoPelaMesa({
                   htmlFor="mesa-unidade"
                   hint="Só aparecem unidades presentes. Marque a presença antes, se precisar."
                 >
-                  <select
+                  <UnidadeSelect
                     id="mesa-unidade"
-                    className={selectCls}
+                    unidades={presentes.map((p) => p.unidade)}
                     value={unidadeId}
-                    onChange={(e) => setUnidadeId(e.target.value)}
-                  >
-                    <option value="">Escolha a unidade…</option>
-                    {presentes.map((p) => (
-                      <option key={p.unidade.id} value={p.unidade.id}>
-                        {rotuloUnidade(p.unidade)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setUnidadeId}
+                    placeholder="Escolha a unidade…"
+                  />
                 </Field>
               ) : (
                 <p className="text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
+import { UnidadeSelect } from '@/components/shared/UnidadeSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -106,19 +107,13 @@ export default function Moradores() {
                 <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
               </Field>
               <Field label="Unidade" htmlFor="uni">
-                <select
+                <UnidadeSelect
                   id="uni"
-                  className={selectCls}
+                  unidades={unidades}
                   value={form.unidadeId}
-                  onChange={(e) => set('unidadeId', e.target.value)}
-                >
-                  <option value="">Sem unidade</option>
-                  {unidades.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {rotuloUnidade(u)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => set('unidadeId', v)}
+                  opcaoVazia="Sem unidade"
+                />
               </Field>
               <Field label="Papel" htmlFor="papel">
                 <select

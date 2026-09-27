@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { useEncomendas, type NovaEncomenda } from "@/hooks/useEncomendas";
 import { useUnidades } from "@/hooks/useUnidades";
 import { useAuth } from "@/hooks/useAuth";
-import { dataHora, rotuloUnidade } from "@/lib/format";
+import { dataHora } from "@/lib/format";
 import { paraWebp } from "@/lib/imagem";
 import { gerarRelatorioEncomendas } from "@/lib/exportarEncomendas";
 import { nomeComFuncao, type Encomenda } from "@/types/condominio";
@@ -29,6 +29,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Field } from "@/components/shared/Field";
 import { AsyncConfirmDialog } from "@/components/shared/AsyncConfirmDialog";
 import { BotaoDitado, juntarDitado } from "@/components/shared/BotaoDitado";
+import { UnidadeSelect } from "@/components/shared/UnidadeSelect";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -41,9 +42,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListSkeleton } from "@/components/shared/ListSkeleton";
-
-const selectCls =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const VAZIO: NovaEncomenda = {
   unidadeId: "",
@@ -131,6 +129,10 @@ export default function Encomendas() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.unidadeId) {
+      toast.error("Selecione a unidade");
+      return;
+    }
     if (!form.foto) {
       toast.error("Tire ou anexe a foto da encomenda");
       return;
@@ -180,20 +182,12 @@ export default function Encomendas() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Unidade" htmlFor="uni">
-                  <select
+                  <UnidadeSelect
                     id="uni"
-                    className={selectCls}
+                    unidades={unidades}
                     value={form.unidadeId}
-                    onChange={(e) => set("unidadeId", e.target.value)}
-                    required
-                  >
-                    <option value="">Selecione…</option>
-                    {unidades.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {rotuloUnidade(u)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("unidadeId", v)}
+                  />
                 </Field>
                 <Field label="Remetente / transportadora" htmlFor="rem">
                   <Input

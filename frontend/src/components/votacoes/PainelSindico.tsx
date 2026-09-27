@@ -9,6 +9,7 @@ import { useUnidades } from '@/hooks/useUnidades';
 import { rotuloUnidade } from '@/lib/format';
 import type { Assembleia, Pauta } from '@/types/condominio';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
+import { UnidadeSelect } from '@/components/shared/UnidadeSelect';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,9 +21,6 @@ import { VotarAgora } from './VotacaoCondomino';
 import { ResultadoPauta } from './ResultadoPauta';
 
 type Acoes = ReturnType<typeof useAssembleia>;
-
-const selectCls =
-  'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 export const STATUS_PAUTA = {
   rascunho: <Badge variant="muted">Aguardando</Badge>,
@@ -210,19 +208,13 @@ function PresencaManual({ assembleia: a, acoes }: { assembleia: Assembleia; acoe
         )}
         {ausentes.length > 0 && (
           <div className="flex gap-2">
-            <select
-              aria-label="Unidade sem celular"
-              className={selectCls}
+            <UnidadeSelect
+              ariaLabel="Unidade sem celular"
+              unidades={ausentes}
               value={unidadeId}
-              onChange={(e) => setUnidadeId(e.target.value)}
-            >
-              <option value="">Marcar unidade sem celular…</option>
-              {ausentes.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {rotuloUnidade(u)}
-                </option>
-              ))}
-            </select>
+              onChange={setUnidadeId}
+              placeholder="Marcar unidade sem celular…"
+            />
             <Button variant="outline" onClick={enviar} disabled={!unidadeId || enviando}>
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
               Presente
@@ -297,35 +289,23 @@ function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: 
         )}
         {disponiveis.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <select
-              aria-label="Unidade que concede a procuração"
-              className={selectCls}
+            <UnidadeSelect
+              ariaLabel="Unidade que concede a procuração"
+              unidades={disponiveis}
               value={outorganteId}
-              onChange={(e) => {
-                setOutorganteId(e.target.value);
-                if (e.target.value === procuradoraId) setProcuradoraId('');
+              onChange={(v) => {
+                setOutorganteId(v);
+                if (v === procuradoraId) setProcuradoraId('');
               }}
-            >
-              <option value="">Unidade que concede…</option>
-              {disponiveis.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {rotuloUnidade(u)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Unidade que recebe a procuração"
-              className={selectCls}
+              placeholder="Unidade que concede…"
+            />
+            <UnidadeSelect
+              ariaLabel="Unidade que recebe a procuração"
+              unidades={opcoesProcuradora}
               value={procuradoraId}
-              onChange={(e) => setProcuradoraId(e.target.value)}
-            >
-              <option value="">Unidade que representa…</option>
-              {opcoesProcuradora.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {rotuloUnidade(u)}
-                </option>
-              ))}
-            </select>
+              onChange={setProcuradoraId}
+              placeholder="Unidade que representa…"
+            />
             <Button variant="outline" onClick={enviar} disabled={!outorganteId || !procuradoraId || enviando}>
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-4 w-4" />}
               Registrar
