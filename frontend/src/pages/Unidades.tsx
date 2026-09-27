@@ -1,12 +1,15 @@
-import { useState } from 'react';
-import { Building2, Loader2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Building2, Download, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUnidades } from '@/hooks/useUnidades';
+import { useAuth } from '@/hooks/useAuth';
+import { baixarModeloUnidades, lerModeloUnidades } from '@/lib/importarUnidades';
 import type { Unidade } from '@/types/condominio';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
+import { ResultadoImportacao } from '@/components/shared/ResultadoImportacao';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,9 +22,41 @@ const selectCls =
 
 export default function Unidades() {
   const { unidades, carregando, recarregar, criar, atualizar, remover } = useUnidades();
+  const { condominio } = useAuth();
   const [form, setForm] = useState<any>(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [importando, setImportando] = useState(false);
+  const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
+  const arquivoRef = useRef<HTMLInputElement>(null);
+
+  async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!arquivo || !condominio) return;
+    setImportando(true);
+    setResultado(null);
+    try {
+      const { unidades: linhas, erros } = await lerModeloUnidades(arquivo, condominio);
+      let sucesso = 0;
+      for (const linha of linhas) {
+        try {
+          await criar(linha);
+          sucesso++;
+        } catch (err) {
+          erros.push({
+            erro: `${linha.bloco ? linha.bloco + ' ' : ''}${linha.numero}: ${err instanceof Error ? err.message : 'erro ao cadastrar'}`
+          });
+        }
+      }
+      setResultado({ sucesso, erros });
+      recarregar();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível ler a planilha');
+    } finally {
+      setImportando(false);
+    }
+  }
 
   function set(campo: string, valor: string) {
     setForm((f: any) => ({ ...f, [campo]: valor }));
@@ -60,7 +95,39 @@ export default function Unidades() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Unidades" description="Apartamentos, lojas e demais unidades do condomínio." />
+      <PageHeader
+        title="Unidades"
+        description="Apartamentos, lojas e demais unidades do condomínio."
+        actions={
+          condominio && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => baixarModeloUnidades(condominio)}>
+                <Download className="h-4 w-4" /> Baixar modelo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={importando}
+                onClick={() => arquivoRef.current?.click()}
+              >
+                {importando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Importar planilha
+              </Button>
+              <input
+                ref={arquivoRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleArquivo}
+              />
+            </>
+          )
+        }
+      />
+
+      {resultado && (
+        <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
+      )}
 
       <Card>
         <CardHeader>
