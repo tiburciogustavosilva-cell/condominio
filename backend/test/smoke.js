@@ -16,6 +16,8 @@ async function limpar() {
     .filter(Boolean);
   const where = { condominioId: { in: condominioIds } };
   await prisma.encomenda.deleteMany({ where });
+  await prisma.tarefaExecucao.deleteMany({ where }); // fotos caem em cascata
+  await prisma.tarefa.deleteMany({ where });
   await prisma.reserva.deleteMany({ where });
   await prisma.aviso.deleteMany({ where });
   await prisma.profile.deleteMany({ where }); // chamados/comentários caem em cascata
@@ -142,6 +144,55 @@ async function main() {
     assert.equal(retirada.bloqueada, false);
     assert.equal((await retirar(portaria, { codigo, retiradoPor: 'Maria' })).status, 404, 'não retira duas vezes');
 
+    // --- Tarefas: síndico cria por cargo, funcionário do cargo conclui com foto ---
+    const tarefa = await api('POST', '/tarefas', {
+      token: sindico,
+      body: { titulo: 'Lavar a garagem', cargo: 'zelador', recorrencia: 'diaria' }
+    });
+    assert.equal(tarefa.status, 201);
+    assert.equal((await api('POST', '/tarefas', { token: sindico, body: { titulo: 'x', cargo: 'zelador', recorrencia: 'semanal', diasSemana: [] } })).status, 400);
+    assert.equal((await api('POST', '/tarefas', { token: zelador, body: { titulo: 'x', cargo: 'zelador', recorrencia: 'diaria' } })).status, 403);
+    assert.equal((await api('GET', '/tarefas/hoje', { token: morador })).status, 403, 'condômino fora de tarefas');
+    const doZelador = (await api('GET', '/tarefas/hoje', { token: zelador })).json;
+    assert.match(doZelador.data, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(doZelador.tarefas.some((t) => t.id === tarefa.json.id && !t.execucao));
+    assert.ok(!(await api('GET', '/tarefas/hoje', { token: portaria })).json.tarefas.some((t) => t.id === tarefa.json.id), 'porteiro não vê tarefa de zelador');
+    const concluir = (token, body) => api('POST', `/tarefas/${tarefa.json.id}/concluir`, { token, body });
+    assert.equal((await concluir(portaria, { fotos: [webp] })).status, 403, 'outro cargo');
+    assert.equal((await concluir(zelador, { fotos: [] })).status, 400, 'foto obrigatória');
+    assert.equal((await concluir(zelador, { fotos: [Buffer.from('jpeg').toString('base64')] })).status, 400);
+    assert.equal((await concluir(zelador, { fotos: [webp, webp], observacao: 'feito' })).status, 201);
+    assert.equal((await concluir(zelador, { fotos: [webp] })).status, 409, 'uma vez por dia');
+    const feita = (await api('GET', '/tarefas/hoje', { token: zelador })).json.tarefas.find((t) => t.id === tarefa.json.id);
+    assert.equal(feita.execucao.concluidaPor.nome, 'zelador');
+    assert.equal(feita.execucao.fotos.length, 2);
+    const hist = (await api('GET', '/tarefas/execucoes', { token: sindico })).json;
+    assert.equal(hist[0].tarefa.titulo, 'Lavar a garagem');
+    assert.equal((await api('GET', '/tarefas/execucoes', { token: zelador })).status, 403);
+    assert.equal((await api('GET', `/tarefas/execucoes?tarefaId=${tarefa.json.id}&dia=${doZelador.data}`, { token: sindico })).json.length, 1);
+    assert.equal((await api('GET', '/tarefas/execucoes?dia=2000-01-01', { token: sindico })).json.length, 0);
+    assert.equal((await api('POST', '/tarefas', { token: sindico, body: { titulo: '   ', cargo: 'zelador', recorrencia: 'diaria' } })).status, 400);
+    assert.equal((await api('POST', '/tarefas', { token: sindico, body: { titulo: 'x', cargo: 'zelador', recorrencia: 'mensal', diaMes: 5.5 } })).status, 400);
+    assert.equal((await api('POST', '/tarefas', { token: sindico, body: { titulo: 'x', cargo: 'zelador', recorrencia: 'unica', data: 'amanha' } })).status, 400);
+    assert.equal(
+      (await api('PUT', `/tarefas/${tarefa.json.id}`, { token: sindico, body: { titulo: 'x', cargo: 'zelador', recorrencia: 'semanal', diasSemana: [1] } })).status,
+      409,
+      'agenda travada depois de executada'
+    );
+    const fotoRes = await fetch(`${base}/tarefas/fotos/${hist[0].fotos[0]}`, { headers: { Authorization: `Bearer ${zelador}` } });
+    assert.equal(fotoRes.headers.get('content-type'), 'image/webp');
+    const perdidas = await api('GET', '/tarefas/perdidas', { token: sindico });
+    assert.equal(perdidas.status, 200);
+    assert.ok(!perdidas.json.tarefas.some((t) => t.id === tarefa.json.id), 'criada hoje: nenhum dia perdido ainda');
+    assert.equal((await api('GET', '/tarefas/perdidas?de=ontem', { token: sindico })).status, 400);
+    assert.equal((await api('GET', '/tarefas/perdidas', { token: zelador })).status, 403);
+    assert.equal((await api('DELETE', `/tarefas/${tarefa.json.id}`, { token: sindico })).status, 409, 'com histórico não exclui');
+    assert.equal(
+      (await api('PUT', `/tarefas/${tarefa.json.id}`, { token: sindico, body: { titulo: 'Lavar a garagem', cargo: 'zelador', recorrencia: 'diaria', ativa: false } })).status,
+      204
+    );
+    assert.ok(!(await api('GET', '/tarefas/hoje', { token: zelador })).json.tarefas.some((t) => t.id === tarefa.json.id), 'desativada some');
+
     // --- Isolamento entre condomínios ---
     const outro = await api('POST', '/auth/cadastro', {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }
@@ -150,6 +201,7 @@ async function main() {
     assert.equal((await api('GET', '/chamados', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/unidades', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/encomendas', { token: tokenOutro })).json.length, 0);
+    assert.equal((await api('GET', '/tarefas/execucoes', { token: tokenOutro })).json.length, 0);
     assert.equal(
       (await api('PATCH', `/chamados/${doSindico.json.id}/status`, { token: tokenOutro, body: { status: 'concluido' } })).status,
       404

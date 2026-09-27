@@ -16,6 +16,7 @@ router.use('/chamados', semFuncionario, require('./chamados.routes'));
 router.use('/ocorrencias', semFuncionario, require('./ocorrencias.routes'));
 router.use('/reservas', semFuncionario, require('./reservas.routes'));
 router.use('/encomendas', require('./encomendas.routes'));
+router.use('/tarefas', require('./tarefas.routes'));
 router.use('/prestadores', semFuncionario, require('./prestadores.routes'));
 router.use('/manutencoes', semFuncionario, require('./manutencoes.routes'));
 router.use('/ativos', semFuncionario, require('./ativos.routes'));

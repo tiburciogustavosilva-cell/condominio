@@ -15,6 +15,7 @@ function tratarErro(err, req, res, next) {
     return res.status(status).json({ erro });
   }
   if (err.type === 'entity.parse.failed') return res.status(400).json({ erro: 'JSON inválido' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ erro: 'Envio grande demais (fotos demais?)' });
   console.error(err);
   res.status(500).json({ erro: 'Erro interno no servidor' });
 }

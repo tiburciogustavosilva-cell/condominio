@@ -37,20 +37,23 @@ model Condominio {
   administradora      Administradora? @relation(fields: [administradoraId], references: [id], onDelete: Restrict)
   criadoEm            DateTime        @default(now()) @map("criado_em") @db.Timestamptz
 
-  profiles      Profile[]
-  unidades      Unidade[]
-  areas         Area[]
-  chamados      Chamado[]
-  comentarios   ChamadoComentario[]
-  avisos        Aviso[]
-  reservas      Reserva[]
-  encomendas    Encomenda[]
-  prestadores   Prestador[]
-  manutencoes   Manutencao[]
-  historicos    ManutencaoHistorico[]
-  ativos        Ativo[]
-  ordensServico OrdemServico[]
-  ocorrencias   Ocorrencia[]
+  profiles        Profile[]
+  unidades        Unidade[]
+  areas           Area[]
+  chamados        Chamado[]
+  comentarios     ChamadoComentario[]
+  avisos          Aviso[]
+  reservas        Reserva[]
+  encomendas      Encomenda[]
+  prestadores     Prestador[]
+  manutencoes     Manutencao[]
+  historicos      ManutencaoHistorico[]
+  ativos          Ativo[]
+  ordensServico   OrdemServico[]
+  tarefas         Tarefa[]
+  tarefaExecucoes TarefaExecucao[]
+  tarefaFotos     TarefaFoto[]
+  ocorrencias     Ocorrencia[]
 
   @@map("condominios")
 }
@@ -79,6 +82,7 @@ model Profile {
   ocorrencias           Ocorrencia[]
   encomendasRegistradas Encomenda[]         @relation("EncomendasRegistradas")
   encomendasLiberadas   Encomenda[]         @relation("EncomendasLiberadas")
+  tarefasConcluidas     TarefaExecucao[]
 
   @@map("profiles")
 }
@@ -340,4 +344,52 @@ model Ocorrencia {
 
   @@index([usuarioId])
   @@map("ocorrencias")
+}
+
+// Tarefas recorrentes dos funcionários (por cargo), concluídas com foto.
+model Tarefa {
+  id           String           @id @default(uuid()) @db.Uuid
+  condominioId String           @map("condominio_id") @db.Uuid
+  condominio   Condominio       @relation(fields: [condominioId], references: [id])
+  titulo       String
+  descricao    String           @default("")
+  cargo        String // quem executa: qualquer funcionário desse cargo
+  recorrencia  String // diaria | semanal | mensal | unica
+  diasSemana   Int[]            @default([]) @map("dias_semana") // semanal: 0=dom … 6=sáb
+  diaMes       Int?             @map("dia_mes") // mensal: 1–31 (31 em fevereiro = último dia)
+  data         DateTime?        @db.Date // unica
+  ativa        Boolean          @default(true)
+  criadoEm     DateTime         @default(now()) @map("criado_em") @db.Timestamptz
+  execucoes    TarefaExecucao[]
+
+  @@map("tarefas")
+}
+
+model TarefaExecucao {
+  id             String       @id @default(uuid()) @db.Uuid
+  condominioId   String       @map("condominio_id") @db.Uuid
+  condominio     Condominio   @relation(fields: [condominioId], references: [id])
+  tarefaId       String       @map("tarefa_id") @db.Uuid
+  tarefa         Tarefa       @relation(fields: [tarefaId], references: [id], onDelete: Restrict) // histórico é prova: não some junto
+  data           DateTime     @db.Date // dia da ocorrência que foi cumprida
+  concluidaPorId String?      @map("concluida_por_id") @db.Uuid
+  concluidaPor   Profile?     @relation(fields: [concluidaPorId], references: [id], onDelete: SetNull)
+  concluidaEm    DateTime     @default(now()) @map("concluida_em") @db.Timestamptz // hora do servidor
+  observacao     String       @default("")
+  fotos          TarefaFoto[]
+
+  @@unique([tarefaId, data])
+  @@map("tarefa_execucoes")
+}
+
+model TarefaFoto {
+  id           String         @id @default(uuid()) @db.Uuid
+  condominioId String         @map("condominio_id") @db.Uuid
+  condominio   Condominio     @relation(fields: [condominioId], references: [id])
+  execucaoId   String         @map("execucao_id") @db.Uuid
+  execucao     TarefaExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  foto         Bytes
+
+  @@index([execucaoId])
+  @@map("tarefa_fotos")
 }

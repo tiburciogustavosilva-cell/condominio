@@ -30,10 +30,18 @@ function apenasEquipe(req, res, next) {
   next();
 }
 
-// Funcionário só usa perfil, avisos, encomendas e a lista de unidades.
+// Equipe interna do prédio: síndico/administradora e funcionários (condômino não).
+function apenasStaff(req, res, next) {
+  if (!isSindico(req.usuario) && req.usuario.papel !== 'funcionario') {
+    return res.status(403).json({ erro: 'Acesso restrito à equipe do condomínio' });
+  }
+  next();
+}
+
+// Funcionário só usa perfil, avisos, encomendas, tarefas e a lista de unidades.
 function semFuncionario(req, res, next) {
   if (req.usuario.papel === 'funcionario') return res.status(403).json({ erro: 'Acesso não permitido' });
   next();
 }
 
-module.exports = { autenticar, apenasSindico, apenasEquipe, semFuncionario };
+module.exports = { autenticar, apenasSindico, apenasEquipe, apenasStaff, semFuncionario };

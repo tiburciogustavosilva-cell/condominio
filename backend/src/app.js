@@ -7,6 +7,7 @@ const { jsonReplacer } = require('./utils/json');
 const app = express();
 app.set('json replacer', jsonReplacer);
 app.use(cors());
+app.use('/api/tarefas', express.json({ limit: '12mb' })); // até 5 fotos de 2 MB em base64
 app.use(express.json({ limit: '3mb' })); // foto da encomenda vem em base64
 app.use('/api', rotas);
 app.use('/api', (req, res) => res.status(404).json({ erro: 'Rota não encontrada' }));

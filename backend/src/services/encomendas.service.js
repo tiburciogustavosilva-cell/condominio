@@ -4,8 +4,8 @@ const { rotuloUnidade } = require('../utils/unidade');
 const HttpError = require('../utils/httpError');
 const { isEquipe, condominioDe, exigirAfetado } = require('../utils/acesso');
 const { obrigatorio, cpf } = require('../utils/validar');
+const { lerFotoWebp } = require('../utils/foto');
 
-const FOTO_MAX_BYTES = 2 * 1024 * 1024;
 const LIMITE_TENTATIVAS = 5; // códigos errados até bloquear; só o síndico desbloqueia
 const PESSOA = { select: { nome: true, papel: true, cargo: true } };
 
@@ -37,16 +37,6 @@ async function listar(usuario) {
     // O código é só do morador: a portaria nunca vê, só digita o que foi informado.
     ...(equipe ? { entregadorCpf } : { codigoRetirada: e.status === 'aguardando' ? codigoRetirada : null })
   }));
-}
-
-/** Aceita data URL ou base64 puro; exige WebP de verdade (assinatura RIFF....WEBP). */
-function lerFotoWebp(valor) {
-  const buf = Buffer.from(String(obrigatorio(valor, 'foto')).replace(/^data:[^,]*,/, ''), 'base64');
-  if (buf.length < 12 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WEBP') {
-    throw new HttpError(400, 'A foto precisa estar em formato .webp');
-  }
-  if (buf.length > FOTO_MAX_BYTES) throw new HttpError(400, 'Foto muito grande (máx. 2 MB)');
-  return buf;
 }
 
 async function criar(usuario, d) {
