@@ -15,5 +15,11 @@ module.exports = {
   remover: async (req, res) => {
     await service.remover(req.usuario, req.params.id);
     res.status(204).end();
+  },
+  adicionarAutorizado: async (req, res) =>
+    res.status(201).json(await service.adicionarAutorizado(req.usuario, req.params.id, req.body.nome)),
+  removerAutorizado: async (req, res) => {
+    await service.removerAutorizado(req.usuario, req.params.id, req.params.autorizadoId);
+    res.status(204).end();
   }
 };

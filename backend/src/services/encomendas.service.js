@@ -23,7 +23,12 @@ async function listar(usuario) {
   const encomendas = await prisma.encomenda.findMany({
     where,
     omit: { foto: true },
-    include: { unidade: { select: { bloco: true, numero: true } }, registradoPor: PESSOA, liberadoPor: PESSOA },
+    include: {
+      unidade: { select: { bloco: true, numero: true } },
+      registradoPor: PESSOA,
+      liberadoPor: PESSOA,
+      autorizados: { orderBy: { criadoEm: 'asc' } }
+    },
     orderBy: { criadoEm: 'desc' }
   });
   const comFoto = new Set(
@@ -114,4 +119,31 @@ async function remover(usuario, id) {
   exigirAfetado(await prisma.encomenda.deleteMany({ where: { id, condominioId: condominioDe(usuario) } }));
 }
 
-module.exports = { listar, criar, foto, retirar, desbloquear, remover };
+/** Encomenda dentro do escopo do usuário (equipe vê todas; morador só a da própria unidade). */
+async function encomendaVisivel(usuario, id) {
+  const where = escopo(usuario);
+  const encomenda = where && (await prisma.encomenda.findFirst({ where: { ...where, id } }));
+  if (!encomenda) throw new HttpError(404, 'Encomenda não encontrada');
+  return encomenda;
+}
+
+/**
+ * Terceiros que o morador autoriza a retirar (empregada, parente...). É só
+ * referência pra portaria — quem libera de verdade é o código de 5 dígitos.
+ */
+async function adicionarAutorizado(usuario, id, nome) {
+  const encomenda = await encomendaVisivel(usuario, id);
+  if (encomenda.status !== 'aguardando') {
+    throw new HttpError(400, 'Só é possível autorizar terceiros enquanto a encomenda aguarda retirada');
+  }
+  return prisma.encomendaAutorizado.create({
+    data: { encomendaId: id, nome: String(obrigatorio(nome, 'nome')).trim() }
+  });
+}
+
+async function removerAutorizado(usuario, id, autorizadoId) {
+  await encomendaVisivel(usuario, id);
+  exigirAfetado(await prisma.encomendaAutorizado.deleteMany({ where: { id: autorizadoId, encomendaId: id } }));
+}
+
+module.exports = { listar, criar, foto, retirar, desbloquear, remover, adicionarAutorizado, removerAutorizado };

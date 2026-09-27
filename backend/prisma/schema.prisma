@@ -221,8 +221,24 @@ model Encomenda {
   criadoEm           DateTime   @default(now()) @map("criado_em") @db.Timestamptz
   entregueEm         DateTime?  @map("entregue_em") @db.Timestamptz
 
+  // Terceiros que o morador autoriza a retirar essa encomenda além dele mesmo
+  // (empregada doméstica, parente...). É só referência pra portaria — quem
+  // realmente libera a retirada é o código de 5 dígitos, não o nome.
+  autorizados EncomendaAutorizado[]
+
   @@index([unidadeId])
   @@map("encomendas")
+}
+
+model EncomendaAutorizado {
+  id          String    @id @default(uuid()) @db.Uuid
+  encomendaId String    @map("encomenda_id") @db.Uuid
+  encomenda   Encomenda @relation(fields: [encomendaId], references: [id], onDelete: Cascade)
+  nome        String
+  criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@index([encomendaId])
+  @@map("encomenda_autorizados")
 }
 
 model Prestador {

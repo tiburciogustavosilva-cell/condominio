@@ -186,6 +186,12 @@ export interface Reserva {
 
 export type StatusEncomenda = 'aguardando' | 'entregue';
 
+export interface EncomendaAutorizado {
+  id: string;
+  nome: string;
+  criadoEm: string;
+}
+
 export interface Encomenda {
   id: string;
   unidadeId: string;
@@ -207,6 +213,8 @@ export interface Encomenda {
   perecivel: boolean;
   /** Só vem para o morador da unidade, e só enquanto aguardando. */
   codigoRetirada?: string | null;
+  /** Terceiros que o morador autoriza a retirar (empregada, parente...) — só referência pra portaria. */
+  autorizados: EncomendaAutorizado[];
   temFoto: boolean;
   criadoEm: string;
   entregueEm: string | null;

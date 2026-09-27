@@ -11,6 +11,8 @@ import {
   Package,
   Plus,
   Search,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEncomendas, type NovaEncomenda } from "@/hooks/useEncomendas";
@@ -76,6 +78,8 @@ export default function Encomendas() {
     desbloquear,
     fotoUrl,
     remover,
+    autorizarTerceiro,
+    removerAutorizado,
   } = useEncomendas();
   const { unidades } = useUnidades();
   const [form, setForm] = useState<NovaEncomenda>(VAZIO);
@@ -342,6 +346,18 @@ export default function Encomendas() {
                   <CodigoRetirada codigo={e.codigoRetirada} />
                 )}
 
+                {!isEquipe && e.status === "aguardando" && (
+                  <Autorizados
+                    encomenda={e}
+                    onAdicionar={(nome) =>
+                      autorizarTerceiro(e.id, nome).then(recarregar)
+                    }
+                    onRemover={(autorizadoId) =>
+                      removerAutorizado(e.id, autorizadoId).then(recarregar)
+                    }
+                  />
+                )}
+
                 <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                   <Info rotulo="Remetente">{e.remetente || "—"}</Info>
                   <Info rotulo="Rastreio">
@@ -464,6 +480,101 @@ function CodigoRetirada({ codigo }: { codigo: string }) {
           Informe esse código na portaria para retirar.
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * Morador autoriza terceiros (empregada, parente...) a retirar essa encomenda
+ * junto com ele. É só referência: quem libera de verdade é o código.
+ */
+function Autorizados({
+  encomenda,
+  onAdicionar,
+  onRemover,
+}: {
+  encomenda: Encomenda;
+  onAdicionar: (nome: string) => Promise<unknown>;
+  onRemover: (autorizadoId: string) => Promise<unknown>;
+}) {
+  const [nome, setNome] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [removendoId, setRemovendoId] = useState<string | null>(null);
+
+  async function adicionar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nome.trim()) return;
+    setSalvando(true);
+    try {
+      await onAdicionar(nome.trim());
+      setNome("");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao autorizar",
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function remover(autorizadoId: string) {
+    setRemovendoId(autorizadoId);
+    try {
+      await onRemover(autorizadoId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
+    } finally {
+      setRemovendoId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <UserPlus className="h-3.5 w-3.5" /> Outras pessoas que podem retirar
+        (opcional)
+      </p>
+      {encomenda.autorizados.length > 0 && (
+        <ul className="space-y-1">
+          {encomenda.autorizados.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center justify-between gap-2 text-sm"
+            >
+              {a.nome}
+              <button
+                type="button"
+                onClick={() => remover(a.id)}
+                disabled={removendoId === a.id}
+                aria-label={`Remover ${a.nome}`}
+                className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-destructive disabled:opacity-50"
+              >
+                {removendoId === a.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <X className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form onSubmit={adicionar} className="flex gap-2">
+        <Input
+          placeholder="Nome (ex.: empregada, parente...)"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          className="h-8 text-sm"
+        />
+        <Button type="submit" size="sm" variant="outline" disabled={salvando}>
+          {salvando ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+          Adicionar
+        </Button>
+      </form>
     </div>
   );
 }
@@ -610,6 +721,25 @@ function LiberarRetirada({
           />
         </Field>
       </div>
+      {encomenda.autorizados.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-xs text-muted-foreground">
+            Nomes autorizados pelo morador (referência):
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {encomenda.autorizados.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setRetiradoPor(a.nome)}
+                className="rounded-full border border-input bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {a.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </AsyncConfirmDialog>
   );
 }

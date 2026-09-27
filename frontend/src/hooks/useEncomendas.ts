@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, baixarComoUrl } from '@/lib/api';
-import type { Encomenda } from '@/types/condominio';
+import type { Encomenda, EncomendaAutorizado } from '@/types/condominio';
 
 export type NovaEncomenda = {
   unidadeId: string;
@@ -44,6 +44,13 @@ export function useEncomendas() {
     fotoUrl: (id: string) => baixarComoUrl(`/encomendas/${id}/foto`),
     remover: async (id: string) => {
       await api.delete(`/encomendas/${id}`);
+    },
+    /** Morador autoriza mais alguém (empregada, parente...) a retirar essa encomenda. */
+    autorizarTerceiro: async (id: string, nome: string) => {
+      await api.post<EncomendaAutorizado>(`/encomendas/${id}/autorizados`, { nome });
+    },
+    removerAutorizado: async (id: string, autorizadoId: string) => {
+      await api.delete(`/encomendas/${id}/autorizados/${autorizadoId}`);
     }
   };
 }
