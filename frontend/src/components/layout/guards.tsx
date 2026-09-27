@@ -38,10 +38,22 @@ export function RequireOnboardingConcluido() {
   return <Outlet />;
 }
 
-/** Funcionário (portaria) só usa Encomendas/Avisos/Perfil — o resto manda pra lá. */
+/** Tela inicial do funcionário: porteiro cai em Encomendas; os demais, em Tarefas. */
+function inicioFuncionario(isEquipe: boolean, temPorteiro?: boolean) {
+  return isEquipe && temPorteiro ? '/encomendas' : '/tarefas';
+}
+
+/** Funcionário só usa Encomendas (porteiro)/Tarefas/Avisos/Perfil — o resto manda pra lá. */
 export function BloqueiaFuncionario() {
   const { isFuncionario, isEquipe, condominio } = useAuth();
-  if (isFuncionario) return <Navigate to={isEquipe && condominio?.temPorteiro ? '/encomendas' : '/avisos'} replace />;
+  if (isFuncionario) return <Navigate to={inicioFuncionario(isEquipe, condominio?.temPorteiro)} replace />;
+  return <Outlet />;
+}
+
+/** Só equipe interna (síndico/administradora e funcionários); condômino volta pro início. */
+export function RequireStaff() {
+  const { isSindico, isFuncionario } = useAuth();
+  if (!isSindico && !isFuncionario) return <Navigate to="/" replace />;
   return <Outlet />;
 }
 
@@ -49,7 +61,7 @@ export function BloqueiaFuncionario() {
 export function RequireComPorteiro() {
   const { condominio, isFuncionario, isEquipe } = useAuth();
   if (condominio && !condominio.temPorteiro) return <Navigate to="/" replace />;
-  if (isFuncionario && !isEquipe) return <Navigate to="/avisos" replace />; // só porteiro usa Encomendas
+  if (isFuncionario && !isEquipe) return <Navigate to="/tarefas" replace />; // só porteiro usa Encomendas
   return <Outlet />;
 }
 

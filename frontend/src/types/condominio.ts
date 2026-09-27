@@ -19,6 +19,43 @@ export interface Funcionario {
   criadoEm: string;
 }
 
+export type Recorrencia = 'diaria' | 'semanal' | 'mensal' | 'unica';
+
+/** Tarefa recorrente atribuída a um cargo (cadastro do síndico). */
+export interface Tarefa {
+  id: string;
+  titulo: string;
+  descricao: string;
+  cargo: Cargo;
+  recorrencia: Recorrencia;
+  /** semanal: 0=dom … 6=sáb */
+  diasSemana: number[];
+  diaMes: number | null;
+  /** unica: "YYYY-MM-DD" */
+  data: string | null;
+  ativa: boolean;
+  /** Quantas vezes já foi concluída (só no cadastro). */
+  execucoes?: number;
+}
+
+export interface ExecucaoTarefa {
+  id: string;
+  data: string;
+  concluidaEm: string;
+  concluidaPor: PessoaComFuncao | null;
+  observacao: string;
+  /** ids das fotos (GET /tarefas/fotos/:id) */
+  fotos: string[];
+  tarefa?: { titulo: string; cargo: Cargo };
+}
+
+/** Tarefa no painel do dia, com a execução de hoje (se já feita). */
+export interface TarefaDoDia extends Tarefa {
+  devidaEm: string;
+  atrasada: boolean;
+  execucao: ExecucaoTarefa | null;
+}
+
 export type PessoaComFuncao = { nome: string; papel: Papel; cargo: Cargo | null };
 
 export interface Administradora {
@@ -305,6 +342,13 @@ export const LABEL = {
     seguranca: 'Segurança',
     outro: 'Outro'
   } as Record<string, string>,
+  recorrencia: {
+    diaria: 'Todo dia',
+    semanal: 'Dias da semana',
+    mensal: 'Mensal',
+    unica: 'Uma vez'
+  } as Record<string, string>,
+  diaSemana: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
   periodo: {
     manha: 'Manhã',
     tarde: 'Tarde',
@@ -356,4 +400,18 @@ export const LABEL = {
 export function nomeComFuncao(p: { nome: string; papel: Papel; cargo?: Cargo | null }) {
   const funcao = (p.cargo && LABEL.cargo[p.cargo]) || LABEL.papel[p.papel];
   return funcao ? `${funcao} ${p.nome}` : p.nome;
+}
+
+/** "Toda seg, qua", "Todo dia 5", "Em 10/10/2026"… */
+export function textoRecorrencia(t: Pick<Tarefa, 'recorrencia' | 'diasSemana' | 'diaMes' | 'data'>) {
+  switch (t.recorrencia) {
+    case 'diaria':
+      return 'Todo dia';
+    case 'semanal':
+      return 'Toda ' + t.diasSemana.map((d) => LABEL.diaSemana[d].toLowerCase()).join(', ');
+    case 'mensal':
+      return `Todo dia ${t.diaMes} do mês`;
+    case 'unica':
+      return t.data ? `Em ${t.data.split('-').reverse().join('/')}` : 'Uma vez';
+  }
 }

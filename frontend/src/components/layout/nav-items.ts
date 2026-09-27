@@ -7,6 +7,7 @@ import {
   BookText,
   HardHat,
   ClipboardList,
+  ClipboardCheck,
   Users,
   IdCard,
   Building2,
@@ -28,6 +29,8 @@ export type NavItem = {
   emBreve?: boolean;
   /** Funcionário só enxerga itens marcados: true = qualquer cargo; 'portaria' = só porteiro. */
   funcionario?: true | "portaria";
+  /** Só equipe interna (síndico/administradora e funcionários) — condômino não vê. */
+  staff?: boolean;
 };
 
 type Contexto = {
@@ -46,6 +49,7 @@ export function itemVisivel(
       l.funcionario === true ||
       (l.funcionario === "portaria" && isEquipe)) &&
     (!l.sindico || isSindico) &&
+    (!l.staff || isSindico || isFuncionario) &&
     (!l.porteiro || !!condominio?.temPorteiro) &&
     (!l.areasReserva || !!condominio?.temAreasReserva)
   );
@@ -59,6 +63,13 @@ export const navItems: NavItem[] = [
     icon: Package,
     porteiro: true,
     funcionario: "portaria",
+  },
+  {
+    to: "/tarefas",
+    label: "Tarefas",
+    icon: ClipboardCheck,
+    staff: true,
+    funcionario: true,
   },
   { to: "/chamados", label: "Chamados", icon: Wrench, emBreve: true },
   {

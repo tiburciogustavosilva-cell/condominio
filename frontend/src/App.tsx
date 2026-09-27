@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import {
   BloqueiaFuncionario,
+  RequireStaff,
   RequireAuth,
   RequireComAreasReserva,
   RequireComPorteiro,
@@ -22,6 +23,7 @@ import NovoChamado from '@/pages/NovoChamado';
 import ChamadoDetalhe from '@/pages/ChamadoDetalhe';
 import Reservas from '@/pages/Reservas';
 import Encomendas from '@/pages/Encomendas';
+import Tarefas from '@/pages/Tarefas';
 import Avisos from '@/pages/Avisos';
 import Ocorrencias from '@/pages/Ocorrencias';
 import Prestadores from '@/pages/Prestadores';
@@ -55,6 +57,9 @@ export default function App() {
                       <Route path="reservas" element={<Reservas />} />
                     </Route>
                     <Route path="ocorrencias" element={<Ocorrencias />} />
+                  </Route>
+                  <Route element={<RequireStaff />}>
+                    <Route path="tarefas" element={<Tarefas />} />
                   </Route>
                   <Route element={<RequireComPorteiro />}>
                     <Route path="encomendas" element={<Encomendas />} />
