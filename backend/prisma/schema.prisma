@@ -99,6 +99,10 @@ model Unidade {
   bloco        String     @default("-")
   tipo         String     @default("apartamento")
   fracaoIdeal  Decimal    @default(0) @map("fracao_ideal") @db.Decimal(10, 4)
+  // Peso do voto nas assembleias (1 = um voto normal; pode ser outro inteiro
+  // ou fração pra unidade com peso diferente). Independente da fração ideal,
+  // que é usada pra outras coisas (ex.: rateio).
+  pesoVoto     Decimal    @default(1) @map("peso_voto") @db.Decimal(10, 4)
   criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
 
   profiles    Profile[]
@@ -466,12 +470,13 @@ model Pauta {
 }
 
 model PautaOpcao {
-  id      String @id @default(uuid()) @db.Uuid
-  pautaId String @map("pauta_id") @db.Uuid
-  pauta   Pauta  @relation(fields: [pautaId], references: [id], onDelete: Cascade)
-  texto   String
-  ordem   Int    @default(0)
-  votos   Int    @default(0) // só o total: o voto é secreto
+  id         String  @id @default(uuid()) @db.Uuid
+  pautaId    String  @map("pauta_id") @db.Uuid
+  pauta      Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
+  texto      String
+  ordem      Int     @default(0)
+  votos      Int     @default(0) // total de unidades (1 unidade = 1): só o total, o voto é secreto
+  pesoVotos  Decimal @default(0) @map("peso_votos") @db.Decimal(14, 4) // soma do peso_voto de quem escolheu — decide o resultado
 
   @@index([pautaId])
   @@map("pauta_opcoes")

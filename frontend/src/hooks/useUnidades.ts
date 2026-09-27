@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Unidade } from '@/types/condominio';
 
-type DadosUnidade = { numero: string; bloco: string; tipo: string; fracaoIdeal: string | number };
+type DadosUnidade = {
+  numero: string;
+  bloco: string;
+  tipo: string;
+  fracaoIdeal: string | number;
+  pesoVoto: string | number;
+};
 
 export function useUnidades() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);

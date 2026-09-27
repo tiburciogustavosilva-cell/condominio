@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
 
-const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '' };
+const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '', pesoVoto: '1' };
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
@@ -29,7 +29,7 @@ export default function Unidades() {
 
   function editar(u: Unidade) {
     setEditandoId(u.id);
-    setForm({ numero: u.numero, bloco: u.bloco, tipo: u.tipo, fracaoIdeal: u.fracaoIdeal ?? '' });
+    setForm({ numero: u.numero, bloco: u.bloco, tipo: u.tipo, fracaoIdeal: u.fracaoIdeal ?? '', pesoVoto: u.pesoVoto ?? 1 });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -98,6 +98,20 @@ export default function Unidades() {
                   onChange={(e) => set('fracaoIdeal', e.target.value)}
                 />
               </Field>
+              <Field
+                label="Peso do voto"
+                htmlFor="pesoVoto"
+                hint="Padrão 1 = um voto normal. Pode usar outro número inteiro (2, 3…) ou fração (ex.: 1.5) se essa unidade tiver peso diferente na assembleia."
+              >
+                <Input
+                  id="pesoVoto"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={form.pesoVoto}
+                  onChange={(e) => set('pesoVoto', e.target.value)}
+                />
+              </Field>
             </div>
             <div className="flex justify-end gap-2">
               {editandoId && (
@@ -134,6 +148,9 @@ export default function Unidades() {
                 <p className="text-xs text-muted-foreground">
                   Fração ideal: {u.fracaoIdeal ? `${u.fracaoIdeal}%` : '—'}
                 </p>
+                {u.pesoVoto !== 1 && (
+                  <p className="text-xs text-muted-foreground">Peso do voto: {u.pesoVoto}</p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Moradores: {u.moradores?.length ? u.moradores.join(', ') : '—'}
                 </p>

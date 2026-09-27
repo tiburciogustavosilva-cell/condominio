@@ -29,8 +29,9 @@ type Veredito = {
  */
 export function apurar(pauta: Pauta): Veredito {
   const decisivas = pauta.opcoes.filter((o) => !normalizar(o.texto).startsWith('absten'));
-  const maior = Math.max(0, ...decisivas.map((o) => o.votos ?? 0));
-  const lideres = decisivas.filter((o) => (o.votos ?? 0) === maior);
+  // O peso do voto (cadastrado na unidade) decide o resultado, não a contagem simples de unidades.
+  const maior = Math.max(0, ...decisivas.map((o) => o.pesoVotos ?? 0));
+  const lideres = decisivas.filter((o) => (o.pesoVotos ?? 0) === maior);
 
   if (maior === 0) {
     return {
@@ -87,7 +88,7 @@ export function apurar(pauta: Pauta): Veredito {
 /** Cartão de pauta encerrada: veredito grande no topo + placar final. `grande` = tela do condômino. */
 export function ResultadoPauta({ pauta, numero, grande }: { pauta: Pauta; numero?: number; grande?: boolean }) {
   const v = apurar(pauta);
-  const total = pauta.opcoes.reduce((soma, o) => soma + (o.votos ?? 0), 0);
+  const totalPeso = pauta.opcoes.reduce((soma, o) => soma + (o.pesoVotos ?? 0), 0);
   const Icon = v.icon;
 
   return (
@@ -106,8 +107,8 @@ export function ResultadoPauta({ pauta, numero, grande }: { pauta: Pauta; numero
           <p className={cn('font-semibold', grande ? 'text-xl' : 'text-lg')}>{pauta.titulo}</p>
           {v.vencedora && (
             <p className={cn('text-muted-foreground', grande ? 'text-lg' : 'text-sm')}>
-              "{v.vencedora.texto}" teve {v.vencedora.votos} de {total} voto(s) (
-              {Math.round(((v.vencedora.votos ?? 0) / total) * 100)}%)
+              "{v.vencedora.texto}" teve {v.vencedora.votos} voto(s) (
+              {totalPeso ? Math.round(((v.vencedora.pesoVotos ?? 0) / totalPeso) * 100) : 0}% do peso)
             </p>
           )}
         </div>
@@ -133,7 +134,8 @@ export function ResumoAssembleia({ assembleia: a }: { assembleia: Assembleia }) 
   const { usuario, isSindico } = useAuth();
   const vereditos = a.pautas.map(apurar);
   const conta = (titulo: string) => vereditos.filter((v) => v.titulo === titulo).length;
-  const quorum = a.totalUnidades ? Math.round((a.presentes / a.totalUnidades) * 100) : 0;
+  // Quórum pelo peso do voto (cadastrado na unidade), não pela contagem simples de unidades.
+  const quorum = a.pesoTotal ? Math.round((a.pesoPresente / a.pesoTotal) * 100) : 0;
   const numeros = [
     { rotulo: 'unidades presentes', valor: `${a.presentes}/${a.totalUnidades}`, extra: `${quorum}%` },
     { rotulo: 'aprovada(s)', valor: conta('Aprovada'), cls: 'text-emerald-700' },

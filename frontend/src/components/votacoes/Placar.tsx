@@ -11,20 +11,24 @@ type Props = {
 
 export function Placar({ pauta, corLider = 'bg-primary', liderId }: Props) {
   const votos = (o: Pauta['opcoes'][number]) => o.votos ?? 0;
-  const total = pauta.opcoes.reduce((soma, o) => soma + votos(o), 0);
-  const maior = Math.max(...pauta.opcoes.map(votos));
+  const peso = (o: Pauta['opcoes'][number]) => o.pesoVotos ?? 0;
+  const totalVotos = pauta.opcoes.reduce((soma, o) => soma + votos(o), 0);
+  const totalPeso = pauta.opcoes.reduce((soma, o) => soma + peso(o), 0);
+  const maior = Math.max(...pauta.opcoes.map(peso));
+  // Só mostra o peso separado se alguma unidade tiver peso diferente de 1 (senão soma bate com a contagem simples).
+  const pesosDiferentes = totalPeso !== totalVotos;
 
   return (
     <div className="space-y-2">
       {pauta.opcoes.map((o) => {
-        const pct = total ? Math.round((votos(o) / total) * 100) : 0;
-        const lider = liderId !== undefined ? o.id === liderId : total > 0 && votos(o) === maior;
+        const pct = totalPeso ? Math.round((peso(o) / totalPeso) * 100) : 0;
+        const lider = liderId !== undefined ? o.id === liderId : totalPeso > 0 && peso(o) === maior;
         return (
           <div key={o.id} className="space-y-1">
             <div className="flex justify-between text-sm">
               <span className={cn(lider && 'font-semibold')}>{o.texto}</span>
               <span className="tabular-nums text-muted-foreground">
-                {votos(o)} voto(s) · {pct}%
+                {votos(o)} voto(s){pesosDiferentes && ` · peso ${peso(o)}`} · {pct}%
               </span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-muted">

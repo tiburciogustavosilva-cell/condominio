@@ -288,13 +288,17 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
     throw new HttpError(403, sindico ? 'Marque a presença dessa unidade antes' : 'Faça o check-in na reunião antes de votar');
   }
 
+  // Peso configurado no cadastro da unidade — decide o resultado junto com a contagem simples.
+  const unidade = await prisma.unidade.findUnique({ where: { id: unidadeId }, select: { pesoVoto: true } });
+  const peso = unidade?.pesoVoto ?? 1;
+
   try {
     await prisma.$transaction(async (tx) => {
       // trava a pauta: "encerrar" espera este voto terminar (ou o voto vê a pauta já encerrada) — nunca conta voto atrasado
       const [atual] = await tx.$queryRaw`SELECT status FROM pautas WHERE id = ${pautaId}::uuid FOR UPDATE`;
       if (atual?.status !== 'votando') throw new HttpError(400, 'A votação dessa pauta acabou de ser encerrada');
       await tx.pautaVotante.create({ data: { pautaId, unidadeId } });
-      await tx.pautaOpcao.update({ where: { id: opcaoId }, data: { votos: { increment: 1 } } });
+      await tx.pautaOpcao.update({ where: { id: opcaoId }, data: { votos: { increment: 1 }, pesoVotos: { increment: peso } } });
     });
   } catch (err) {
     if (err.code === 'P2002') throw new HttpError(409, 'Sua unidade já votou nessa pauta');
@@ -305,6 +309,7 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
 // ---------- Estado (polling) ----------
 
 const UNIDADE = { select: { id: true, numero: true, bloco: true } };
+const UNIDADE_COM_PESO = { select: { id: true, numero: true, bloco: true, pesoVoto: true } };
 
 /**
  * Tudo que a tela da assembleia precisa. Nunca liga voto a unidade. Enquanto a pauta está em votação, nem o total
@@ -313,7 +318,7 @@ const UNIDADE = { select: { id: true, numero: true, bloco: true } };
 async function estado(usuario, id) {
   const assembleia = await buscar(usuario, id);
   const sindico = isSindico(usuario);
-  const [pautas, presencas, totalUnidades, votadas, procuracoes] = await Promise.all([
+  const [pautas, presencas, unidadesAgg, votadas, procuracoes] = await Promise.all([
     prisma.pauta.findMany({
       where: { assembleiaId: id },
       include: { opcoes: { orderBy: { ordem: 'asc' } }, _count: { select: { votantes: true } } },
@@ -321,10 +326,10 @@ async function estado(usuario, id) {
     }),
     prisma.assembleiaPresenca.findMany({
       where: { assembleiaId: id },
-      select: { unidadeId: true, manual: true, criadoEm: true, unidade: UNIDADE },
+      select: { unidadeId: true, manual: true, criadoEm: true, unidade: UNIDADE_COM_PESO },
       orderBy: { criadoEm: 'asc' }
     }),
-    prisma.unidade.count({ where: { condominioId: assembleia.condominioId } }),
+    prisma.unidade.aggregate({ where: { condominioId: assembleia.condominioId }, _count: true, _sum: { pesoVoto: true } }),
     usuario.unidadeId
       ? prisma.pautaVotante.findMany({ where: { unidadeId: usuario.unidadeId, pauta: { assembleiaId: id } }, select: { pautaId: true } })
       : [],
@@ -338,6 +343,7 @@ async function estado(usuario, id) {
   ]);
 
   const agora = Date.now();
+  const pesoPresente = presencas.reduce((soma, p) => soma + Number(p.unidade.pesoVoto), 0);
   return {
     id: assembleia.id,
     titulo: assembleia.titulo,
@@ -345,10 +351,13 @@ async function estado(usuario, id) {
     criadoEm: assembleia.criadoEm,
     encerradaEm: assembleia.encerradaEm,
     presentes: presencas.length,
-    totalUnidades,
+    totalUnidades: unidadesAgg._count,
+    // Peso do voto (cadastrado na unidade) decide o quórum e o resultado — não é só contagem de unidade.
+    pesoTotal: Number(unidadesAgg._sum.pesoVoto ?? 0),
+    pesoPresente,
     pautas: pautas.map(({ _count, condominioId, assembleiaId, ...p }) => ({
       ...p,
-      opcoes: p.status === 'votando' ? p.opcoes.map((o) => ({ ...o, votos: null })) : p.opcoes,
+      opcoes: p.status === 'votando' ? p.opcoes.map((o) => ({ ...o, votos: null, pesoVotos: null })) : p.opcoes,
       votantes: _count.votantes
     })),
     minhaUnidade: usuario.unidadeId

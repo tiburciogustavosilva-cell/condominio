@@ -93,6 +93,8 @@ export interface Unidade {
   bloco: string;
   tipo: string;
   fracaoIdeal: number;
+  /** Peso do voto nas assembleias (padrão 1 = um voto normal; pode ser outro inteiro ou fração). */
+  pesoVoto: number;
   moradores?: string[];
 }
 
@@ -441,8 +443,12 @@ export interface Pauta {
   descricao: string;
   ordem: number;
   status: StatusPauta;
-  /** Só o total por opção (o voto é secreto) e só depois de encerrada: em votação, `votos` vem null. */
-  opcoes: { id: string; texto: string; votos: number | null }[];
+  /**
+   * Só o total por opção (o voto é secreto) e só depois de encerrada: em votação, `votos`/`pesoVotos` vêm null.
+   * `votos` conta unidades (1 unidade = 1); `pesoVotos` soma o peso do voto de cada unidade — é o que decide
+   * o resultado (ver `pesoVoto` no cadastro da unidade).
+   */
+  opcoes: { id: string; texto: string; votos: number | null; pesoVotos: number | null }[];
   /** Quantas unidades já votaram. */
   votantes: number;
 }
@@ -450,6 +456,9 @@ export interface Pauta {
 /** Estado da assembleia (GET /assembleias/:id), recarregado a cada 2 s. */
 export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
   totalUnidades: number;
+  /** Soma do peso do voto de todas as unidades do condomínio / das presentes — decide o quórum de verdade. */
+  pesoTotal: number;
+  pesoPresente: number;
   pautas: Pauta[];
   minhaUnidade: { presente: boolean; pautasVotadas: string[] } | null;
   /** Só síndico. */

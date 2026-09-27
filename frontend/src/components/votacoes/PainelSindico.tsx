@@ -100,7 +100,8 @@ function CodigoPresenca({ assembleia: a }: { assembleia: Assembleia }) {
   const ref = useRef<HTMLDivElement>(null);
   const link = `${window.location.origin}/votacoes/${a.id}?qr=${a.qr ?? ''}`;
   const restante = a.codigoExpiraEm && a.agora ? new Date(a.codigoExpiraEm).getTime() - new Date(a.agora).getTime() : 0;
-  const quorum = a.totalUnidades ? Math.round((a.presentes / a.totalUnidades) * 100) : 0;
+  // Quórum pelo peso do voto (cadastrado na unidade), não pela contagem simples de unidades.
+  const quorum = a.pesoTotal ? Math.round((a.pesoPresente / a.pesoTotal) * 100) : 0;
 
   return (
     <Card>
