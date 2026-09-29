@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Download, Loader2, Upload, Users } from 'lucide-react';
+import { Download, Loader2, Plus, Upload, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMoradores } from '@/hooks/useMoradores';
 import { useUnidades } from '@/hooks/useUnidades';
@@ -8,13 +8,14 @@ import { rotuloUnidade } from '@/lib/format';
 import { baixarModeloMoradores, lerModeloMoradores } from '@/lib/importarMoradores';
 import { LABEL } from '@/types/condominio';
 import type { Morador } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
 import { UnidadeSelect } from '@/components/shared/UnidadeSelect';
 import { ResultadoImportacao } from '@/components/shared/ResultadoImportacao';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,7 @@ export default function Moradores() {
   const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', papel: 'condomino', vinculo: 'proprietario' };
   const [form, setForm] = useState(vazio);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
@@ -75,10 +77,11 @@ export default function Moradores() {
       papel: m.papel,
       vinculo: m.vinculo
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelarEdicao() {
+    setAberto(false);
     setEditandoId(null);
     setForm(vazio);
   }
@@ -140,6 +143,9 @@ export default function Moradores() {
                 className="hidden"
                 onChange={handleArquivo}
               />
+              <Button variant="brand" size="sm" onClick={() => setAberto(true)}>
+                <Plus className="h-4 w-4" /> Novo morador
+              </Button>
             </>
           )
         }
@@ -149,89 +155,87 @@ export default function Moradores() {
         <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar morador' : 'Novo morador'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nome" htmlFor="nome">
-                <Input id="nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
-              </Field>
-              {!editandoId && (
-                <>
-                  <Field label="E-mail (login)" htmlFor="email">
-                    <Input id="email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
-                  </Field>
-                  <Field label="Senha inicial" htmlFor="senha">
-                    <Input
-                      id="senha"
-                      type="password"
-                      minLength={6}
-                      value={form.senha}
-                      onChange={(e) => set('senha', e.target.value)}
-                      required
-                    />
-                  </Field>
-                </>
-              )}
-              <Field label="Telefone" htmlFor="tel">
-                <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
-              </Field>
-              <Field label="Unidade" htmlFor="uni">
-                <UnidadeSelect
-                  id="uni"
-                  unidades={unidades}
-                  value={form.unidadeId}
-                  onChange={(v) => set('unidadeId', v)}
-                  opcaoVazia="Sem unidade"
-                />
-              </Field>
-              <Field
-                label="Vínculo com a unidade"
-                htmlFor="vinculo"
-                hint="Marido e mulher, por exemplo, cadastram-se como dois proprietários da mesma unidade."
+      <FormModal
+        aberto={aberto}
+        titulo={editandoId ? 'Editar morador' : 'Novo morador'}
+        onFechar={cancelarEdicao}
+        salvando={loading}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome" htmlFor="nome">
+              <Input id="nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
+            </Field>
+            {!editandoId && (
+              <>
+                <Field label="E-mail (login)" htmlFor="email">
+                  <Input id="email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+                </Field>
+                <Field label="Senha inicial" htmlFor="senha">
+                  <Input
+                    id="senha"
+                    type="password"
+                    minLength={6}
+                    value={form.senha}
+                    onChange={(e) => set('senha', e.target.value)}
+                    required
+                  />
+                </Field>
+              </>
+            )}
+            <Field label="Telefone" htmlFor="tel">
+              <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
+            </Field>
+            <Field label="Unidade" htmlFor="uni">
+              <UnidadeSelect
+                id="uni"
+                unidades={unidades}
+                value={form.unidadeId}
+                onChange={(v) => set('unidadeId', v)}
+                opcaoVazia="Sem unidade"
+              />
+            </Field>
+            <Field
+              label="Vínculo com a unidade"
+              htmlFor="vinculo"
+              hint="Marido e mulher, por exemplo, cadastram-se como dois proprietários da mesma unidade."
+            >
+              <select
+                id="vinculo"
+                className={selectCls}
+                value={form.vinculo}
+                onChange={(e) => set('vinculo', e.target.value)}
               >
-                <select
-                  id="vinculo"
-                  className={selectCls}
-                  value={form.vinculo}
-                  onChange={(e) => set('vinculo', e.target.value)}
-                >
-                  {Object.entries(LABEL.vinculo).map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Papel" htmlFor="papel">
-                <select
-                  id="papel"
-                  className={selectCls}
-                  value={form.papel}
-                  onChange={(e) => set('papel', e.target.value)}
-                >
-                  <option value="condomino">Condômino</option>
-                  <option value="sindico">Síndico</option>
-                </select>
-              </Field>
-            </div>
-            <div className="flex justify-end gap-2">
-              {editandoId && (
-                <Button type="button" variant="outline" onClick={cancelarEdicao}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" variant="brand" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {Object.entries(LABEL.vinculo).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Papel" htmlFor="papel">
+              <select
+                id="papel"
+                className={selectCls}
+                value={form.papel}
+                onChange={(e) => set('papel', e.target.value)}
+              >
+                <option value="condomino">Condômino</option>
+                <option value="sindico">Síndico</option>
+              </select>
+            </Field>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelarEdicao}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="brand" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editandoId ? 'Salvar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {carregando ? (
         <ListSkeleton />

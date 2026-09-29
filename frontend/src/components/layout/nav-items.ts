@@ -72,14 +72,15 @@ export const navItems: NavItem[] = [
     staff: true,
     funcionario: true,
   },
-  { to: "/chamados", label: "Chamados", icon: Wrench, emBreve: true },
+  //{ to: "/chamados", label: "Chamados", icon: Wrench, emBreve: true },
+  /*
   {
     to: "/reservas",
     label: "Reservas",
     icon: CalendarRange,
     areasReserva: true,
   },
-
+  */
   { to: "/avisos", label: "Avisos", icon: Megaphone, funcionario: true },
   { to: "/ocorrencias", label: "Livro de Ocorrência", icon: BookText },
   { to: "/votacoes", label: "Votações", icon: Vote },
@@ -89,7 +90,7 @@ export const navItems: NavItem[] = [
     label: "Manutenção Predial",
     icon: ClipboardList,
     sindico: true,
-    emBreve: true,
+    emBreve: false,
   },
   { to: "/moradores", label: "Moradores", icon: Users, sindico: true },
   { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true },

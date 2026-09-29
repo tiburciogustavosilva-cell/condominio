@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { IdCard, Loader2 } from 'lucide-react';
+import { IdCard, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFuncionarios, type DadosFuncionario } from '@/hooks/useFuncionarios';
 import { CARGOS_PORTARIA, LABEL } from '@/types/condominio';
 import type { Cargo, Funcionario } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,7 @@ export default function Funcionarios() {
   const { funcionarios, carregando, recarregar, criar, atualizar, remover } = useFuncionarios();
   const [form, setForm] = useState(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [loading, setLoading] = useState(false);
 
   function set(campo: keyof DadosFuncionario, valor: string) {
@@ -35,10 +37,11 @@ export default function Funcionarios() {
   function editar(f: Funcionario) {
     setEditandoId(f.id);
     setForm({ ...VAZIO, nome: f.nome, telefone: f.telefone || '', cargo: f.cargo });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelarEdicao() {
+    setAberto(false);
     setEditandoId(null);
     setForm(VAZIO);
   }
@@ -67,73 +70,76 @@ export default function Funcionarios() {
       <PageHeader
         title="Funcionários"
         description="Porteiros, zeladores, limpeza e demais funcionários do prédio. O cargo define o que cada um acessa."
+        actions={
+          <Button variant="brand" onClick={() => setAberto(true)}>
+            <Plus className="h-4 w-4" /> Novo funcionário
+          </Button>
+        }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar funcionário' : 'Novo funcionário'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nome" htmlFor="nome">
-                <Input id="nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
-              </Field>
-              <Field label="Cargo" htmlFor="cargo" hint={`Acessa: ${acessoDo(form.cargo)}.`}>
-                <select
-                  id="cargo"
-                  className={selectCls}
-                  value={form.cargo}
-                  onChange={(e) => set('cargo', e.target.value)}
-                >
-                  {Object.entries(LABEL.cargo).map(([valor, rotulo]) => (
-                    <option key={valor} value={valor}>
-                      {rotulo}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Telefone" htmlFor="tel">
-                <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
-              </Field>
-              {!editandoId && (
-                <>
-                  <Field label="E-mail (login)" htmlFor="email">
-                    <Input
-                      id="email"
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => set('email', e.target.value)}
-                      required
-                    />
-                  </Field>
-                  <Field label="Senha inicial" htmlFor="senha">
-                    <Input
-                      id="senha"
-                      type="password"
-                      minLength={6}
-                      value={form.senha}
-                      onChange={(e) => set('senha', e.target.value)}
-                      required
-                    />
-                  </Field>
-                </>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              {editandoId && (
-                <Button type="button" variant="outline" onClick={cancelarEdicao}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" variant="brand" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <FormModal
+        aberto={aberto}
+        titulo={editandoId ? 'Editar funcionário' : 'Novo funcionário'}
+        onFechar={cancelarEdicao}
+        salvando={loading}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome" htmlFor="nome">
+              <Input id="nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
+            </Field>
+            <Field label="Cargo" htmlFor="cargo" hint={`Acessa: ${acessoDo(form.cargo)}.`}>
+              <select
+                id="cargo"
+                className={selectCls}
+                value={form.cargo}
+                onChange={(e) => set('cargo', e.target.value)}
+              >
+                {Object.entries(LABEL.cargo).map(([valor, rotulo]) => (
+                  <option key={valor} value={valor}>
+                    {rotulo}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Telefone" htmlFor="tel">
+              <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
+            </Field>
+            {!editandoId && (
+              <>
+                <Field label="E-mail (login)" htmlFor="email">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => set('email', e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Senha inicial" htmlFor="senha">
+                  <Input
+                    id="senha"
+                    type="password"
+                    minLength={6}
+                    value={form.senha}
+                    onChange={(e) => set('senha', e.target.value)}
+                    required
+                  />
+                </Field>
+              </>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelarEdicao}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="brand" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editandoId ? 'Salvar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {carregando ? (
         <ListSkeleton />

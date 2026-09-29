@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { dataCurta } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Chamado, StatusChamado } from '@/types/condominio';
+import { FormChamado } from '@/components/chamados/FormChamado';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PrioridadeBadge } from '@/components/shared/StatusBadge';
@@ -27,7 +28,8 @@ const BORDA_PRIORIDADE: Record<string, string> = {
 
 export default function Chamados() {
   const { isSindico } = useAuth();
-  const { chamados, carregando, atualizarStatus } = useChamados();
+  const { chamados, carregando, recarregar, criar, atualizarStatus } = useChamados();
+  const [novoAberto, setNovoAberto] = useState(false);
   const [colunaSobre, setColunaSobre] = useState<StatusChamado | null>(null);
 
   const porStatus = useMemo(() => {
@@ -55,13 +57,13 @@ export default function Chamados() {
         title="Chamados"
         description="Solicitações de manutenção e ocorrências."
         actions={
-          <Button asChild variant="brand">
-            <Link to="/chamados/novo">
-              <Plus className="h-4 w-4" /> Novo chamado
-            </Link>
+          <Button variant="brand" onClick={() => setNovoAberto(true)}>
+            <Plus className="h-4 w-4" /> Novo chamado
           </Button>
         }
       />
+
+      <FormChamado aberto={novoAberto} onFechar={() => setNovoAberto(false)} criar={criar} onCriado={recarregar} />
 
       {carregando ? (
         <div className="grid gap-4 sm:grid-cols-3">
@@ -79,10 +81,8 @@ export default function Chamados() {
           title="Nenhum chamado por aqui"
           description="Abra um chamado para registrar uma ocorrência ou pedido de manutenção."
           action={
-            <Button asChild variant="brand">
-              <Link to="/chamados/novo">
-                <Plus className="h-4 w-4" /> Novo chamado
-              </Link>
+            <Button variant="brand" onClick={() => setNovoAberto(true)}>
+              <Plus className="h-4 w-4" /> Novo chamado
             </Button>
           }
         />

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/shared/Field';
+import { FormModal } from '@/components/shared/FormModal';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const VAZIO = { nome: '', endereco: '', cnpj: '' };
@@ -19,6 +20,7 @@ export default function MeusCondominios() {
   const { condominios, carregando, criar, entrar } = useMeusCondominios();
   const [form, setForm] = useState(VAZIO);
   const [criando, setCriando] = useState(false);
+  const [aberto, setAberto] = useState(false);
   const [entrandoEm, setEntrandoEm] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -88,7 +90,7 @@ export default function MeusCondominios() {
             </>
           ) : condominios?.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Você ainda não cadastrou nenhum condomínio. Cadastre o primeiro abaixo.
+              Você ainda não cadastrou nenhum condomínio. Cadastre o primeiro no botão abaixo.
             </p>
           ) : (
             condominios?.map((c) => {
@@ -125,11 +127,16 @@ export default function MeusCondominios() {
           )}
         </div>
 
-        <Card className="p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="h-4 w-4 text-primary" />
-            <h2 className="font-heading text-sm font-extrabold">Cadastrar novo condomínio</h2>
-          </div>
+        <Button variant="brand" className="w-full" onClick={() => setAberto(true)}>
+          <Plus className="h-4 w-4" /> Cadastrar novo condomínio
+        </Button>
+
+        <FormModal
+          aberto={aberto}
+          titulo="Cadastrar novo condomínio"
+          onFechar={() => setAberto(false)}
+          salvando={criando}
+        >
           <form onSubmit={handleCriar} className="space-y-4">
             <Field label="Nome do condomínio" htmlFor="nome">
               <Input
@@ -146,12 +153,17 @@ export default function MeusCondominios() {
             <Field label="CNPJ (opcional)" htmlFor="cnpj">
               <Input id="cnpj" value={form.cnpj} onChange={(e) => set('cnpj', e.target.value)} />
             </Field>
-            <Button type="submit" variant="brand" className="w-full" disabled={criando}>
-              {criando && <Loader2 className="h-4 w-4 animate-spin" />}
-              Cadastrar e entrar
-            </Button>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setAberto(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="brand" disabled={criando}>
+                {criando && <Loader2 className="h-4 w-4 animate-spin" />}
+                Cadastrar e entrar
+              </Button>
+            </div>
           </form>
-        </Card>
+        </FormModal>
       </motion.div>
     </div>
   );

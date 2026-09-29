@@ -5,6 +5,7 @@ import { useReservas } from '@/hooks/useReservas';
 import { useAuth } from '@/hooks/useAuth';
 import { moeda, dataCurta } from '@/lib/format';
 import { LABEL } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -13,7 +14,7 @@ import { DatePicker } from '@/components/shared/DatePicker';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
 import { FilterPills } from '@/components/shared/FilterPills';
 import { ReservasCalendario, type ModoCalendario } from '@/components/reservas/ReservasCalendario';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ export default function Reservas() {
   const { reservas, areas, carregando, recarregar, criar, atualizarStatus, cancelar } = useReservas();
   const [form, setForm] = useState({ areaId: '', data: '', periodo: 'tarde', observacao: '' });
   const [loading, setLoading] = useState(false);
+  const [aberto, setAberto] = useState(false);
   const [visao, setVisao] = useState<ModoCalendario | 'lista'>('mes');
   const [dataRef, setDataRef] = useState(new Date());
 
@@ -45,6 +47,7 @@ export default function Reservas() {
       await criar(form);
       toast.success('Solicitação enviada');
       setForm({ areaId: '', data: '', periodo: 'tarde', observacao: '' });
+      setAberto(false);
       recarregar();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao solicitar');
@@ -65,7 +68,15 @@ export default function Reservas() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reservas" description="Agendamento das áreas comuns do condomínio." />
+      <PageHeader
+        title="Reservas"
+        description="Agendamento das áreas comuns do condomínio."
+        actions={
+          <Button variant="brand" onClick={() => setAberto(true)}>
+            <CalendarRange className="h-4 w-4" /> Solicitar reserva
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {areas.map((a) => (
@@ -86,69 +97,70 @@ export default function Reservas() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarRange className="h-4 w-4" /> Solicitar reserva
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Área" htmlFor="area">
-                <select
-                  id="area"
-                  className={selectCls}
-                  value={form.areaId}
-                  onChange={(e) => setForm({ ...form, areaId: e.target.value })}
-                  required
-                >
-                  <option value="">Selecione…</option>
-                  {areas.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.nome}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Data">
-                <DatePicker
-                  value={form.data}
-                  onChange={(v) => setForm({ ...form, data: v })}
-                  disabledBefore={hoje}
-                />
-              </Field>
-              <Field label="Período" htmlFor="periodo">
-                <select
-                  id="periodo"
-                  className={selectCls}
-                  value={form.periodo}
-                  onChange={(e) => setForm({ ...form, periodo: e.target.value })}
-                >
-                  {Object.entries(LABEL.periodo).map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-            <Field label="Observação" htmlFor="obs">
-              <Input
-                id="obs"
-                value={form.observacao}
-                onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+      <FormModal
+        aberto={aberto}
+        titulo={'Solicitar reserva'}
+        onFechar={() => setAberto(false)}
+        salvando={loading}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Área" htmlFor="area">
+              <select
+                id="area"
+                className={selectCls}
+                value={form.areaId}
+                onChange={(e) => setForm({ ...form, areaId: e.target.value })}
+                required
+              >
+                <option value="">Selecione…</option>
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nome}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Data">
+              <DatePicker
+                value={form.data}
+                onChange={(v) => setForm({ ...form, data: v })}
+                disabledBefore={hoje}
               />
             </Field>
-            <div className="flex justify-end">
-              <Button type="submit" variant="brand" disabled={loading || !form.data}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                Solicitar
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            <Field label="Período" htmlFor="periodo">
+              <select
+                id="periodo"
+                className={selectCls}
+                value={form.periodo}
+                onChange={(e) => setForm({ ...form, periodo: e.target.value })}
+              >
+                {Object.entries(LABEL.periodo).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Observação" htmlFor="obs">
+            <Input
+              id="obs"
+              value={form.observacao}
+              onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setAberto(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="brand" disabled={loading || !form.data}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Solicitar
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       <div className="space-y-4">
         <FilterPills options={VISOES} value={visao} onChange={(v) => setVisao(v as ModoCalendario | 'lista')} />

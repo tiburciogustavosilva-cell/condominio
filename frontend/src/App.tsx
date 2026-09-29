@@ -19,7 +19,6 @@ import PerguntasCondominio from '@/pages/PerguntasCondominio';
 import MeusCondominios from '@/pages/MeusCondominios';
 import Dashboard from '@/pages/Dashboard';
 import Chamados from '@/pages/Chamados';
-import NovoChamado from '@/pages/NovoChamado';
 import ChamadoDetalhe from '@/pages/ChamadoDetalhe';
 import Reservas from '@/pages/Reservas';
 import Encomendas from '@/pages/Encomendas';
@@ -53,7 +52,6 @@ export default function App() {
                   <Route element={<BloqueiaFuncionario />}>
                     <Route index element={<Dashboard />} />
                     <Route path="chamados" element={<Chamados />} />
-                    <Route path="chamados/novo" element={<NovoChamado />} />
                     <Route path="chamados/:id" element={<ChamadoDetalhe />} />
                     <Route element={<RequireComAreasReserva />}>
                       <Route path="reservas" element={<Reservas />} />

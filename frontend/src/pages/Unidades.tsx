@@ -1,16 +1,17 @@
 import { useRef, useState } from 'react';
-import { Building2, Download, Loader2, Upload } from 'lucide-react';
+import { Building2, Download, Loader2, Plus, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUnidades } from '@/hooks/useUnidades';
 import { useAuth } from '@/hooks/useAuth';
 import { baixarModeloUnidades, lerModeloUnidades } from '@/lib/importarUnidades';
 import type { Unidade } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
 import { ResultadoImportacao } from '@/components/shared/ResultadoImportacao';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ export default function Unidades() {
   const { condominio } = useAuth();
   const [form, setForm] = useState<any>(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
@@ -65,10 +67,11 @@ export default function Unidades() {
   function editar(u: Unidade) {
     setEditandoId(u.id);
     setForm({ numero: u.numero, bloco: u.bloco, tipo: u.tipo, fracaoIdeal: u.fracaoIdeal ?? '', pesoVoto: u.pesoVoto ?? 1 });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelarEdicao() {
+    setAberto(false);
     setEditandoId(null);
     setForm(VAZIO);
   }
@@ -120,6 +123,9 @@ export default function Unidades() {
                 className="hidden"
                 onChange={handleArquivo}
               />
+              <Button variant="brand" size="sm" onClick={() => setAberto(true)}>
+                <Plus className="h-4 w-4" /> Nova unidade
+              </Button>
             </>
           )
         }
@@ -129,71 +135,69 @@ export default function Unidades() {
         <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar unidade' : 'Nova unidade'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Número / identificação" htmlFor="numero">
-                <Input id="numero" value={form.numero} onChange={(e) => set('numero', e.target.value)} required />
-              </Field>
-              <Field label="Bloco" htmlFor="bloco">
-                <Input id="bloco" value={form.bloco} onChange={(e) => set('bloco', e.target.value)} />
-              </Field>
-              <Field label="Tipo" htmlFor="tipo">
-                <select
-                  id="tipo"
-                  className={selectCls}
-                  value={form.tipo}
-                  onChange={(e) => set('tipo', e.target.value)}
-                >
-                  <option value="apartamento">Apartamento</option>
-                  <option value="casa">Casa</option>
-                  <option value="comercial">Comercial</option>
-                  <option value="garagem">Garagem</option>
-                </select>
-              </Field>
-              <Field label="Fração ideal (%)" htmlFor="fracao">
-                <Input
-                  id="fracao"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.fracaoIdeal}
-                  onChange={(e) => set('fracaoIdeal', e.target.value)}
-                />
-              </Field>
-              <Field
-                label="Peso do voto"
-                htmlFor="pesoVoto"
-                hint="Padrão 1 = um voto normal. Pode usar outro número inteiro (2, 3…) ou fração (ex.: 1.5) se essa unidade tiver peso diferente na assembleia."
+      <FormModal
+        aberto={aberto}
+        titulo={editandoId ? 'Editar unidade' : 'Nova unidade'}
+        onFechar={cancelarEdicao}
+        salvando={loading}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Número / identificação" htmlFor="numero">
+              <Input id="numero" value={form.numero} onChange={(e) => set('numero', e.target.value)} required />
+            </Field>
+            <Field label="Bloco" htmlFor="bloco">
+              <Input id="bloco" value={form.bloco} onChange={(e) => set('bloco', e.target.value)} />
+            </Field>
+            <Field label="Tipo" htmlFor="tipo">
+              <select
+                id="tipo"
+                className={selectCls}
+                value={form.tipo}
+                onChange={(e) => set('tipo', e.target.value)}
               >
-                <Input
-                  id="pesoVoto"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={form.pesoVoto}
-                  onChange={(e) => set('pesoVoto', e.target.value)}
-                />
-              </Field>
-            </div>
-            <div className="flex justify-end gap-2">
-              {editandoId && (
-                <Button type="button" variant="outline" onClick={cancelarEdicao}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" variant="brand" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <option value="apartamento">Apartamento</option>
+                <option value="casa">Casa</option>
+                <option value="comercial">Comercial</option>
+                <option value="garagem">Garagem</option>
+              </select>
+            </Field>
+            <Field label="Fração ideal (%)" htmlFor="fracao">
+              <Input
+                id="fracao"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.fracaoIdeal}
+                onChange={(e) => set('fracaoIdeal', e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Peso do voto"
+              htmlFor="pesoVoto"
+              hint="Padrão 1 = um voto normal. Pode usar outro número inteiro (2, 3…) ou fração (ex.: 1.5) se essa unidade tiver peso diferente na assembleia."
+            >
+              <Input
+                id="pesoVoto"
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.pesoVoto}
+                onChange={(e) => set('pesoVoto', e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelarEdicao}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="brand" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editandoId ? 'Salvar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {carregando ? (
         <ListSkeleton />

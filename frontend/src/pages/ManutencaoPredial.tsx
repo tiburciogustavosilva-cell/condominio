@@ -8,6 +8,7 @@ import {
   Gauge,
   Loader2,
   Mail,
+  Plus,
   Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ import { dataCurta, frequenciaTexto, prazoTexto } from '@/lib/format';
 import { gerarRelatorioXlsx } from '@/lib/exportarRelatorio';
 import { LABEL } from '@/types/condominio';
 import type { Ativo, Manutencao, OrdemServico } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -283,6 +285,7 @@ function AbaAtivos({
 }) {
   const [form, setForm] = useState<any>(ATIVO_VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function set(campo: string, valor: string) {
@@ -303,10 +306,11 @@ function AbaAtivos({
       responsavel: a.responsavel,
       observacoes: a.observacoes
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelar() {
+    setAberto(false);
     setEditandoId(null);
     setForm(ATIVO_VAZIO);
   }
@@ -333,60 +337,64 @@ function AbaAtivos({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar equipamento / área' : 'Novo equipamento / área'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Código" htmlFor="a-codigo">
-                <Input id="a-codigo" value={form.codigo} onChange={(e) => set('codigo', e.target.value)} required />
-              </Field>
-              <Field label="Equipamento / Área" htmlFor="a-nome">
-                <Input id="a-nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
-              </Field>
-              <Field label="Categoria" htmlFor="a-cat">
-                <select id="a-cat" className={selectCls} value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
-                  {Object.entries(LABEL.categoria).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Localização" htmlFor="a-local">
-                <Input id="a-local" value={form.localizacao} onChange={(e) => set('localizacao', e.target.value)} />
-              </Field>
-              <Field label="Fabricante / Modelo" htmlFor="a-fab">
-                <Input id="a-fab" value={form.fabricanteModelo} onChange={(e) => set('fabricanteModelo', e.target.value)} />
-              </Field>
-              <Field label="Nº Série / Patrimônio" htmlFor="a-serie">
-                <Input id="a-serie" value={form.numeroSerie} onChange={(e) => set('numeroSerie', e.target.value)} />
-              </Field>
-              <Field label="Data de instalação">
-                <DatePicker value={form.dataInstalacao} onChange={(v) => set('dataInstalacao', v)} />
-              </Field>
-              <Field label="Vida útil (anos)" htmlFor="a-vida">
-                <Input id="a-vida" type="number" min={0} value={form.vidaUtilAnos} onChange={(e) => set('vidaUtilAnos', e.target.value)} />
-              </Field>
-              <Field label="Responsável" htmlFor="a-resp">
-                <Input id="a-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
-              </Field>
-            </div>
-            <Field label="Observações" htmlFor="a-obs">
-              <Textarea id="a-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+      <div className="flex justify-end">
+        <Button variant="brand" onClick={() => setAberto(true)}>
+          <Plus className="h-4 w-4" /> Novo equipamento / área
+        </Button>
+      </div>
+      <FormModal
+        aberto={aberto}
+        titulo={editandoId ? 'Editar equipamento / área' : 'Novo equipamento / área'}
+        onFechar={cancelar}
+        salvando={saving}
+        className="sm:max-w-3xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Código" htmlFor="a-codigo">
+              <Input id="a-codigo" value={form.codigo} onChange={(e) => set('codigo', e.target.value)} required />
             </Field>
-            <div className="flex justify-end gap-2">
-              {editandoId && (
-                <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
-              )}
-              <Button type="submit" variant="brand" disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            <Field label="Equipamento / Área" htmlFor="a-nome">
+              <Input id="a-nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
+            </Field>
+            <Field label="Categoria" htmlFor="a-cat">
+              <select id="a-cat" className={selectCls} value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
+                {Object.entries(LABEL.categoria).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Localização" htmlFor="a-local">
+              <Input id="a-local" value={form.localizacao} onChange={(e) => set('localizacao', e.target.value)} />
+            </Field>
+            <Field label="Fabricante / Modelo" htmlFor="a-fab">
+              <Input id="a-fab" value={form.fabricanteModelo} onChange={(e) => set('fabricanteModelo', e.target.value)} />
+            </Field>
+            <Field label="Nº Série / Patrimônio" htmlFor="a-serie">
+              <Input id="a-serie" value={form.numeroSerie} onChange={(e) => set('numeroSerie', e.target.value)} />
+            </Field>
+            <Field label="Data de instalação">
+              <DatePicker value={form.dataInstalacao} onChange={(v) => set('dataInstalacao', v)} />
+            </Field>
+            <Field label="Vida útil (anos)" htmlFor="a-vida">
+              <Input id="a-vida" type="number" min={0} value={form.vidaUtilAnos} onChange={(e) => set('vidaUtilAnos', e.target.value)} />
+            </Field>
+            <Field label="Responsável" htmlFor="a-resp">
+              <Input id="a-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
+            </Field>
+          </div>
+          <Field label="Observações" htmlFor="a-obs">
+            <Textarea id="a-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
+            <Button type="submit" variant="brand" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editandoId ? 'Salvar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {ativos.length === 0 ? (
         <EmptyState icon={Boxes} title="Nenhum equipamento/área cadastrado" />
@@ -459,6 +467,7 @@ function AbaPlano({
 }) {
   const [form, setForm] = useState<any>(PLANO_VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function set(campo: string, valor: string) {
@@ -482,10 +491,11 @@ function AbaPlano({
       custoPrevisto: m.custoPrevisto?.toString() ?? '',
       numeroOs: m.numeroOs ?? ''
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelar() {
+    setAberto(false);
     setEditandoId(null);
     setForm(PLANO_VAZIO);
   }
@@ -516,100 +526,108 @@ function AbaPlano({
       {prestadores.length === 0 ? (
         <EmptyState icon={CalendarClock} title="Cadastre um prestador primeiro" description="A aba Prestadores tem o cadastro de quem executa os serviços." />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{editandoId ? 'Editar plano' : 'Novo plano de manutenção'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Atividade / Serviço" htmlFor="p-titulo">
-                  <Input id="p-titulo" value={form.titulo} onChange={(e) => set('titulo', e.target.value)} required />
-                </Field>
-                <Field label="Equipamento / Área" htmlFor="p-ativo">
-                  <select id="p-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
-                    <option value="">Sem vínculo</option>
-                    {ativos.map((a) => (
-                      <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Tipo" htmlFor="p-tipo">
-                  <select id="p-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                    {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
-                      <option key={v} value={v}>{l}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Prioridade" htmlFor="p-prio">
-                  <select id="p-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
-                    {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
-                      <option key={v} value={v}>{l}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Status" htmlFor="p-status">
-                  <select id="p-status" className={selectCls} value={form.statusManual} onChange={(e) => set('statusManual', e.target.value)}>
-                    {Object.entries(LABEL.statusPlano).map(([v, l]) => (
-                      <option key={v} value={v}>{l}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Responsável / Empresa" htmlFor="p-prest">
-                  <select id="p-prest" className={selectCls} value={form.prestadorId} onChange={(e) => set('prestadorId', e.target.value)} required>
-                    <option value="">Selecione…</option>
-                    {prestadores.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nome}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Field label="Última manutenção">
-                  <DatePicker value={form.ultimaManutencao} onChange={(v) => set('ultimaManutencao', v)} />
-                </Field>
-                <Field label="Periodicidade" htmlFor="p-freq">
-                  <select id="p-freq" className={selectCls} value={form.frequenciaUnidade} onChange={(e) => set('frequenciaUnidade', e.target.value)}>
-                    <option value="semanal">Semanal</option>
-                    <option value="mensal">Mensal</option>
-                    <option value="anual">Anual</option>
-                  </select>
-                </Field>
-                <Field label="A cada quantos" htmlFor="p-int" hint={frequenciaTexto(form.frequenciaUnidade, Number(form.frequenciaIntervalo))}>
-                  <Input id="p-int" type="number" min={1} value={form.frequenciaIntervalo} onChange={(e) => set('frequenciaIntervalo', e.target.value)} required />
-                </Field>
-                <Field label="Avisar (dias de antecedência)" htmlFor="p-ant">
-                  <Input id="p-ant" type="number" min={0} value={form.diasAntecedencia} onChange={(e) => set('diasAntecedencia', e.target.value)} />
-                </Field>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Custo previsto (R$)" htmlFor="p-custo">
-                  <Input id="p-custo" type="number" step="0.01" min="0" value={form.custoPrevisto} onChange={(e) => set('custoPrevisto', e.target.value)} />
-                </Field>
-                <Field label="Nº OS / Contrato" htmlFor="p-os">
-                  <Input id="p-os" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
-                </Field>
-              </div>
-
-              <Field label="Observações" htmlFor="p-desc">
-                <Textarea id="p-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
+        <>
+          <div className="flex justify-end">
+            <Button variant="brand" onClick={() => setAberto(true)}>
+              <Plus className="h-4 w-4" /> Novo plano de manutenção
+            </Button>
+          </div>
+        <FormModal
+          aberto={aberto}
+          titulo={editandoId ? 'Editar plano' : 'Novo plano de manutenção'}
+          onFechar={cancelar}
+          salvando={saving}
+          className="sm:max-w-3xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Atividade / Serviço" htmlFor="p-titulo">
+                <Input id="p-titulo" value={form.titulo} onChange={(e) => set('titulo', e.target.value)} required />
               </Field>
+              <Field label="Equipamento / Área" htmlFor="p-ativo">
+                <select id="p-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
+                  <option value="">Sem vínculo</option>
+                  {ativos.map((a) => (
+                    <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
 
-              <div className="flex justify-end gap-2">
-                {editandoId && <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>}
-                <Button type="submit" variant="brand" disabled={saving || !form.ultimaManutencao}>
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {editandoId ? 'Salvar' : 'Criar plano'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Tipo" htmlFor="p-tipo">
+                <select id="p-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
+                  {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Prioridade" htmlFor="p-prio">
+                <select id="p-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
+                  {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Status" htmlFor="p-status">
+                <select id="p-status" className={selectCls} value={form.statusManual} onChange={(e) => set('statusManual', e.target.value)}>
+                  {Object.entries(LABEL.statusPlano).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Responsável / Empresa" htmlFor="p-prest">
+                <select id="p-prest" className={selectCls} value={form.prestadorId} onChange={(e) => set('prestadorId', e.target.value)} required>
+                  <option value="">Selecione…</option>
+                  {prestadores.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Última manutenção">
+                <DatePicker value={form.ultimaManutencao} onChange={(v) => set('ultimaManutencao', v)} />
+              </Field>
+              <Field label="Periodicidade" htmlFor="p-freq">
+                <select id="p-freq" className={selectCls} value={form.frequenciaUnidade} onChange={(e) => set('frequenciaUnidade', e.target.value)}>
+                  <option value="semanal">Semanal</option>
+                  <option value="mensal">Mensal</option>
+                  <option value="anual">Anual</option>
+                </select>
+              </Field>
+              <Field label="A cada quantos" htmlFor="p-int" hint={frequenciaTexto(form.frequenciaUnidade, Number(form.frequenciaIntervalo))}>
+                <Input id="p-int" type="number" min={1} value={form.frequenciaIntervalo} onChange={(e) => set('frequenciaIntervalo', e.target.value)} required />
+              </Field>
+              <Field label="Avisar (dias de antecedência)" htmlFor="p-ant">
+                <Input id="p-ant" type="number" min={0} value={form.diasAntecedencia} onChange={(e) => set('diasAntecedencia', e.target.value)} />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Custo previsto (R$)" htmlFor="p-custo">
+                <Input id="p-custo" type="number" step="0.01" min="0" value={form.custoPrevisto} onChange={(e) => set('custoPrevisto', e.target.value)} />
+              </Field>
+              <Field label="Nº OS / Contrato" htmlFor="p-os">
+                <Input id="p-os" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label="Observações" htmlFor="p-desc">
+              <Textarea id="p-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
+            </Field>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
+              <Button type="submit" variant="brand" disabled={saving || !form.ultimaManutencao}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editandoId ? 'Salvar' : 'Criar plano'}
+              </Button>
+            </div>
+          </form>
+        </FormModal>
+        </>
       )}
 
       {manutencoes.length === 0 ? (
@@ -727,6 +745,7 @@ function AbaOrdens({
 }) {
   const [form, setForm] = useState<any>(OS_VAZIA);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function set(campo: string, valor: string) {
@@ -751,10 +770,11 @@ function AbaOrdens({
       custoMaoDeObra: o.custoMaoDeObra ? String(o.custoMaoDeObra) : '',
       observacoes: o.observacoes
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
 
   function cancelar() {
+    setAberto(false);
     setEditandoId(null);
     setForm(OS_VAZIA);
   }
@@ -781,98 +801,104 @@ function AbaOrdens({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{editandoId ? 'Editar ordem de serviço' : 'Nova ordem de serviço'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Nº OS" htmlFor="o-numero">
-                <Input id="o-numero" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
-              </Field>
-              <Field label="Data de abertura">
-                <DatePicker value={form.dataAbertura} onChange={(v) => set('dataAbertura', v)} />
-              </Field>
-              <Field label="Data de execução">
-                <DatePicker value={form.dataExecucao} onChange={(v) => set('dataExecucao', v)} />
-              </Field>
-              <Field label="Equipamento / Área" htmlFor="o-ativo">
-                <select id="o-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
-                  <option value="">Sem vínculo</option>
-                  {ativos.map((a) => (
-                    <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-
-            <Field label="Descrição da ocorrência / serviço" htmlFor="o-desc">
-              <Textarea id="o-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} required />
+      <div className="flex justify-end">
+        <Button variant="brand" onClick={() => setAberto(true)}>
+          <Plus className="h-4 w-4" /> Nova ordem de serviço
+        </Button>
+      </div>
+      <FormModal
+        aberto={aberto}
+        titulo={editandoId ? 'Editar ordem de serviço' : 'Nova ordem de serviço'}
+        onFechar={cancelar}
+        salvando={saving}
+        className="sm:max-w-3xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Nº OS" htmlFor="o-numero">
+              <Input id="o-numero" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
             </Field>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Diagnóstico / Causa" htmlFor="o-diag">
-                <Textarea id="o-diag" rows={2} value={form.diagnostico} onChange={(e) => set('diagnostico', e.target.value)} />
-              </Field>
-              <Field label="Ação executada" htmlFor="o-acao">
-                <Textarea id="o-acao" rows={2} value={form.acaoExecutada} onChange={(e) => set('acaoExecutada', e.target.value)} />
-              </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Tipo" htmlFor="o-tipo">
-                <select id="o-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                  {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Prioridade" htmlFor="o-prio">
-                <select id="o-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
-                  {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Status" htmlFor="o-status">
-                <select id="o-status" className={selectCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
-                  {Object.entries(LABEL.statusPlano).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Responsável / Empresa" htmlFor="o-resp">
-                <Input id="o-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
-              </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Custo material (R$)" htmlFor="o-mat">
-                <Input id="o-mat" type="number" step="0.01" min="0" value={form.custoMaterial} onChange={(e) => set('custoMaterial', e.target.value)} />
-              </Field>
-              <Field label="Custo mão de obra (R$)" htmlFor="o-mao">
-                <Input id="o-mao" type="number" step="0.01" min="0" value={form.custoMaoDeObra} onChange={(e) => set('custoMaoDeObra', e.target.value)} />
-              </Field>
-              <Field label="Custo total (R$)">
-                <Input value={moeda(Number(form.custoMaterial || 0) + Number(form.custoMaoDeObra || 0))} disabled />
-              </Field>
-            </div>
-
-            <Field label="Observações" htmlFor="o-obs">
-              <Textarea id="o-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+            <Field label="Data de abertura">
+              <DatePicker value={form.dataAbertura} onChange={(v) => set('dataAbertura', v)} />
             </Field>
+            <Field label="Data de execução">
+              <DatePicker value={form.dataExecucao} onChange={(v) => set('dataExecucao', v)} />
+            </Field>
+            <Field label="Equipamento / Área" htmlFor="o-ativo">
+              <select id="o-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
+                <option value="">Sem vínculo</option>
+                {ativos.map((a) => (
+                  <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
 
-            <div className="flex justify-end gap-2">
-              {editandoId && <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>}
-              <Button type="submit" variant="brand" disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Registrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <Field label="Descrição da ocorrência / serviço" htmlFor="o-desc">
+            <Textarea id="o-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} required />
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Diagnóstico / Causa" htmlFor="o-diag">
+              <Textarea id="o-diag" rows={2} value={form.diagnostico} onChange={(e) => set('diagnostico', e.target.value)} />
+            </Field>
+            <Field label="Ação executada" htmlFor="o-acao">
+              <Textarea id="o-acao" rows={2} value={form.acaoExecutada} onChange={(e) => set('acaoExecutada', e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Tipo" htmlFor="o-tipo">
+              <select id="o-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
+                {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Prioridade" htmlFor="o-prio">
+              <select id="o-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
+                {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Status" htmlFor="o-status">
+              <select id="o-status" className={selectCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
+                {Object.entries(LABEL.statusPlano).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Responsável / Empresa" htmlFor="o-resp">
+              <Input id="o-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Custo material (R$)" htmlFor="o-mat">
+              <Input id="o-mat" type="number" step="0.01" min="0" value={form.custoMaterial} onChange={(e) => set('custoMaterial', e.target.value)} />
+            </Field>
+            <Field label="Custo mão de obra (R$)" htmlFor="o-mao">
+              <Input id="o-mao" type="number" step="0.01" min="0" value={form.custoMaoDeObra} onChange={(e) => set('custoMaoDeObra', e.target.value)} />
+            </Field>
+            <Field label="Custo total (R$)">
+              <Input value={moeda(Number(form.custoMaterial || 0) + Number(form.custoMaoDeObra || 0))} disabled />
+            </Field>
+          </div>
+
+          <Field label="Observações" htmlFor="o-obs">
+            <Textarea id="o-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+          </Field>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
+            <Button type="submit" variant="brand" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editandoId ? 'Salvar' : 'Registrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {ordens.length === 0 ? (
         <EmptyState icon={ClipboardList} title="Nenhuma ordem de serviço registrada" />

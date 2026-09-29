@@ -19,10 +19,13 @@ export function useAvisos() {
     avisos,
     carregando,
     recarregar,
-    criar: async (dados: { titulo: string; mensagem: string; fixado: boolean }) => {
+    criar: async (dados: { titulo: string; mensagem: string; fixado: boolean; expiraEm: string | null }) => {
       await api.post('/avisos', dados);
     },
-    atualizar: async (id: string, dados: { fixado?: boolean; titulo?: string; mensagem?: string }) => {
+    atualizar: async (
+      id: string,
+      dados: { fixado?: boolean; titulo?: string; mensagem?: string; expiraEm?: string | null }
+    ) => {
       await api.put(`/avisos/${id}`, dados);
     },
     remover: async (id: string) => {

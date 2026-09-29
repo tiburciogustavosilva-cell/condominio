@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { HardHat, Loader2, Info } from 'lucide-react';
+import { HardHat, Loader2, Info, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { usePrestadores } from '@/hooks/usePrestadores';
 import type { Prestador } from '@/types/condominio';
+import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ export default function Prestadores() {
 
   const [formP, setFormP] = useState<any>(PRESTADOR_VAZIO);
   const [editP, setEditP] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const [savingP, setSavingP] = useState(false);
 
   function setP(campo: string, valor: string) {
@@ -43,9 +45,10 @@ export default function Prestadores() {
       telefone: p.telefone || '',
       observacao: p.observacao || ''
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setAberto(true);
   }
   function cancelarPrestador() {
+    setAberto(false);
     setEditP(null);
     setFormP(PRESTADOR_VAZIO);
   }
@@ -74,6 +77,11 @@ export default function Prestadores() {
       <PageHeader
         title="Prestadores de serviços"
         description="Cadastro de quem executa os serviços do condomínio."
+        actions={
+          <Button variant="brand" onClick={() => setAberto(true)}>
+            <Plus className="h-4 w-4" /> Novo prestador
+          </Button>
+        }
       />
 
       <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-3 text-sm">
@@ -88,59 +96,55 @@ export default function Prestadores() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <HardHat className="h-4 w-4" /> {editP ? 'Editar prestador' : 'Novo prestador'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={salvarPrestador} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nome / contato" htmlFor="p-nome">
-                <Input id="p-nome" value={formP.nome} onChange={(e) => setP('nome', e.target.value)} required />
-              </Field>
-              <Field label="E-mail (recebe os lembretes)" htmlFor="p-email">
-                <Input
-                  id="p-email"
-                  type="email"
-                  value={formP.email}
-                  onChange={(e) => setP('email', e.target.value)}
-                  required
-                />
-              </Field>
-              <Field label="Serviço" htmlFor="p-servico">
-                <Input
-                  id="p-servico"
-                  placeholder="Ex.: Extintores, Elevadores, Dedetização…"
-                  value={formP.servico}
-                  onChange={(e) => setP('servico', e.target.value)}
-                />
-              </Field>
-              <Field label="Empresa" htmlFor="p-empresa">
-                <Input id="p-empresa" value={formP.empresa} onChange={(e) => setP('empresa', e.target.value)} />
-              </Field>
-              <Field label="Telefone" htmlFor="p-tel">
-                <Input id="p-tel" value={formP.telefone} onChange={(e) => setP('telefone', e.target.value)} />
-              </Field>
-              <Field label="Observação" htmlFor="p-obs">
-                <Input id="p-obs" value={formP.observacao} onChange={(e) => setP('observacao', e.target.value)} />
-              </Field>
-            </div>
-            <div className="flex justify-end gap-2">
-              {editP && (
-                <Button type="button" variant="outline" onClick={cancelarPrestador}>
-                  Cancelar
-                </Button>
-              )}
-              <Button type="submit" variant="brand" disabled={savingP}>
-                {savingP && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editP ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <FormModal
+        aberto={aberto}
+        titulo={editP ? 'Editar prestador' : 'Novo prestador'}
+        onFechar={cancelarPrestador}
+        salvando={savingP}
+      >
+        <form onSubmit={salvarPrestador} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome / contato" htmlFor="p-nome">
+              <Input id="p-nome" value={formP.nome} onChange={(e) => setP('nome', e.target.value)} required />
+            </Field>
+            <Field label="E-mail (recebe os lembretes)" htmlFor="p-email">
+              <Input
+                id="p-email"
+                type="email"
+                value={formP.email}
+                onChange={(e) => setP('email', e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Serviço" htmlFor="p-servico">
+              <Input
+                id="p-servico"
+                placeholder="Ex.: Extintores, Elevadores, Dedetização…"
+                value={formP.servico}
+                onChange={(e) => setP('servico', e.target.value)}
+              />
+            </Field>
+            <Field label="Empresa" htmlFor="p-empresa">
+              <Input id="p-empresa" value={formP.empresa} onChange={(e) => setP('empresa', e.target.value)} />
+            </Field>
+            <Field label="Telefone" htmlFor="p-tel">
+              <Input id="p-tel" value={formP.telefone} onChange={(e) => setP('telefone', e.target.value)} />
+            </Field>
+            <Field label="Observação" htmlFor="p-obs">
+              <Input id="p-obs" value={formP.observacao} onChange={(e) => setP('observacao', e.target.value)} />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelarPrestador}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="brand" disabled={savingP}>
+              {savingP && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editP ? 'Salvar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </FormModal>
 
       {carregando ? (
         <ListSkeleton />

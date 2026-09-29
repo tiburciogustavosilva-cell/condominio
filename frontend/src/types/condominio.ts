@@ -146,12 +146,21 @@ export interface Chamado {
   atualizadoEm: string;
 }
 
+export interface OcorrenciaHistorico {
+  id: string;
+  status: StatusChamado;
+  descricao: string;
+  autorNome: string;
+  criadoEm: string;
+}
+
 export interface Ocorrencia {
   id: string;
   titulo: string;
   descricao: string;
   categoria: string;
   status: StatusChamado;
+  historico: OcorrenciaHistorico[];
   usuarioId: string;
   unidadeId: string | null;
   autorNome?: string;
@@ -165,6 +174,7 @@ export interface Aviso {
   titulo: string;
   mensagem: string;
   fixado: boolean;
+  expiraEm: string | null;
   autorId: string;
   autorNome?: string;
   criadoEm: string;

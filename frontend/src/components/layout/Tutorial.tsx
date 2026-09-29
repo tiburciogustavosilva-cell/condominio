@@ -62,6 +62,7 @@ const PASSOS: Passo[] = [
     texto:
       "Cadastre as unidades do condomínio e vincule cada morador à sua unidade. É o primeiro passo para todo mundo usar o sistema.",
   },
+  /*
   {
     icon: CalendarRange,
     titulo: "Reservas",
@@ -71,6 +72,7 @@ const PASSOS: Passo[] = [
     texto:
       "Veja no calendário quem reservou cada área comum e aprove ou recuse os pedidos.",
   },
+  */
   {
     icon: CalendarRange,
     titulo: "Reservas",

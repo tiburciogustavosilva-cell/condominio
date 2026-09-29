@@ -21,8 +21,8 @@ export function useOcorrencias() {
     criar: async (dados: { titulo: string; descricao: string; categoria: string }) => {
       await api.post('/ocorrencias', dados);
     },
-    atualizarStatus: async (id: string, status: string) => {
-      await api.patch(`/ocorrencias/${id}/status`, { status });
+    atualizarStatus: async (id: string, status: string, descricao: string) => {
+      await api.patch(`/ocorrencias/${id}/status`, { status, descricao });
     }
   };
 }
