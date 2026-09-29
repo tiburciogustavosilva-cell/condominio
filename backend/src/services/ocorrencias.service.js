@@ -8,13 +8,18 @@ const STATUS = ['aberto', 'em_andamento', 'concluido'];
 async function listar(usuario) {
   const ocorrencias = await prisma.ocorrencia.findMany({
     where: { condominioId: condominioDe(usuario), ...(isSindico(usuario) ? {} : { usuarioId: usuario.id }) },
-    include: { usuario: { select: { nome: true } }, unidade: { select: { bloco: true, numero: true } } },
+    include: {
+      usuario: { select: { nome: true } },
+      unidade: { select: { bloco: true, numero: true } },
+      historico: { include: { autor: { select: { nome: true } } }, orderBy: { criadoEm: 'asc' } }
+    },
     orderBy: { criadoEm: 'desc' }
   });
-  return ocorrencias.map(({ usuario: autor, unidade, ...o }) => ({
+  return ocorrencias.map(({ usuario: autor, unidade, historico, ...o }) => ({
     ...o,
     autorNome: autor?.nome ?? '—',
-    unidadeLabel: rotuloUnidade(unidade) ?? undefined
+    unidadeLabel: rotuloUnidade(unidade) ?? undefined,
+    historico: historico.map(({ autor, ...h }) => ({ ...h, autorNome: autor?.nome ?? 'Síndico' }))
   }));
 }
 
@@ -31,9 +36,15 @@ function criar(usuario, d) {
   });
 }
 
-async function atualizarStatus(usuario, id, status) {
+async function atualizarStatus(usuario, id, status, descricao) {
   umDe(status, STATUS, 'status');
-  exigirAfetado(await prisma.ocorrencia.updateMany({ where: { id, condominioId: condominioDe(usuario) }, data: { status } }));
+  obrigatorio(descricao, 'descricao');
+  await prisma.$transaction(async (tx) => {
+    exigirAfetado(await tx.ocorrencia.updateMany({ where: { id, condominioId: condominioDe(usuario) }, data: { status } }));
+    await tx.ocorrenciaHistorico.create({
+      data: { ocorrenciaId: id, status, descricao: String(descricao).trim(), autorId: usuario.id }
+    });
+  });
 }
 
 module.exports = { listar, criar, atualizarStatus };
