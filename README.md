@@ -1,25 +1,21 @@
 # Sistema de Condomínio
 
-Aplicação de gestão de condomínio: React + Vite no frontend, **Supabase**
-(Postgres + Auth + RLS) como backend. Sem servidor próprio para manter — os
-dados e as regras de autorização vivem no banco.
+Gestão de condomínio: **React + Vite** no frontend e **API Express + Prisma + Postgres** no backend.
+A autenticação usa JWT Bearer.
 
 ## Como rodar
 
-Pré-requisito: **Node.js 18+** (`node -v`).
+Pré-requisitos: **Node.js 18+** e um **Postgres** acessível.
 
 ```bash
-npm install
-npm run dev
+cp backend/.env.example backend/.env    # preencha DATABASE_URL e JWT_SECRET
+cp frontend/.env.example frontend/.env
+npm install                              # instala frontend + backend
+npm run db:migrate                       # aplica prisma/migrations
+npm run db:seed                          # dados de demonstração
+npm run dev                              # API :4000 + Vite :8080
+npm test                                 # smoke test da API (auth + regras de acesso)
 ```
-
-Abre **http://localhost:8080** no navegador. `npm run dev` só sobe o Vite —
-console limpo, sem nada mais rodando em paralelo.
-
-As credenciais do Supabase já estão em `frontend/.env` (gitignored). Se você
-clonar isso em outra máquina, copie `frontend/.env.example` para
-`frontend/.env` e preencha `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
-(Project Settings → API no painel do Supabase).
 
 ## Login de teste
 
@@ -27,14 +23,14 @@ clonar isso em outra máquina, copie `frontend/.env.example` para
 |-----------|-------------------------|-------------|
 | Síndico   | sindico@condominio.com  | admin123    |
 | Condômino | morador@condominio.com  | morador123  |
+| Portaria  | portaria@condominio.com | portaria123 |
 
-O sistema é **multi-condomínio**: qualquer pessoa pode criar uma conta nova
-pela tela de login ("Cadastre-se", rota `/cadastro`), escolhendo entre
-**síndico** (informa e-mail, senha e os dados de 1 condomínio — nome,
-endereço, CNPJ — e já vira o dono dele) ou **administradora** (informa os
-dados da empresa e depois cadastra quantos condomínios quiser em
-`/meus-condominios`, alternando entre eles). Cada condomínio fica isolado
-dos demais por RLS. Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulos 9 e 10).
+**Funcionários** (porteiro, zelador, limpeza, jardineiro, manutenção, segurança…) são cadastrados pelo síndico em
+`/funcionarios`, todos com login. O **cargo** define o acesso: porteiro usa **Encomendas** e **Avisos**, os demais só
+**Avisos** (regra em `CARGOS_PORTARIA`, em `backend/src/utils/acesso.js` e `frontend/src/types/condominio.ts`).
+
+O sistema é **multi-condomínio**. Em `/cadastro` dá pra criar uma conta de **síndico**, que já cria 1 condomínio, ou de
+**administradora**, que depois cadastra vários condomínios em `/meus-condominios` e alterna entre eles.
 
 ## Módulos
 
@@ -43,120 +39,49 @@ dos demais por RLS. Detalhes em `docs/SUPABASE_MIGRATION.md` (Módulos 9 e 10).
 | **Dashboard** | Resumo pessoal (chamados, reservas, encomendas) | Visão geral do condomínio |
 | **Chamados** | Abre e acompanha os próprios, comenta, define prioridade | Vê todos, muda status, comenta |
 | **Reservas** | Solicita áreas comuns (salão, churrasqueira, quadra); só cancela enquanto pendente | Aprova / rejeita / cancela qualquer uma |
-| **Encomendas** | Vê o que chegou para a unidade e confirma retirada | Registra recebimento na portaria |
+| **Encomendas** | Vê o que chegou para a unidade, a foto e o **código de retirada** (5 dígitos) | Portaria/síndico registra com foto `.webp`, código de rastreio (opcional), nome e CPF do entregador; libera só com o código informado + nome de quem retira (a portaria nunca vê o código; 5 códigos errados bloqueiam e só o síndico desbloqueia). Filtros, busca, selos (perecível, volume grande, parada há 3+ dias) e relatório .xlsx por período (síndico) |
 | **Avisos** | Lê o mural | Publica, fixa no topo, remove |
 | **Livro de Ocorrência** | Registra reclamações/ocorridos (barulho, segurança, convivência…) e acompanha os próprios | Vê todos, muda status |
 | **Prestadores** | — | Cadastro de quem executa serviço (nome, e-mail, contato) |
 | **Manutenção Predial** | — | Cadastro de equipamentos/áreas, plano de manutenção (tipo/prioridade/custo/status), registro de ordens de serviço, dashboard próprio e exportação para `.xlsx` — espelha a planilha de controle predial |
-| **Moradores** | — | Edita dados/papel/unidade e remove — **criar morador novo ainda não** (exige `service_role`, ver `docs/SUPABASE_MIGRATION.md`) |
+| **Tarefas** | — | Síndico cadastra tarefas por cargo (todo dia, dias da semana, mensal ou única); funcionário do cargo vê as de hoje e conclui com 1–5 fotos, carimbadas com data/hora. Histórico com fotos e relatório de dias não feitos; tarefa com histórico não se exclui, só pausa |
+| **Funcionários** | — | Cadastra porteiros, zeladores, limpeza etc. com login; o cargo define o acesso |
+| **Moradores** | — | Edita dados/papel/unidade e remove (`POST /api/moradores` já cria, falta a tela) |
 | **Unidades** | — | CRUD de unidades |
 | **Perfil** | Edita dados e troca a senha | idem |
 
 ## Estrutura
 
 ```
-condominio-sistema/
-  package.json          scripts (dev = só o frontend)
-  frontend/              React + Vite + TypeScript + Tailwind + shadcn/ui
-    src/index.css       tokens HSL — tema claro (recolorir = 3 variáveis)
-    tailwind.config.ts  mapeia tokens → classes
-    src/integrations/supabase/  client.ts (cliente real, sem generics de tipo
-                                por enquanto) + types.ts (placeholder p/ codegen)
-    src/hooks/           1 hook por domínio de dado — busca + cache em useState
-                        + mutações via supabase-js: useAuth (Provider + sessão),
-                        useChamados, useAvisos, useReservas, useEncomendas,
-                        useMoradores, useUnidades, usePrestadores, useAtivos,
-                        useOrdensServico, useDashboard, usePerfil
-    src/types/condominio.ts  types + enums + labels (LABEL) compartilhados
-    src/lib/recorrencia.ts   cálculo de "próxima manutenção"/status (cliente)
-    src/lib/exportarRelatorio.ts  gera o .xlsx de Manutenção Predial (import
-                                 dinâmico do pacote `xlsx`, só ao clicar em
-                                 "Baixar relatório" — não entra no bundle inicial)
-    src/lib/format.ts   funções puras de formatação (moeda, datas…)
-    src/components/ui/       primitivos shadcn (button, card, badge, dialog…)
-    src/components/layout/   AdminLayout, AppSidebar, BottomNav, NavLink, guards
-    src/components/shared/   StatCard, StatusBadge, PageHeader, ListCard,
-                             FilterPills, DatePicker, EmptyState, AsyncConfirmDialog…
-    src/pages/          uma página .tsx por módulo, consome os hooks
-    DESIGN_SYSTEM.md    guia do design system + passo a passo de port
-  supabase/
-    migrations/          uma migration por módulo, todas aplicadas no banco real
-  backend/               API Express antiga — DORMENTE, nada mais chama isso
-                        (mantida no disco só como referência/rollback)
-  docs/
-    SUPABASE_MIGRATION.md  o que foi migrado, como o schema/RLS ficaram, e o
-                          que ainda falta (criação de morador, Edge Function
-                          de e-mail)
+backend/
+  prisma/schema.prisma   modelos (o "model" do app) + migrations/ + seed.js
+  src/server.js          sobe a API + agendador de lembretes
+  src/app.js             express, /api, handler de erro
+  src/routes/            1 arquivo por módulo; index.js monta tudo sob /api
+  src/controllers/       lê req → chama service → responde
+  src/services/          regras de negócio + permissões + queries Prisma
+  src/models/prisma.js   PrismaClient único
+  src/middlewares/       auth (Bearer JWT, apenasSindico), erro
+  src/integrations/      mailer (SMTP/simulado), lembretes (cron diário)
+  src/utils/             jwt, acesso, validar, recorrencia, json
+  test/smoke.js          smoke test (node + assert)
+frontend/
+  src/lib/api.ts         fetch com Bearer; 401 → desloga
+  src/hooks/             1 hook por domínio, chama a API
+  src/pages/             uma página por módulo
 ```
-
-> UX: sidebar colapsável no desktop + bottom-nav no mobile, tema claro,
-> CTA laranja (`24 95% 53%`) + apoio roxo, fontes Nunito/Plus Jakarta Sans,
-> movimento com framer-motion. Detalhes em `frontend/DESIGN_SYSTEM.md`.
 
 ## Arquitetura em 30 segundos
 
-- **Auth**: Supabase Auth (`supabase.auth.signInWithPassword`). Sessão fica em
-  `localStorage` (gerenciado pelo próprio supabase-js), papel (`sindico`/
-  `condomino`) vive em `profiles.papel`, lido via `auth.uid()` nas policies —
-  não existe mais JWT customizado nem checagem de papel manual no cliente
-  além de esconder UI (a autorização de verdade é sempre RLS).
-- **Dados**: Postgres do Supabase. Toda tabela tem RLS habilitado; nada é
-  filtrado "na mão" no frontend — se uma linha não deveria aparecer para o
-  usuário logado, a query já volta sem ela.
-- **Multi-condomínio**: toda tabela de negócio tem `condominio_id` (com
-  `default public.minha_condominio()`, então inserts do frontend não
-  precisam informar isso na mão) e as policies de RLS sempre filtram por
-  `condominio_id = minha_condominio()` — dados de um condomínio nunca
-  aparecem para outro. Cadastro de um condomínio novo acontece pela tela
-  `/cadastro` (`supabase.auth.signUp` + trigger `handle_new_user`).
-- **Padrão de módulo**: uma tabela (+ policies) em `supabase/migrations/` +
-  um hook em `src/hooks/useX.ts` (mapeia snake_case do banco para o shape que
-  as páginas já usam) + uma página em `src/pages/` + um item em
-  `src/components/layout/nav-items.ts`.
-- **RLS + GRANT de coluna**: em `profiles`, RLS libera `update` na própria
-  linha, mas um `grant update (nome, telefone)` restringe *quais campos* —
-  ninguém muda o próprio `papel` só porque a linha é sua. Ver mais em
-  `docs/SUPABASE_MIGRATION.md`.
-- **RPCs `security definer`**: operações administrativas que não cabem numa
-  policy simples (editar qualquer morador, resumo do dashboard) viram função
-  Postgres chamada via `supabase.rpc(...)`, com a checagem de permissão
-  *dentro* da função.
-
-## O que ainda não está pronto
-
-1. **Criar morador novo** pela tela de Moradores — precisa da `service_role`
-   key (nunca no navegador). Por enquanto, crie pelo Supabase Studio →
-   Authentication → Users. Editar/remover já funcionam.
-2. **E-mail automático de lembrete de manutenção** — o cálculo de status já
-   roda no cliente, falta implantar a Edge Function agendada que dispara o
-   envio (bloqueado hoje só porque a CLI local não está logada na conta certa
-   deste projeto).
-
-Detalhes, decisões e como resolver cada um em `docs/SUPABASE_MIGRATION.md`.
-
-## Próximos passos sugeridos
-
-1. Implantar a Edge Function de lembretes de manutenção (`pg_cron` + e-mail).
-2. Edge Function `criar-morador` pra convidar morador dentro do próprio
-   condomínio sem precisar do Supabase Studio (o autocadastro de síndico +
-   condomínio novo já existe, ver `/cadastro`).
-3. Upload de foto/anexo nos chamados e nas encomendas (Supabase Storage).
-4. Gerar `frontend/src/integrations/supabase/types.ts` de verdade (`supabase
-   gen types`) e tipar `createClient<Database>` — hoje os hooks tipam as
-   linhas manualmente.
-5. Deploy: frontend na Vercel/Netlify (só variáveis `VITE_SUPABASE_*`).
-
-## Dúvidas comuns
-
-**Tela fica carregando / redireciona pro login sem motivo**: confirme
-`frontend/.env` com `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` preenchidos
-e reinicie o `npm run dev`.
-
-**Erro de RLS ao tentar salvar algo**: normalmente é uma ação legítima sendo
-bloqueada (ex.: condômino tentando editar algo de outra unidade) — veja a
-tabela de policies em `docs/SUPABASE_MIGRATION.md` pra saber o que cada papel
-pode fazer em cada tabela.
-
-**Quero voltar a usar o backend Express**: os arquivos continuam em
-`backend/`; `npm run dev:backend-legado` na raiz sobe ele sozinho. Mas as
-páginas não chamam mais `/api/*`, então isso é só útil como referência.
+- **Auth**: `POST /api/auth/login` devolve `{ token, tokenType: "Bearer", usuario, condominio }`. O token fica no
+  `localStorage` e vai no header `Authorization: Bearer ...`. O middleware `autenticar` valida o JWT e carrega o usuário
+  do banco. Logout é só descartar o token.
+- **Permissões** (antes eram RLS no Supabase): todo service filtra por `condominioId` do usuário logado. Síndico e
+  administradora veem tudo do condomínio. O condômino só vê os próprios chamados, reservas e ocorrências, e as
+  encomendas da própria unidade. Rotas administrativas passam por `apenasSindico`.
+- **Datas**: colunas `@db.Date` saem como `YYYY-MM-DD` e `Decimal` sai como `number` (ver `src/utils/json.js`).
+- **Lembretes de manutenção**: cron diário às 08:00 (`src/integrations/lembretes.js`). Sem `SMTP_HOST`, o e-mail é
+  simulado e só aparece no console.
+- **Padrão de módulo novo**: model no `schema.prisma` + `npx prisma migrate dev`, depois
+  `services/x.service.js` → `controllers/x.controller.js` → `routes/x.routes.js` (registrar em `routes/index.js`),
+  depois o hook `useX.ts` e a página.
