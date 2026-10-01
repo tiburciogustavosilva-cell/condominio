@@ -7,6 +7,8 @@ import { baixarModeloUnidades, lerModeloUnidades } from '@/lib/importarUnidades'
 import type { Unidade } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { FilterPills } from '@/components/shared/FilterPills';
+import { MapaCondominio } from '@/components/unidades/MapaCondominio';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
@@ -33,6 +35,7 @@ export default function Unidades() {
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
   const [busca, setBusca] = useState('');
+  const [vista, setVista] = useState('mapa');
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -134,6 +137,16 @@ export default function Unidades() {
         }
       >
         {unidades.length > 0 && (
+          <FilterPills
+            options={[
+              { value: 'mapa', label: 'Mapa' },
+              { value: 'lista', label: 'Lista' }
+            ]}
+            value={vista}
+            onChange={setVista}
+          />
+        )}
+        {unidades.length > 0 && vista === 'lista' && (
           <BuscaInput value={busca} onChange={setBusca} placeholder="Buscar bloco, número ou morador…" />
         )}
       </PageHeader>
@@ -210,6 +223,8 @@ export default function Unidades() {
         <ListSkeleton />
       ) : unidades.length === 0 ? (
         <EmptyState icon={Building2} title="Nenhuma unidade cadastrada" />
+      ) : vista === 'mapa' ? (
+        <MapaCondominio unidades={unidades} onEditar={editar} />
       ) : (
         <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">

@@ -3,7 +3,7 @@
  * Espelha as respostas da API (backend/prisma/schema.prisma). IDs são uuid (string).
  */
 
-export type Papel = 'sindico' | 'condomino' | 'administradora' | 'funcionario';
+export type Papel = 'sindico' | 'condomino' | 'administradora' | 'funcionario' | 'admin';
 
 /** Cargos de funcionário (espelha CARGOS em backend/src/utils/acesso.js). */
 export type Cargo = 'porteiro' | 'zelador' | 'limpeza' | 'jardineiro' | 'manutencao' | 'seguranca' | 'outro';
@@ -76,6 +76,8 @@ export interface Condominio {
   temAreasReserva: boolean;
   temPorteiro: boolean;
   onboardingConcluido: boolean;
+  /** Preenchido pelo admin da plataforma = acesso travado (ex.: mensalidade atrasada). */
+  bloqueadoMotivo: string | null;
 }
 
 export interface RespostasOnboarding {
@@ -87,6 +89,20 @@ export interface RespostasOnboarding {
   temPorteiro: boolean;
 }
 
+/** Peça do mapa do condomínio. camada "geral" = terreno; "bloco:<nome>" = andares do bloco. */
+export interface MapaItem {
+  id: string;
+  camada: string;
+  tipo: string;
+  unidadeId: string | null;
+  bloco: string | null;
+  rotulo: string;
+  x: number;
+  y: number;
+  largura: number;
+  altura: number;
+}
+
 export interface Unidade {
   id: string;
   numero: string;
@@ -96,6 +112,9 @@ export interface Unidade {
   /** Peso do voto nas assembleias (padrão 1 = um voto normal; pode ser outro inteiro ou fração). */
   pesoVoto: number;
   moradores?: string[];
+  /** Só vêm para o síndico. */
+  encomendasAguardando?: number;
+  ocorrenciasAbertas?: number;
 }
 
 export interface Area {

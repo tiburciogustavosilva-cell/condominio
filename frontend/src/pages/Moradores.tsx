@@ -205,7 +205,7 @@ export default function Moradores() {
             <Field label="Telefone" htmlFor="tel">
               <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
             </Field>
-            <Field label="Unidade" htmlFor="uni">
+            <Field label="Unidade" htmlFor="uni" hint="Síndico que não mora no condomínio fica sem unidade.">
               <UnidadeSelect
                 id="uni"
                 unidades={unidades}
@@ -273,7 +273,7 @@ export default function Moradores() {
                     <Badge variant={m.papel === 'sindico' ? 'secondary' : 'muted'}>
                       {LABEL.papel[m.papel] ?? m.papel}
                     </Badge>
-                    {m.papel === 'condomino' && (
+                    {(m.papel === 'condomino' || m.unidadeId) && (
                       <Badge variant="outline">{LABEL.vinculo[m.vinculo] ?? m.vinculo}</Badge>
                     )}
                   </p>

@@ -66,7 +66,7 @@ const FILTROS = [
 ];
 
 export default function Encomendas() {
-  const { isEquipe, isSindico } = useAuth();
+  const { isEquipe, isSindico, usuario } = useAuth();
   const {
     encomendas,
     carregando,
@@ -326,11 +326,11 @@ export default function Encomendas() {
 
                 <Marcacoes encomenda={e} />
 
-                {!isEquipe && e.codigoRetirada && (
+                {e.codigoRetirada && (
                   <CodigoRetirada codigo={e.codigoRetirada} />
                 )}
 
-                {!isEquipe && e.status === "aguardando" && (
+                {(!isEquipe || e.unidadeId === usuario?.unidadeId) && e.status === "aguardando" && (
                   <Autorizados
                     encomenda={e}
                     onAdicionar={(nome) =>

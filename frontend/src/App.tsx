@@ -4,7 +4,9 @@ import { Toaster } from '@/components/ui/sonner';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import {
   BloqueiaFuncionario,
+  FaixaSuporte,
   RequireStaff,
+  RequireAdmin,
   RequireAuth,
   RequireComAreasReserva,
   RequireComPorteiro,
@@ -15,8 +17,10 @@ import {
 
 import Login from '@/pages/Login';
 import Cadastro from '@/pages/Cadastro';
+import DefinirSenha from '@/pages/DefinirSenha';
 import PerguntasCondominio from '@/pages/PerguntasCondominio';
 import MeusCondominios from '@/pages/MeusCondominios';
+import Admin from '@/pages/Admin';
 import Dashboard from '@/pages/Dashboard';
 import Chamados from '@/pages/Chamados';
 import ChamadoDetalhe from '@/pages/ChamadoDetalhe';
@@ -40,10 +44,14 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/definir-senha" element={<DefinirSenha />} />
           <Route path="/perguntas-condominio" element={<PerguntasCondominio />} />
 
           <Route element={<RequireAuth />}>
             <Route path="/meus-condominios" element={<MeusCondominios />} />
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin" element={<Admin />} />
+            </Route>
 
             <Route element={<RequireCondominioAtivo />}>
               <Route element={<RequireOnboardingConcluido />}>
@@ -82,6 +90,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FaixaSuporte />
         <Toaster />
       </AuthProvider>
     </BrowserRouter>

@@ -5,11 +5,18 @@ const CHAVE_TOKEN = 'token';
 export const tokenStore = {
   get: () => localStorage.getItem(CHAVE_TOKEN),
   set: (t: string) => localStorage.setItem(CHAVE_TOKEN, t),
-  limpar: () => localStorage.removeItem(CHAVE_TOKEN)
+  limpar: () => localStorage.removeItem(CHAVE_TOKEN),
+  /** Token do admin guardado enquanto ele "acessa como" outro usuário (suporte). */
+  admin: {
+    get: () => localStorage.getItem('tokenAdmin'),
+    set: (t: string) => localStorage.setItem('tokenAdmin', t),
+    limpar: () => localStorage.removeItem('tokenAdmin')
+  }
 };
 
 /** Disparado quando a API responde 401 com token — o useAuth desloga. */
 export const EVENTO_SESSAO_EXPIRADA = 'sessao-expirada';
+export const EVENTO_ACESSO_SUSPENSO = 'acesso-suspenso';
 
 async function req<T>(method: string, rota: string, body?: unknown): Promise<T> {
   const token = tokenStore.get();
@@ -18,10 +25,14 @@ async function req<T>(method: string, rota: string, body?: unknown): Promise<T> 
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  if (res.status === 401 && token) {
+  // Só se o token recusado ainda é o atual: respostas atrasadas de um token já trocado
+  // (ex.: fim do suporte) não podem apagar o novo.
+  if (res.status === 401 && token && tokenStore.get() === token) {
     tokenStore.limpar();
     window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
   }
+  // 423 = condomínio bloqueado no meio da sessão: recarrega pra cair na tela "Acesso suspenso".
+  if (res.status === 423) window.dispatchEvent(new Event(EVENTO_ACESSO_SUSPENSO));
   const json = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new Error(json?.erro ?? `Erro ${res.status}`);
   return json as T;

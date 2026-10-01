@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, tokenStore, EVENTO_SESSAO_EXPIRADA } from '@/lib/api';
+import { api, tokenStore, EVENTO_ACESSO_SUSPENSO, EVENTO_SESSAO_EXPIRADA } from '@/lib/api';
 import { CARGOS_PORTARIA, type Cargo, type Condominio, type Papel, type Vinculo } from '@/types/condominio';
 
 export type Usuario = {
@@ -35,6 +35,14 @@ type AuthValue = {
   isSindico: boolean;
   /** true só para o papel "administradora" (gestora de vários condomínios). */
   isAdministradora: boolean;
+  /** Dono da plataforma: só a tela /admin (todos os condomínios). */
+  isAdmin: boolean;
+  /** Admin da plataforma navegando como outro usuário (suporte). */
+  suporte: boolean;
+  /** Admin: entra como o usuário escolhido (token de suporte, 2h). */
+  acessarComo: (usuarioId: string) => Promise<void>;
+  /** Volta pra sessão do admin. */
+  sairDoSuporte: () => Promise<void>;
   /** Portaria/zelador: só Encomendas e Avisos. */
   isFuncionario: boolean;
   /** Quem registra e libera encomendas: síndico, administradora ou funcionário. */
@@ -45,6 +53,8 @@ type AuthValue = {
    * empresa, sem condomínio ainda). Retorna `precisaConfirmarEmail` se o
    * projeto exigir confirmação por e-mail antes de liberar a sessão. */
   cadastrar: (dados: DadosCadastro) => Promise<{ precisaConfirmarEmail: boolean }>;
+  /** Link do convite por e-mail: define a senha e já entra. */
+  definirSenha: (token: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Atualiza só o nome exibido (topbar/sidebar) após editar o perfil. */
   atualizarNome: (nome: string) => void;
@@ -66,8 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [condominio, setCondominio] = useState<Condominio | null>(null);
   const [carregando, setCarregando] = useState(true);
 
+  const suporte = !!usuario && !!tokenStore.admin.get();
+
   function aplicar(sessao: Sessao | null) {
-    setUsuario(sessao?.usuario ?? null);
+    // no suporte, o tutorial de primeiro acesso não abre (nem é marcado como visto) — é do usuário
+    const u = sessao?.usuario && tokenStore.admin.get() ? { ...sessao.usuario, tutorialVisto: true } : sessao?.usuario;
+    setUsuario(u ?? null);
     setCondominio(sessao?.condominio ?? null);
   }
 
@@ -78,14 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     recarregarSessao().finally(() => setCarregando(false));
-    // API respondeu 401 (token expirado/inválido) → volta pro login.
-    const expirou = () => aplicar(null);
+    // API respondeu 401 (token expirado/inválido) → volta pro login, ou pro admin se era suporte.
+    const expirou = () => (tokenStore.admin.get() ? sairDoSuporte() : aplicar(null));
     window.addEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
-    return () => window.removeEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
+    window.addEventListener(EVENTO_ACESSO_SUSPENSO, recarregarSessao);
+    return () => {
+      window.removeEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
+      window.removeEventListener(EVENTO_ACESSO_SUSPENSO, recarregarSessao);
+    };
   }, []);
 
-  function entrar(resposta: RespostaToken) {
+  /** tokenAdmin só no suporte; qualquer outro login descarta um que tenha sobrado. */
+  function entrar(resposta: RespostaToken, tokenAdmin?: string) {
     tokenStore.set(resposta.token);
+    if (tokenAdmin) tokenStore.admin.set(tokenAdmin);
+    else tokenStore.admin.limpar();
     aplicar(resposta);
   }
 
@@ -98,8 +119,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { precisaConfirmarEmail: false }; // sem confirmação por e-mail: já entra logado
   }
 
+  async function definirSenha(token: string, senha: string) {
+    entrar(await api.post<RespostaToken>('/auth/definir-senha', { token, senha }));
+  }
+
+  async function acessarComo(usuarioId: string) {
+    const resposta = await api.post<RespostaToken>(`/admin/usuarios/${usuarioId}/acessar`);
+    entrar(resposta, tokenStore.get()!);
+  }
+
+  async function sairDoSuporte() {
+    tokenStore.set(tokenStore.admin.get()!);
+    tokenStore.admin.limpar();
+    await recarregarSessao();
+  }
+
   async function logout() {
     tokenStore.limpar(); // JWT stateless: sair = descartar o token
+    tokenStore.admin.limpar();
     aplicar(null);
   }
 
@@ -108,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function concluirTutorial() {
-    if (!usuario) return;
+    if (!usuario || suporte) return;
     // fecha na hora; se o request falhar, o pior caso é o tutorial voltar no próximo acesso
     setUsuario((u) => (u ? { ...u, tutorialVisto: true } : u));
     await api.post('/perfil/tutorial').catch(() => {});
@@ -127,6 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // considerar) — por isso entra nessa flag em vez de uma checagem à parte.
         isSindico: usuario?.papel === 'sindico' || usuario?.papel === 'administradora',
         isAdministradora: usuario?.papel === 'administradora',
+        isAdmin: usuario?.papel === 'admin',
+        suporte,
+        acessarComo,
+        sairDoSuporte,
         isFuncionario: usuario?.papel === 'funcionario',
         // Porteiro (funcionário) registra/libera encomendas junto com síndico e administradora.
         isEquipe:
@@ -136,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         carregando,
         login,
         cadastrar,
+        definirSenha,
         logout,
         atualizarNome,
         concluirTutorial,
