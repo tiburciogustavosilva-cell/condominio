@@ -1,15 +1,30 @@
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
-const { condominioDe, exigirAfetado } = require('../utils/acesso');
+const { condominioDe, exigirAfetado, isSindico } = require('../utils/acesso');
 const { obrigatorio } = require('../utils/validar');
 
+// Pendências por unidade, pro mapa do síndico (morador não vê as das outras unidades).
+const PENDENCIAS = {
+  _count: {
+    select: {
+      encomendas: { where: { status: 'aguardando' } },
+      ocorrencias: { where: { status: { not: 'concluido' } } }
+    }
+  }
+};
+
 async function listar(usuario) {
+  const sindico = isSindico(usuario);
   const unidades = await prisma.unidade.findMany({
     where: { condominioId: condominioDe(usuario) },
-    include: { profiles: { select: { nome: true } } },
+    include: { profiles: { select: { nome: true } }, ...(sindico ? PENDENCIAS : {}) },
     orderBy: [{ bloco: 'asc' }, { numero: 'asc' }]
   });
-  return unidades.map(({ profiles, ...u }) => ({ ...u, moradores: profiles.map((p) => p.nome) }));
+  return unidades.map(({ profiles, _count, ...u }) => ({
+    ...u,
+    moradores: profiles.map((p) => p.nome),
+    ...(_count ? { encomendasAguardando: _count.encomendas, ocorrenciasAbertas: _count.ocorrencias } : {})
+  }));
 }
 
 function campos(d) {

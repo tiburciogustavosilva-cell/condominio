@@ -7,7 +7,9 @@ const CAMPOS_DATA = new Set([
   'ultimoLembreteCiclo',
   'dataInstalacao',
   'dataAbertura',
-  'dataExecucao'
+  'dataExecucao',
+  'pagoEm',
+  'validoAte'
 ]);
 
 // `function` (não arrow): o JSON.stringify passa o objeto dono em `this`, antes do toJSON.

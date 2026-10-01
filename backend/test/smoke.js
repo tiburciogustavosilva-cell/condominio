@@ -2,9 +2,11 @@
 // Cria os próprios condomínios/usuários e apaga tudo no fim — não depende do seed. Rode: npm test
 require('dotenv').config();
 const assert = require('assert');
+const bcrypt = require('bcryptjs');
 const app = require('../src/app');
 const prisma = require('../src/models/prisma');
 const { codigo: codigoCheckin, JANELA_MS } = require('../src/services/assembleias.service');
+const { gerarTokenSenha } = require('../src/utils/jwt');
 
 const sufixo = Date.now();
 const email = (nome) => `smoke-${nome}-${sufixo}@teste.local`;
@@ -16,6 +18,8 @@ async function limpar() {
     .map((p) => p.condominioId)
     .filter(Boolean);
   const where = { condominioId: { in: condominioIds } };
+  await prisma.mapaItem.deleteMany({ where });
+  await prisma.assinaturaPagamento.deleteMany({ where });
   await prisma.assembleia.deleteMany({ where }); // presenças, pautas, opções e votantes caem em cascata
   await prisma.encomenda.deleteMany({ where });
   await prisma.tarefaExecucao.deleteMany({ where }); // fotos caem em cascata
@@ -26,6 +30,7 @@ async function limpar() {
   await prisma.unidade.deleteMany({ where });
   await prisma.area.deleteMany({ where });
   await prisma.condominio.deleteMany({ where: { id: { in: condominioIds } } });
+  await prisma.profile.deleteMany({ where: { email: { endsWith: `-${sufixo}@teste.local` } } }); // admin (sem condomínio)
 }
 
 async function main() {
@@ -91,6 +96,57 @@ async function main() {
     assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: sindico, body: { senha } })).status, 204);
     assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: morador, body: { senha: 'hack-123' } })).status, 403, 'só síndico');
 
+    // --- Mapa do condomínio: peças (unidade, prédio, áreas) salvas em lote numa transação ---
+    const outra = (await api('POST', '/unidades', { token: sindico, body: { numero: '102', bloco: 'A' } })).json;
+    const { randomUUID } = require('crypto');
+    const [pecaA, pecaB, rua, predio] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const salvarMapa = (body, token = sindico) => api('PUT', '/mapa', { token, body });
+    assert.equal(
+      (await salvarMapa({
+        itens: [
+          { id: pecaA, camada: 'bloco:A', tipo: 'unidade', unidadeId: unidade.id, x: 0, y: 0 },
+          { id: pecaB, camada: 'bloco:A', tipo: 'unidade', unidadeId: outra.id, x: 1, y: 0 },
+          { id: rua, camada: 'geral', tipo: 'rua', rotulo: 'Rua das Flores', x: 0, y: 3, largura: 6, altura: 1 },
+          { id: predio, camada: 'geral', tipo: 'bloco', bloco: 'A', x: 0, y: 0, largura: 2, altura: 2 }
+        ]
+      })).status,
+      204
+    );
+    // troca de lugar + apaga a rua no mesmo envio
+    assert.equal(
+      (await salvarMapa({
+        itens: [
+          { id: pecaA, camada: 'bloco:A', tipo: 'unidade', unidadeId: unidade.id, x: 1, y: 0 },
+          { id: pecaB, camada: 'bloco:A', tipo: 'unidade', unidadeId: outra.id, x: 0, y: 0 }
+        ],
+        removidos: [rua]
+      })).status,
+      204
+    );
+    let pecas = (await api('GET', '/mapa', { token: sindico })).json;
+    assert.equal(pecas.length, 3, 'rua removida');
+    assert.equal(pecas.find((p) => p.id === pecaA).x, 1);
+    assert.equal(pecas.find((p) => p.id === predio).largura, 2);
+    assert.equal((await salvarMapa({ itens: [{ id: rua, camada: 'geral', tipo: 'foguete', x: 0, y: 0 }] })).status, 400, 'tipo inválido');
+    assert.equal((await salvarMapa({ itens: [{ id: rua, camada: 'geral', tipo: 'rua', x: 0, y: 0, largura: 99 }] })).status, 400, 'tamanho inválido');
+    assert.equal(
+      (await salvarMapa({ itens: [{ id: randomUUID(), camada: 'geral', tipo: 'unidade', unidadeId: randomUUID(), x: 5, y: 5 }] })).status,
+      400,
+      'unidade de outro condomínio'
+    );
+    assert.equal((await salvarMapa({ itens: [{ id: rua, camada: 'geral', tipo: 'rua', x: 0, y: 0 }] }, morador)).status, 403, 'só síndico mexe no mapa');
+    const segundaPeca = await salvarMapa({ itens: [{ id: randomUUID(), camada: 'bloco:A', tipo: 'unidade', unidadeId: unidade.id, x: 3, y: 3 }] });
+    assert.equal(segundaPeca.status, 400, 'unidade que já tem peça');
+    assert.match(segundaPeca.json.erro, /já está no mapa/);
+    // reaproveitando o id da peça (ex.: unidade mudou de bloco) dá certo
+    assert.equal((await salvarMapa({ itens: [{ id: pecaA, camada: 'bloco:B', tipo: 'unidade', unidadeId: unidade.id, x: 0, y: 0 }] })).status, 204);
+    assert.equal((await salvarMapa({ itens: [{ id: pecaA, camada: 'bloco:A', tipo: 'unidade', unidadeId: unidade.id, x: 1, y: 0 }] })).status, 204);
+    assert.equal((await api('GET', '/mapa', { token: morador })).status, 403);
+    let lista = (await api('GET', '/unidades', { token: sindico })).json;
+    assert.equal(typeof lista[0].encomendasAguardando, 'number', 'síndico vê pendências');
+    lista = (await api('GET', '/unidades', { token: morador })).json;
+    assert.equal(lista[0].encomendasAguardando, undefined, 'morador não vê pendências das outras unidades');
+
     // --- Escopo síndico x morador x funcionário ---
     assert.equal((await api('GET', '/prestadores', { token: morador })).status, 403);
     assert.equal((await api('POST', '/avisos', { token: morador, body: { titulo: 'x', mensagem: 'y' } })).status, 403);
@@ -138,6 +194,14 @@ async function main() {
     assert.deepEqual(naPortaria.registradoPor, { nome: 'portaria', papel: 'funcionario', cargo: 'porteiro' });
     const codigo = (await api('GET', '/encomendas', { token: morador })).json.find((e) => e.id === criada.json.id).codigoRetirada;
     assert.match(codigo, /^\d{5}$/);
+    // Síndico: sem unidade não vê o código; morando na unidade, vê o das encomendas dela
+    const codigoDoSindico = async () =>
+      (await api('GET', '/encomendas', { token: sindico })).json.find((e) => e.id === criada.json.id).codigoRetirada;
+    assert.equal(await codigoDoSindico(), undefined);
+    const vincularSindico = (unidadeId) => api('PUT', `/moradores/${me.json.usuario.id}`, { token: sindico, body: { unidadeId } });
+    assert.equal((await vincularSindico(unidade.id)).status, 204);
+    assert.equal(await codigoDoSindico(), codigo);
+    await vincularSindico(null);
     const retirar = (token, body) => api('PATCH', `/encomendas/${criada.json.id}/retirar`, { token, body });
     assert.equal((await retirar(morador, { codigo, retiradoPor: 'Eu' })).status, 403);
     // 5 códigos errados bloqueiam; nem o código certo passa até o síndico desbloquear
@@ -299,6 +363,11 @@ async function main() {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }
     });
     const tokenOutro = outro.json.token;
+    assert.equal(
+      (await api('PUT', '/mapa', { token: tokenOutro, body: { itens: [{ id: pecaA, camada: 'geral', tipo: 'rua', x: 0, y: 0 }] } })).status,
+      400,
+      'id de peça de outro condomínio'
+    );
     assert.equal((await api('GET', '/chamados', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/unidades', { token: tokenOutro })).json.length, 0);
     assert.equal((await api('GET', '/encomendas', { token: tokenOutro })).json.length, 0);
@@ -308,6 +377,71 @@ async function main() {
       (await api('PATCH', `/chamados/${doSindico.json.id}/status`, { token: tokenOutro, body: { status: 'concluido' } })).status,
       404
     );
+
+    // --- Admin da plataforma: cria condomínio + síndico, trava e destrava o acesso ---
+    await prisma.profile.create({
+      data: { nome: 'Admin', email: email('admin'), senhaHash: await bcrypt.hash(senha, 10), papel: 'admin' }
+    });
+    const admin = await login(email('admin'), senha);
+    assert.equal((await api('GET', '/admin/condominios', { token: sindico })).status, 403, 'síndico não é admin');
+    const novo = await api('POST', '/admin/condominios', {
+      token: admin,
+      body: { nome: 'Smoke Admin', sindicoNome: 'S', sindicoEmail: email('sindico-admin'), sindicoSenha: senha }
+    });
+    assert.equal(novo.status, 201);
+    const sindicoNovo = await login(email('sindico-admin'), senha);
+    assert.equal((await api('GET', '/chamados', { token: sindicoNovo })).status, 200);
+    const travar = (motivo) => api('PATCH', `/admin/condominios/${novo.json.id}`, { token: admin, body: { bloqueadoMotivo: motivo } });
+    assert.equal((await travar('Mensalidade em atraso')).json.bloqueadoMotivo, 'Mensalidade em atraso');
+    assert.equal((await api('GET', '/chamados', { token: sindicoNovo })).status, 423, 'bloqueado não entra');
+    assert.equal((await api('PUT', '/condominios/atual', { token: sindicoNovo, body: {} })).status, 423, 'nem pelo onboarding');
+    assert.equal((await api('GET', '/auth/me', { token: sindicoNovo })).json.condominio.bloqueadoMotivo, 'Mensalidade em atraso');
+    assert.equal((await api('GET', '/chamados', { token: sindico })).status, 200, 'outro condomínio segue liberado');
+    assert.equal((await travar('')).json.bloqueadoMotivo, null);
+    assert.equal((await api('GET', '/chamados', { token: sindicoNovo })).status, 200, 'destravado volta a entrar');
+    assert.ok((await api('GET', '/admin/condominios', { token: admin })).json.some((c) => c.id === novo.json.id));
+    const editar = (body) => api('PATCH', `/admin/condominios/${novo.json.id}`, { token: admin, body });
+    const editado = await editar({ nome: ' Smoke Editado ', endereco: 'Rua X, 1' });
+    assert.equal(editado.json.nome, 'Smoke Editado');
+    assert.equal(editado.json.endereco, 'Rua X, 1');
+    assert.equal((await editar({ nome: '' })).status, 400, 'nome não pode ficar vazio');
+    assert.equal((await editar({ endereco: null })).json.endereco, '', 'null vira vazio, não erro 500');
+
+    // Assinatura: registra pagamento, o vigente aparece na lista, exclui
+    const pagar = (body) => api('POST', `/admin/condominios/${novo.json.id}/pagamentos`, { token: admin, body });
+    assert.equal((await pagar({ valor: 0, pagoEm: '2026-10-01', validoAte: '2026-11-01' })).status, 400, 'valor zero');
+    const semCondominio = { token: admin, body: { valor: 1, pagoEm: '2026-10-01', validoAte: '2026-11-01' } };
+    assert.equal((await api('POST', `/admin/condominios/${require('crypto').randomUUID()}/pagamentos`, semCondominio)).status, 404);
+    assert.equal((await pagar({ valor: 99, pagoEm: '2026-10-01', validoAte: '2026-09-01' })).status, 400, 'vale antes de pagar');
+    await pagar({ valor: 199.9, pagoEm: '2026-09-01', validoAte: '2026-10-01' });
+    const pago = await pagar({ valor: 199.9, pagoEm: '2026-10-01', validoAte: '2026-11-01' });
+    assert.equal(pago.status, 201);
+    const comPagamento = (await api('GET', '/admin/condominios', { token: admin })).json.find((c) => c.id === novo.json.id);
+    assert.deepEqual(comPagamento.pagamentos[0], { valor: 199.9, pagoEm: '2026-10-01', validoAte: '2026-11-01' }, 'vigente = maior validoAte');
+    assert.equal((await api('DELETE', `/admin/pagamentos/${pago.json.id}`, { token: admin })).status, 204);
+    assert.equal((await api('GET', `/admin/condominios/${novo.json.id}/pagamentos`, { token: admin })).json.length, 1);
+
+    // Suporte: admin entra como o síndico (mesmo bloqueado), mas esse token não é admin
+    const usuariosNovo = (await api('GET', `/admin/condominios/${novo.json.id}/usuarios`, { token: admin })).json;
+    assert.equal(usuariosNovo.length, 1);
+    await travar('Mensalidade em atraso');
+    const suporte = (await api('POST', `/admin/usuarios/${usuariosNovo[0].id}/acessar`, { token: admin })).json;
+    assert.equal(suporte.usuario.email, email('sindico-admin'));
+    assert.equal((await api('GET', '/chamados', { token: suporte.token })).status, 200, 'suporte passa pelo bloqueio');
+    assert.equal((await api('GET', '/admin/condominios', { token: suporte.token })).status, 403);
+    assert.equal((await api('POST', `/admin/usuarios/${usuariosNovo[0].id}/acessar`, { token: sindico })).status, 403);
+    await travar('');
+
+    // Link do convite: define a senha, já entra logado, e não vale de novo (sem e-mail de verdade aqui)
+    const linkSenha = gerarTokenSenha(await prisma.profile.findUnique({ where: { email: email('sindico-admin') } }));
+    const definir = (token, s) => api('POST', '/auth/definir-senha', { body: { token, senha: s } });
+    assert.equal((await definir(linkSenha, '123')).status, 400, 'senha curta');
+    assert.equal((await definir(sindico, 'nova-senha-2')).status, 400, 'token de sessão não serve de convite');
+    const definida = await definir(linkSenha, 'nova-senha-2');
+    assert.equal(definida.status, 200);
+    assert.equal((await api('GET', '/chamados', { token: definida.json.token })).status, 200);
+    assert.ok(await login(email('sindico-admin'), 'nova-senha-2'));
+    assert.equal((await definir(linkSenha, 'outra-senha')).status, 400, 'link usado não vale de novo');
 
     // Dashboard
     const dash = (await api('GET', '/dashboard', { token: sindico })).json;

@@ -40,7 +40,10 @@ async function listar(usuario) {
     unidadeLabel: rotuloUnidade(unidade) ?? '-',
     temFoto: comFoto.has(e.id),
     // O código é só do morador: a portaria nunca vê, só digita o que foi informado.
-    ...(equipe ? {} : { codigoRetirada: e.status === 'aguardando' ? codigoRetirada : null })
+    // Síndico que mora no prédio vê o das encomendas da própria unidade.
+    ...(equipe && e.unidadeId !== usuario.unidadeId
+      ? {}
+      : { codigoRetirada: e.status === 'aguardando' ? codigoRetirada : null })
   }));
 }
 

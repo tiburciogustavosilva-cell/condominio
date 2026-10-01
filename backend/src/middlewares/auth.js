@@ -14,9 +14,26 @@ async function autenticar(req, res, next) {
   }
 
   // Busca no banco a cada request: o condomínio ativo da administradora pode ter mudado.
-  const usuario = await prisma.profile.findUnique({ where: { id: payload.sub } });
+  const usuario = await prisma.profile.findUnique({
+    where: { id: payload.sub },
+    include: { condominio: { select: { bloqueadoMotivo: true } } }
+  });
   if (!usuario) return res.status(401).json({ erro: 'Usuário não encontrado' });
   req.usuario = usuario;
+  req.suporte = payload.suporte; // id do admin, quando é ele acessando como este usuário
+  next();
+}
+
+// Condomínio travado pelo admin da plataforma (ex.: mensalidade atrasada). Suporte entra mesmo assim.
+function exigirLiberado(req, res, next) {
+  const motivo = req.usuario.condominio?.bloqueadoMotivo;
+  if (motivo && !req.suporte) return res.status(423).json({ erro: `Acesso suspenso: ${motivo}` });
+  next();
+}
+
+// Dono da plataforma: gerencia todos os condomínios.
+function apenasAdmin(req, res, next) {
+  if (req.usuario.papel !== 'admin') return res.status(403).json({ erro: 'Acesso restrito ao administrador' });
   next();
 }
 
@@ -44,4 +61,4 @@ function semFuncionario(req, res, next) {
   next();
 }
 
-module.exports = { autenticar, apenasSindico, apenasEquipe, apenasStaff, semFuncionario };
+module.exports = { autenticar, exigirLiberado, apenasAdmin, apenasSindico, apenasEquipe, apenasStaff, semFuncionario };

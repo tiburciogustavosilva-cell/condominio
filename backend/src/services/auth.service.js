@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
 const { obrigatorio, umDe } = require('../utils/validar');
-const { gerarToken, EXPIRES_IN } = require('../utils/jwt');
+const { gerarToken, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN } = require('../utils/jwt');
 
 function formatarUsuario(p) {
   return {
@@ -93,4 +93,18 @@ async function trocarSenha(usuario, senhaAtual, novaSenha) {
   await prisma.profile.update({ where: { id: usuario.id }, data: { senhaHash: await bcrypt.hash(novaSenha, 10) } });
 }
 
-module.exports = { login, cadastrar, trocarSenha, sessaoDe, validarSenha, normalizarEmail };
+/** Link do convite (e-mail): a pessoa escolhe a senha e já entra logada. */
+async function definirSenha(token, senha) {
+  validarSenha(senha);
+  let profile;
+  try {
+    profile = await prisma.profile.findUnique({ where: { id: idDoTokenSenha(token) } });
+    verificarTokenSenha(token, profile);
+  } catch {
+    throw new HttpError(400, 'Link inválido ou expirado. Peça um novo ao suporte.');
+  }
+  profile = await prisma.profile.update({ where: { id: profile.id }, data: { senhaHash: await bcrypt.hash(senha, 10) } });
+  return emitirToken(profile);
+}
+
+module.exports = { login, cadastrar, definirSenha, trocarSenha, sessaoDe, validarSenha, normalizarEmail };

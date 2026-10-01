@@ -183,7 +183,11 @@ async function main() {
     ]
   });
 
-  console.log('Seed concluído: sindico@ / admin123, morador@ / morador123, portaria@ / portaria123 (@condominio.com)');
+  await prisma.profile.create({
+    data: { nome: 'Administrador', email: 'admin@admin', senhaHash: await bcrypt.hash('123456', 10), papel: 'admin' }
+  });
+
+  console.log('Seed concluído: admin@admin / 123456, sindico@ / admin123, morador@ / morador123, portaria@ / portaria123 (@condominio.com)');
 }
 
 main()
