@@ -33,7 +33,7 @@ export function useMoradores() {
     },
     atualizar: async (
       id: string,
-      dados: { nome?: string; telefone?: string; papel?: string; vinculo?: string; unidadeId?: string | null }
+      dados: { nome?: string; telefone?: string; papel?: string; vinculo?: string; unidadeId?: string | null; senha?: string }
     ) => {
       await api.put(`/moradores/${id}`, dados);
     },

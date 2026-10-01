@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { dataHora } from '@/lib/format';
 import type { Aviso } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { PageHeader, Resumo } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
@@ -106,7 +106,9 @@ export default function Avisos() {
             </Button>
           )
         }
-      />
+      >
+        {!carregando && <Resumo n={avisos.length} um="aviso publicado" varios="avisos publicados" />}
+      </PageHeader>
 
       {isSindico && (
         <FormModal

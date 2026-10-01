@@ -11,11 +11,12 @@ import {
   Plus,
   Wallet
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAtivos } from '@/hooks/useAtivos';
 import { useManutencoes, usePrestadores } from '@/hooks/usePrestadores';
 import { useOrdensServico } from '@/hooks/useOrdensServico';
-import { dataCurta, frequenciaTexto, prazoTexto } from '@/lib/format';
+import { dataCurta, duracaoTexto, frequenciaTexto, prazoTexto } from '@/lib/format';
 import { gerarRelatorioXlsx } from '@/lib/exportarRelatorio';
 import { LABEL } from '@/types/condominio';
 import type { Ativo, Manutencao, OrdemServico } from '@/types/condominio';
@@ -34,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
+import { AbaPrestadores } from '@/components/manutencao/AbaPrestadores';
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -50,7 +52,8 @@ const ATIVO_VAZIO = {
   fabricanteModelo: '',
   numeroSerie: '',
   dataInstalacao: '',
-  vidaUtilAnos: '',
+  vidaUtil: '',
+  vidaUtilUnidade: 'anos',
   responsavel: '',
   observacoes: ''
 };
@@ -70,6 +73,13 @@ const PLANO_VAZIO = {
   custoPrevisto: '',
   numeroOs: ''
 };
+
+const ABAS = ['dashboard', 'ativos', 'prestadores', 'plano', 'ordens'];
+
+// Mais urgente primeiro; planos sem próxima data vão para o fim.
+function porUrgencia(a: Manutencao, b: Manutencao) {
+  return (a.diasParaProxima ?? Infinity) - (b.diasParaProxima ?? Infinity);
+}
 
 const OS_VAZIA = {
   numeroOs: '',
@@ -100,7 +110,8 @@ export default function ManutencaoPredial() {
     notificar: notificarPlano,
     remover: removerPlano
   } = useManutencoes();
-  const { prestadores, carregando: carregandoPrestadores } = usePrestadores();
+  const prestadoresHook = usePrestadores();
+  const { prestadores, carregando: carregandoPrestadores } = prestadoresHook;
   const {
     ordens,
     carregando: carregandoOrdens,
@@ -111,6 +122,9 @@ export default function ManutencaoPredial() {
   } = useOrdensServico();
 
   const [gerando, setGerando] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const aba = ABAS.includes(params.get('aba') ?? '') ? params.get('aba')! : 'dashboard';
+  const irPara = (v: string) => setParams({ aba: v }, { replace: true });
   const carregando = carregandoAtivos || carregandoPlanos || carregandoPrestadores || carregandoOrdens;
 
   async function baixarRelatorio() {
@@ -126,31 +140,33 @@ export default function ManutencaoPredial() {
   }
 
   return (
-    <div className="space-y-6">
+    <Tabs value={aba} onValueChange={irPara} className="space-y-6">
       <PageHeader
         title="Manutenção Predial"
-        description="Cadastro de equipamentos/áreas, plano de manutenção e registro de serviços — mesmo modelo da planilha de controle predial."
+        description="Equipamentos/áreas, prestadores, plano de manutenção e registro de serviços — mesmo modelo da planilha de controle predial."
         actions={
           <Button variant="brand" onClick={baixarRelatorio} disabled={gerando}>
             {gerando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Baixar relatório (.xlsx)
           </Button>
         }
-      />
+      >
+        <TabsList className="h-auto max-w-full flex-wrap justify-start">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="ativos">Cadastro</TabsTrigger>
+          <TabsTrigger value="prestadores">Prestadores</TabsTrigger>
+          <TabsTrigger value="plano">Plano de Manutenção</TabsTrigger>
+          <TabsTrigger value="ordens">Registro de Serviços</TabsTrigger>
+        </TabsList>
+      </PageHeader>
 
       {carregando ? (
         <ListSkeleton count={4} />
       ) : (
-      <Tabs defaultValue="dashboard">
-        <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="ativos">Cadastro</TabsTrigger>
-          <TabsTrigger value="plano">Plano de Manutenção</TabsTrigger>
-          <TabsTrigger value="ordens">Registro de Serviços</TabsTrigger>
-        </TabsList>
+      <>
 
         <TabsContent value="dashboard">
-          <PainelDashboard ativos={ativos} manutencoes={manutencoes} ordens={ordens} />
+          <PainelDashboard ativos={ativos} manutencoes={manutencoes} ordens={ordens} verPlano={() => irPara('plano')} />
         </TabsContent>
 
         <TabsContent value="ativos">
@@ -160,6 +176,16 @@ export default function ManutencaoPredial() {
             atualizar={atualizarAtivo}
             remover={removerAtivo}
             recarregar={recarregarAtivos}
+          />
+        </TabsContent>
+
+        <TabsContent value="prestadores">
+          <AbaPrestadores
+            {...prestadoresHook}
+            // remover prestador apaga as manutenções dele: o plano recarrega junto
+            recarregar={async () => {
+              await Promise.all([prestadoresHook.recarregar(), recarregarPlanos()]);
+            }}
           />
         </TabsContent>
 
@@ -174,6 +200,7 @@ export default function ManutencaoPredial() {
             notificar={notificarPlano}
             remover={removerPlano}
             recarregar={recarregarPlanos}
+            irParaPrestadores={() => irPara('prestadores')}
           />
         </TabsContent>
 
@@ -187,9 +214,9 @@ export default function ManutencaoPredial() {
             recarregar={recarregarOrdens}
           />
         </TabsContent>
-      </Tabs>
+      </>
       )}
-    </div>
+    </Tabs>
   );
 }
 
@@ -199,17 +226,23 @@ export default function ManutencaoPredial() {
 function PainelDashboard({
   ativos,
   manutencoes,
-  ordens
+  ordens,
+  verPlano
 }: {
   ativos: Ativo[];
   manutencoes: Manutencao[];
   ordens: OrdemServico[];
+  verPlano: () => void;
 }) {
   const vencidas = manutencoes.filter((m) => m.status === 'vencida').length;
   const vencem30 = manutencoes.filter((m) => (m.diasParaProxima ?? 999) >= 0 && (m.diasParaProxima ?? 999) <= 30).length;
   const custoPrevisto = manutencoes.reduce((s, m) => s + (m.custoPrevisto ?? 0), 0);
   const custoRealizado = ordens.reduce((s, o) => s + o.custoTotal, 0);
   const porTipo = (tipo: string) => manutencoes.filter((m) => m.tipo === tipo).length;
+  // mesmo critério do lembrete por e-mail: só planos ativos e ainda em aberto
+  const atencao = manutencoes
+    .filter((m) => m.ativo && !['concluida', 'cancelada'].includes(m.statusManual) && (m.diasParaProxima ?? 999) <= 30)
+    .sort(porUrgencia);
 
   return (
     <div className="space-y-6">
@@ -227,6 +260,31 @@ function PainelDashboard({
         <StatCard label="Vencem em até 30 dias" value={vencem30} icon={Gauge} tone="warning" />
         <StatCard label="Custo previsto" value={moeda(custoPrevisto)} icon={Wallet} tone="secondary" />
       </div>
+
+      {atencao.length > 0 && (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Precisam de atenção</CardTitle>
+            <Button size="sm" variant="outline" onClick={verPlano}>Ver plano</Button>
+          </CardHeader>
+          <CardContent className="divide-y divide-border">
+            {atencao.slice(0, 8).map((m) => (
+              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span>
+                  <strong>{m.titulo}</strong>
+                  <span className="text-muted-foreground">
+                    {m.ativoNome ? ` · ${m.ativoNome}` : ''} · {m.prestadorNome}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {dataCurta(m.proximaManutencao)} ({prazoTexto(m.diasParaProxima)})
+                  <StatusBadge status={m.status ?? 'em_dia'} />
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -302,7 +360,8 @@ function AbaAtivos({
       fabricanteModelo: a.fabricanteModelo,
       numeroSerie: a.numeroSerie,
       dataInstalacao: a.dataInstalacao ?? '',
-      vidaUtilAnos: a.vidaUtilAnos?.toString() ?? '',
+      vidaUtil: a.vidaUtil?.toString() ?? '',
+      vidaUtilUnidade: a.vidaUtilUnidade,
       responsavel: a.responsavel,
       observacoes: a.observacoes
     });
@@ -376,8 +435,15 @@ function AbaAtivos({
             <Field label="Data de instalação">
               <DatePicker value={form.dataInstalacao} onChange={(v) => set('dataInstalacao', v)} />
             </Field>
-            <Field label="Vida útil (anos)" htmlFor="a-vida">
-              <Input id="a-vida" type="number" min={0} value={form.vidaUtilAnos} onChange={(e) => set('vidaUtilAnos', e.target.value)} />
+            <Field label="Vida útil" htmlFor="a-vida">
+              <div className="flex gap-2">
+                <Input id="a-vida" type="number" min={0} value={form.vidaUtil} onChange={(e) => set('vidaUtil', e.target.value)} />
+                <select aria-label="Unidade da vida útil" className={selectCls} value={form.vidaUtilUnidade} onChange={(e) => set('vidaUtilUnidade', e.target.value)}>
+                  {Object.entries(LABEL.unidadeTempo).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
             </Field>
             <Field label="Responsável" htmlFor="a-resp">
               <Input id="a-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
@@ -418,7 +484,7 @@ function AbaAtivos({
                 )}
                 <p className="text-xs text-muted-foreground">
                   {a.dataInstalacao ? `Instalado em ${dataCurta(a.dataInstalacao)}` : 'Sem data de instalação'}
-                  {a.vidaUtilAnos ? ` · vida útil ${a.vidaUtilAnos} anos` : ''}
+                  {a.vidaUtil ? ` · vida útil ${duracaoTexto(a.vidaUtil, a.vidaUtilUnidade)}` : ''}
                 </p>
                 {a.responsavel && <p className="text-xs text-muted-foreground">Responsável: {a.responsavel}</p>}
                 <div className="flex gap-2 pt-1">
@@ -453,7 +519,8 @@ function AbaPlano({
   concluir,
   notificar,
   remover,
-  recarregar
+  recarregar,
+  irParaPrestadores
 }: {
   manutencoes: Manutencao[];
   ativos: Ativo[];
@@ -464,11 +531,13 @@ function AbaPlano({
   notificar: (id: string) => Promise<any>;
   remover: (id: string) => Promise<void>;
   recarregar: () => void;
+  irParaPrestadores: () => void;
 }) {
   const [form, setForm] = useState<any>(PLANO_VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [enviandoId, setEnviandoId] = useState<string | null>(null);
 
   function set(campo: string, valor: string) {
     setForm((f: any) => ({ ...f, [campo]: valor }));
@@ -524,7 +593,16 @@ function AbaPlano({
   return (
     <div className="space-y-6">
       {prestadores.length === 0 ? (
-        <EmptyState icon={CalendarClock} title="Cadastre um prestador primeiro" description="A aba Prestadores tem o cadastro de quem executa os serviços." />
+        <EmptyState
+          icon={CalendarClock}
+          title="Cadastre um prestador primeiro"
+          description="Todo plano de manutenção precisa de alguém responsável por executá-lo."
+          action={
+            <Button variant="brand" onClick={irParaPrestadores}>
+              Cadastrar prestador
+            </Button>
+          }
+        />
       ) : (
         <>
           <div className="flex justify-end">
@@ -552,30 +630,6 @@ function AbaPlano({
                   ))}
                 </select>
               </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Tipo" htmlFor="p-tipo">
-                <select id="p-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                  {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Prioridade" htmlFor="p-prio">
-                <select id="p-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
-                  {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Status" htmlFor="p-status">
-                <select id="p-status" className={selectCls} value={form.statusManual} onChange={(e) => set('statusManual', e.target.value)}>
-                  {Object.entries(LABEL.statusPlano).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
-                  ))}
-                </select>
-              </Field>
               <Field label="Responsável / Empresa" htmlFor="p-prest">
                 <select id="p-prest" className={selectCls} value={form.prestadorId} onChange={(e) => set('prestadorId', e.target.value)} required>
                   <option value="">Selecione…</option>
@@ -584,12 +638,12 @@ function AbaPlano({
                   ))}
                 </select>
               </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Última manutenção">
+              <Field label="Última manutenção *" hint="Base para calcular a próxima data.">
                 <DatePicker value={form.ultimaManutencao} onChange={(v) => set('ultimaManutencao', v)} />
               </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Periodicidade" htmlFor="p-freq">
                 <select id="p-freq" className={selectCls} value={form.frequenciaUnidade} onChange={(e) => set('frequenciaUnidade', e.target.value)}>
                   <option value="semanal">Semanal</option>
@@ -600,23 +654,52 @@ function AbaPlano({
               <Field label="A cada quantos" htmlFor="p-int" hint={frequenciaTexto(form.frequenciaUnidade, Number(form.frequenciaIntervalo))}>
                 <Input id="p-int" type="number" min={1} value={form.frequenciaIntervalo} onChange={(e) => set('frequenciaIntervalo', e.target.value)} required />
               </Field>
-              <Field label="Avisar (dias de antecedência)" htmlFor="p-ant">
-                <Input id="p-ant" type="number" min={0} value={form.diasAntecedencia} onChange={(e) => set('diasAntecedencia', e.target.value)} />
-              </Field>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Custo previsto (R$)" htmlFor="p-custo">
-                <Input id="p-custo" type="number" step="0.01" min="0" value={form.custoPrevisto} onChange={(e) => set('custoPrevisto', e.target.value)} />
-              </Field>
-              <Field label="Nº OS / Contrato" htmlFor="p-os">
-                <Input id="p-os" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
-              </Field>
-            </div>
-
-            <Field label="Observações" htmlFor="p-desc">
-              <Textarea id="p-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
-            </Field>
+            <details className="group rounded-md border border-border px-4 py-3">
+              <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground">
+                Mais opções <span className="font-normal">(tipo, prioridade, aviso, custo, observações)</span>
+              </summary>
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field label="Tipo" htmlFor="p-tipo">
+                    <select id="p-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
+                      {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Prioridade" htmlFor="p-prio">
+                    <select id="p-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
+                      {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Status" htmlFor="p-status">
+                    <select id="p-status" className={selectCls} value={form.statusManual} onChange={(e) => set('statusManual', e.target.value)}>
+                      {Object.entries(LABEL.statusPlano).map(([v, l]) => (
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Avisar (dias de antecedência)" htmlFor="p-ant">
+                    <Input id="p-ant" type="number" min={0} value={form.diasAntecedencia} onChange={(e) => set('diasAntecedencia', e.target.value)} />
+                  </Field>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Custo previsto (R$)" htmlFor="p-custo">
+                    <Input id="p-custo" type="number" step="0.01" min="0" value={form.custoPrevisto} onChange={(e) => set('custoPrevisto', e.target.value)} />
+                  </Field>
+                  <Field label="Nº OS / Contrato" htmlFor="p-os">
+                    <Input id="p-os" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="Observações" htmlFor="p-desc">
+                  <Textarea id="p-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
+                </Field>
+              </div>
+            </details>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
@@ -634,7 +717,7 @@ function AbaPlano({
         <EmptyState icon={CalendarClock} title="Nenhum plano de manutenção cadastrado" />
       ) : (
         <div className="space-y-3">
-          {manutencoes.map((m) => (
+          {[...manutencoes].sort(porUrgencia).map((m) => (
             <Card key={m.id}>
               <CardContent className="space-y-2 pt-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -679,7 +762,9 @@ function AbaPlano({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() =>
+                    disabled={enviandoId === m.id}
+                    onClick={() => {
+                      setEnviandoId(m.id);
                       notificar(m.id)
                         .then((r: any) =>
                           toast.success(
@@ -687,9 +772,11 @@ function AbaPlano({
                           )
                         )
                         .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar'))
-                    }
+                        .finally(() => setEnviandoId(null));
+                    }}
                   >
-                    <Mail className="h-4 w-4" /> Enviar e-mail agora
+                    {enviandoId === m.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{' '}
+                    Enviar e-mail agora
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => editar(m)}>Editar</Button>
                   <AsyncConfirmDialog

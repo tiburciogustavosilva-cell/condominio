@@ -42,7 +42,9 @@ export default function Tarefas() {
             </Button>
           )
         }
-      />
+      >
+        {isSindico && <FilterPills options={ABAS} value={aba} onChange={setAba} />}
+      </PageHeader>
       {isSindico && (
         <FormTarefa
           aberto={form.aberto}
@@ -51,7 +53,6 @@ export default function Tarefas() {
           onSalvo={() => setVersao((v) => v + 1)}
         />
       )}
-      {isSindico && <FilterPills options={ABAS} value={aba} onChange={setAba} />}
       {!isSindico || aba === 'hoje' ? (
         <TarefasDoDia key={versao} />
       ) : aba === 'cadastro' ? (

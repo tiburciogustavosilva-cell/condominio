@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
-import { itemVisivel, navItems } from './nav-items';
+import { itemVisivel, navItems, tituloGrupo } from './nav-items';
 import { NavLink } from './NavLink';
+import { Fragment } from 'react';
 import { SidebarFooter } from './SidebarFooter';
 
 type Props = {
@@ -44,10 +45,15 @@ export function MobileNav({ open, onClose, onTutorial }: Props) {
               </Button>
             </div>
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-              {links.map(({ to, label, icon: Icon, end, emBreve }) =>
-                emBreve ? (
+              {links.map(({ to, label, icon: Icon, end, emBreve }, i) => (
+                <Fragment key={to}>
+                {tituloGrupo(links, i) && (
+                  <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {tituloGrupo(links, i)}
+                  </p>
+                )}
+                {emBreve ? (
                   <div
-                    key={to}
                     aria-disabled="true"
                     className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-60"
                   >
@@ -59,7 +65,6 @@ export function MobileNav({ open, onClose, onTutorial }: Props) {
                   </div>
                 ) : (
                   <NavLink
-                    key={to}
                     to={to}
                     end={end}
                     onClick={onClose}
@@ -71,8 +76,9 @@ export function MobileNav({ open, onClose, onTutorial }: Props) {
                     <Icon className="h-[18px] w-[18px]" />
                     {label}
                   </NavLink>
-                )
-              )}
+                )}
+                </Fragment>
+              ))}
             </nav>
             <SidebarFooter onTutorial={onTutorial} />
           </motion.aside>

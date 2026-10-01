@@ -10,7 +10,6 @@ import {
   Lock,
   Package,
   Plus,
-  Search,
   UserPlus,
   X,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import { paraWebp } from "@/lib/imagem";
 import { gerarRelatorioEncomendas } from "@/lib/exportarEncomendas";
 import { nomeComFuncao, type Encomenda } from "@/types/condominio";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { BuscaInput } from "@/components/shared/BuscaInput";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { FilterPills } from "@/components/shared/FilterPills";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -168,7 +168,10 @@ export default function Encomendas() {
             )}
           </div>
         }
-      />
+      >
+        <FilterPills options={FILTROS} value={filtro} onChange={setFiltro} />
+        <BuscaInput value={busca} onChange={setBusca} placeholder="Buscar unidade, descrição, rastreio…" />
+      </PageHeader>
 
       {isEquipe && (
         <Dialog
@@ -292,19 +295,6 @@ export default function Encomendas() {
           </DialogContent>
         </Dialog>
       )}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <FilterPills options={FILTROS} value={filtro} onChange={setFiltro} />
-        <div className="relative sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar unidade, descrição, rastreio…"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-      </div>
 
       <div className="space-y-3">
         {carregando ? (

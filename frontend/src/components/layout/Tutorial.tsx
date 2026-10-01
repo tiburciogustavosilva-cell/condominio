@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookText,
+  Building2,
   CalendarRange,
+  ClipboardCheck,
   ClipboardList,
+  IdCard,
   LayoutDashboard,
   Megaphone,
   Menu,
   Package,
-  Users,
+  Vote,
   Wrench,
   X,
   type LucideIcon,
@@ -16,18 +19,18 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { rotaVisivel } from "./nav-items";
+
+type Papel = "sindico" | "morador" | "funcionario";
 
 type Passo = {
   icon?: LucideIcon;
-  /** Tela que o passo abre por trás do cartão. */
+  /** Tela que o passo abre por trás do cartão. O passo só aparece se essa tela estiver no menu do usuário. */
   to?: string;
   titulo: string;
   texto: string;
-  /** Mesmas flags do nav-items: o passo só aparece se o módulo existir pro usuário. */
-  sindico?: boolean;
-  morador?: boolean;
-  porteiro?: boolean;
-  areasReserva?: boolean;
+  /** Para quem é este texto; sem isso, vale para todos. */
+  para?: Papel[];
 };
 
 const PASSOS: Passo[] = [
@@ -36,13 +39,13 @@ const PASSOS: Passo[] = [
     titulo: "Painel",
     to: "/",
     texto:
-      "Sua página inicial: um resumo dos chamados, reservas, encomendas e avisos que precisam da sua atenção.",
+      "Sua página inicial: um resumo do que precisa da sua atenção hoje.",
   },
   {
     icon: Wrench,
     titulo: "Chamados",
     to: "/chamados",
-    sindico: true,
+    para: ["sindico"],
     texto:
       'Tudo o que os moradores pedem de manutenção cai aqui, num quadro. Arraste o card entre "Em aberto", "Pendente" e "Encerrado" para atualizar o status.',
   },
@@ -50,35 +53,55 @@ const PASSOS: Passo[] = [
     icon: Wrench,
     titulo: "Chamados",
     to: "/chamados",
-    morador: true,
+    para: ["morador"],
     texto:
       "Algo quebrou ou precisa de reparo? Abra um chamado e acompanhe o andamento até ser resolvido.",
   },
   {
-    icon: Users,
+    icon: Building2,
     titulo: "Unidades e moradores",
     to: "/unidades",
-    sindico: true,
+    para: ["sindico"],
     texto:
-      "Cadastre as unidades do condomínio e vincule cada morador à sua unidade. É o primeiro passo para todo mundo usar o sistema.",
+      "Cadastre as unidades e vincule cada morador à sua unidade — um a um ou de uma vez, importando a planilha modelo (.xlsx). É o primeiro passo para todo mundo usar o sistema.",
   },
-  /*
+  {
+    icon: IdCard,
+    titulo: "Funcionários",
+    to: "/funcionarios",
+    para: ["sindico"],
+    texto:
+      "Cadastre porteiros, zeladores e a equipe de limpeza. O cargo define o que cada um acessa no sistema.",
+  },
+  {
+    icon: ClipboardCheck,
+    titulo: "Tarefas",
+    to: "/tarefas",
+    para: ["sindico"],
+    texto:
+      "Monte a rotina de cada cargo e acompanhe o que foi feito, com a foto de cada serviço.",
+  },
+  {
+    icon: ClipboardCheck,
+    titulo: "Tarefas",
+    to: "/tarefas",
+    para: ["funcionario"],
+    texto:
+      "Aqui está o que precisa ser feito hoje. Marque cada tarefa como feita e tire uma foto do serviço.",
+  },
   {
     icon: CalendarRange,
     titulo: "Reservas",
     to: "/reservas",
-    areasReserva: true,
-    sindico: true,
+    para: ["sindico"],
     texto:
       "Veja no calendário quem reservou cada área comum e aprove ou recuse os pedidos.",
   },
-  */
   {
     icon: CalendarRange,
     titulo: "Reservas",
     to: "/reservas",
-    areasReserva: true,
-    morador: true,
+    para: ["morador"],
     texto:
       "Reserve o salão de festas, a churrasqueira e as outras áreas comuns direto pelo calendário.",
   },
@@ -86,8 +109,7 @@ const PASSOS: Passo[] = [
     icon: Package,
     titulo: "Encomendas",
     to: "/encomendas",
-    porteiro: true,
-    sindico: true,
+    para: ["sindico", "funcionario"],
     texto:
       "A portaria registra as entregas que chegam e o morador é avisado. Depois, é só marcar como entregue.",
   },
@@ -95,8 +117,7 @@ const PASSOS: Passo[] = [
     icon: Package,
     titulo: "Encomendas",
     to: "/encomendas",
-    porteiro: true,
-    morador: true,
+    para: ["morador"],
     texto:
       "Chegou pacote na portaria? Ele aparece aqui, e você fica sabendo sem precisar descer para perguntar.",
   },
@@ -104,7 +125,7 @@ const PASSOS: Passo[] = [
     icon: Megaphone,
     titulo: "Avisos",
     to: "/avisos",
-    sindico: true,
+    para: ["sindico"],
     texto:
       "Publique comunicados para o condomínio inteiro. Fixe os mais importantes para que fiquem sempre no topo.",
   },
@@ -112,7 +133,7 @@ const PASSOS: Passo[] = [
     icon: Megaphone,
     titulo: "Avisos",
     to: "/avisos",
-    morador: true,
+    para: ["morador", "funcionario"],
     texto:
       "Os comunicados do síndico ficam aqui. Os fixados são os mais importantes.",
   },
@@ -124,12 +145,28 @@ const PASSOS: Passo[] = [
       "Registro de reclamações e ocorridos: barulho, segurança, convivência, danos. Fica tudo documentado.",
   },
   {
-    icon: ClipboardList,
-    titulo: "Manutenção predial e prestadores",
-    to: "/manutencao-predial",
-    sindico: true,
+    icon: Vote,
+    titulo: "Votações",
+    to: "/votacoes",
+    para: ["sindico"],
     texto:
-      "Cadastre os equipamentos e os prestadores, monte o plano de manutenção e baixe o relatório em planilha quando precisar.",
+      "Crie a assembleia com as pautas, projete o código de presença na reunião e abra a votação de cada pauta. Você define quem vota em cada uma: proprietário, inquilino ou procurador.",
+  },
+  {
+    icon: Vote,
+    titulo: "Votações",
+    to: "/votacoes",
+    para: ["morador"],
+    texto:
+      "Na assembleia, entre por aqui, digite o código mostrado na tela e vote em cada pauta pelo celular.",
+  },
+  {
+    icon: ClipboardList,
+    titulo: "Manutenção predial",
+    to: "/manutencao-predial",
+    para: ["sindico"],
+    texto:
+      "Cadastre os equipamentos e os prestadores, monte o plano de manutenção e registre as ordens de serviço. Os prestadores recebem por e-mail o lembrete de cada manutenção, e o relatório sai em planilha.",
   },
   {
     icon: Menu,
@@ -140,9 +177,11 @@ const PASSOS: Passo[] = [
 ];
 
 /** Tutorial guiado (primeiro acesso ou botão "Ver tutorial"): cada passo abre a tela que explica,
- * num cartão flutuante que deixa a tela visível. Passos diferentes para síndico e morador. */
+ * num cartão flutuante que deixa a tela visível. Passos diferentes para síndico, morador e funcionário. */
 export function Tutorial({ onClose }: { onClose: () => void }) {
-  const { usuario, isSindico, condominio } = useAuth();
+  const { usuario, isSindico, isFuncionario, isEquipe, condominio } = useAuth();
+  const papel: Papel = isSindico ? "sindico" : isFuncionario ? "funcionario" : "morador";
+  const ctx = { isSindico, isFuncionario, isEquipe, condominio };
   const [passo, setPasso] = useState(0);
   const navigate = useNavigate();
 
@@ -158,10 +197,9 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
     },
     ...PASSOS.filter(
       (p) =>
-        (!p.sindico || isSindico) &&
-        (!p.morador || !isSindico) &&
-        (!p.porteiro || condominio?.temPorteiro) &&
-        (!p.areasReserva || condominio?.temAreasReserva)
+        (!p.para || p.para.includes(papel)) &&
+        // segue o menu: se a tela saiu do menu (ou é "Em breve"), o passo some junto
+        (!p.to || rotaVisivel(p.to, ctx))
     ),
   ];
   const atual = passos[passo];

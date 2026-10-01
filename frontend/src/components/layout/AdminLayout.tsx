@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { AvisoAssembleia } from '@/components/votacoes/AvisoAssembleia';
@@ -13,7 +12,6 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar:collapsed') === '1');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tutorialAberto, setTutorialAberto] = useState(false);
-  const location = useLocation();
   const { usuario, concluirTutorial } = useAuth();
 
   useEffect(() => {
@@ -40,14 +38,7 @@ export function AdminLayout() {
         {/* conteúdo */}
         <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 lg:px-6 lg:pb-10">
           <AvisoAssembleia />
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-          >
-            <Outlet />
-          </motion.div>
+          <Outlet />
         </main>
       </div>
 

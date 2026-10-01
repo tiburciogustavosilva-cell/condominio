@@ -6,7 +6,7 @@ import { useAssembleias } from '@/hooks/useAssembleias';
 import { dataCurta } from '@/lib/format';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { PageHeader, Resumo } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,7 +35,9 @@ export default function Votacoes() {
             </Button>
           )
         }
-      />
+      >
+        {!carregando && <Resumo n={assembleias.length} um="assembleia" varios="assembleias" />}
+      </PageHeader>
       {isSindico && (
         <FormAssembleia
           aberto={formAberto}

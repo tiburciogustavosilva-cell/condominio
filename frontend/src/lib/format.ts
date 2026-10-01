@@ -32,6 +32,13 @@ export function frequenciaTexto(unidade: string, intervalo: number) {
   return n === 1 ? 'Todo mês' : `A cada ${n} meses`;
 }
 
+/** "1 mês", "3 semanas" */
+export function duracaoTexto(n: number | null | undefined, unidade: string) {
+  if (!n) return '';
+  const singular: Record<string, string> = { dias: 'dia', semanas: 'semana', meses: 'mês', anos: 'ano' };
+  return `${n} ${n === 1 ? singular[unidade] ?? unidade : unidade}`;
+}
+
 /** "em 11 dias", "hoje", "há 2 dias" */
 export function prazoTexto(dias: number | null | undefined) {
   if (dias == null) return '-';

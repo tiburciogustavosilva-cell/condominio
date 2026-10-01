@@ -28,7 +28,8 @@ export function useAtivos() {
       fabricanteModelo: string;
       numeroSerie: string;
       dataInstalacao: string;
-      vidaUtilAnos: string | number;
+      vidaUtil: string | number;
+      vidaUtilUnidade: string;
       responsavel: string;
       observacoes: string;
     }) => {

@@ -27,7 +27,6 @@ import Avisos from '@/pages/Avisos';
 import Ocorrencias from '@/pages/Ocorrencias';
 import Votacoes from '@/pages/Votacoes';
 import Assembleia from '@/pages/Assembleia';
-import Prestadores from '@/pages/Prestadores';
 import ManutencaoPredial from '@/pages/ManutencaoPredial';
 import Moradores from '@/pages/Moradores';
 import Funcionarios from '@/pages/Funcionarios';
@@ -70,7 +69,7 @@ export default function App() {
                   <Route path="perfil" element={<Perfil />} />
 
                   <Route element={<RequireSindico />}>
-                    <Route path="prestadores" element={<Prestadores />} />
+                    <Route path="prestadores" element={<Navigate to="/manutencao-predial?aba=prestadores" replace />} />
                     <Route path="manutencao-predial" element={<ManutencaoPredial />} />
                     <Route path="moradores" element={<Moradores />} />
                     <Route path="funcionarios" element={<Funcionarios />} />

@@ -302,7 +302,8 @@ export interface Ativo {
   fabricanteModelo: string;
   numeroSerie: string;
   dataInstalacao: string | null;
-  vidaUtilAnos: number | null;
+  vidaUtil: number | null;
+  vidaUtilUnidade: string;
   responsavel: string;
   observacoes: string;
   criadoEm: string;
@@ -343,7 +344,21 @@ export interface DashboardResumo {
   reservas: { pendentes: number; proximas: number };
   encomendas: { aguardando: number };
   manutencoes: { vencidas: number; proximas: number } | null;
-  totais: { unidades: number; moradores: number } | null;
+  totais: { unidades: number; moradores: number; funcionarios: number; unidadesVazias: number } | null;
+  /** Só para síndico/administradora; null para os demais. */
+  sindico: {
+    ocorrencias: {
+      aberto: number;
+      em_andamento: number;
+      recentes: { id: string; titulo: string; categoria: string; status: string; criadoEm: string }[];
+    };
+    encomendasParadas: number;
+    assembleiaAberta: { id: string; titulo: string } | null;
+    tarefasHoje: { total: number; feitas: number; atrasadas: number };
+    proximasManutencoes: { id: string; titulo: string; prestadorNome: string; proxima: string; dias: number; status: string }[];
+    ordensAbertas: number;
+    custoMes: number;
+  } | null;
   avisos: Aviso[];
 }
 
@@ -380,6 +395,12 @@ export const LABEL = {
     tarde: 'Tarde',
     noite: 'Noite',
     dia_todo: 'Dia todo'
+  } as Record<string, string>,
+  unidadeTempo: {
+    dias: 'Dias',
+    semanas: 'Semanas',
+    meses: 'Meses',
+    anos: 'Anos'
   } as Record<string, string>,
   frequencia: {
     semanal: 'Semanal',

@@ -1,10 +1,11 @@
 import { CircleHelp, LogOut, Moon, Repeat, Sun } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { iniciais } from '@/lib/format';
+import { LABEL } from '@/types/condominio';
 
 /** Rodapé do menu lateral (desktop e drawer mobile): usuário, trocar condomínio, tutorial, tema, sair. */
 export function SidebarFooter({ collapsed = false, onTutorial }: { collapsed?: boolean; onTutorial: () => void }) {
@@ -16,18 +17,24 @@ export function SidebarFooter({ collapsed = false, onTutorial }: { collapsed?: b
 
   return (
     <div className="border-t border-sidebar-border p-3">
-      <div className={cn('mb-2 flex items-center gap-3 rounded-md px-2 py-2', collapsed && 'justify-center px-0')}>
+      <Link
+        to="/perfil"
+        title="Meu perfil"
+        className={cn('mb-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-accent', collapsed && 'justify-center px-0')}
+      >
         <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
           {iniciais(usuario?.nome)}
         </div>
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{usuario?.nome}</p>
-            <p className="truncate text-xs capitalize text-muted-foreground">{usuario?.papel}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {LABEL.papel[usuario?.papel ?? ''] ?? usuario?.papel} · Meu perfil
+            </p>
             {isAdministradora && condominio && <p className="truncate text-xs text-muted-foreground">{condominio.nome}</p>}
           </div>
         )}
-      </div>
+      </Link>
 
       {isAdministradora && (
         <Button variant="ghost" size={size} className={acao} onClick={() => navigate('/meus-condominios')} title={collapsed ? 'Trocar condomínio' : undefined}>

@@ -5,7 +5,6 @@ import {
   Package,
   Megaphone,
   BookText,
-  HardHat,
   ClipboardList,
   ClipboardCheck,
   Users,
@@ -32,6 +31,8 @@ export type NavItem = {
   funcionario?: true | "portaria";
   /** Só equipe interna (síndico/administradora e funcionários) — condômino não vê. */
   staff?: boolean;
+  /** Título de seção no menu, separando o que é configurado uma vez do uso diário. */
+  grupo?: string;
 };
 
 type Contexto = {
@@ -84,7 +85,6 @@ export const navItems: NavItem[] = [
   { to: "/avisos", label: "Avisos", icon: Megaphone, funcionario: true },
   { to: "/ocorrencias", label: "Livro de Ocorrência", icon: BookText },
   { to: "/votacoes", label: "Votações", icon: Vote },
-  { to: "/prestadores", label: "Prestadores", icon: HardHat, sindico: true },
   {
     to: "/manutencao-predial",
     label: "Manutenção Predial",
@@ -92,12 +92,23 @@ export const navItems: NavItem[] = [
     sindico: true,
     emBreve: false,
   },
-  { to: "/moradores", label: "Moradores", icon: Users, sindico: true },
-  { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true },
-  { to: "/unidades", label: "Unidades", icon: Building2, sindico: true },
+  { to: "/unidades", label: "Unidades", icon: Building2, sindico: true, grupo: "Cadastros" },
+  { to: "/moradores", label: "Moradores", icon: Users, sindico: true, grupo: "Cadastros" },
+  { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true, grupo: "Cadastros" },
 ];
 
-/** Barra inferior (mobile) — no máximo 4 itens; o 5º é o botão "Menu" que abre o drawer. */
-export const bottomNavItems: NavItem[] = navItems
-  .filter((l) => !l.emBreve)
-  .slice(0, 4);
+/** Título a mostrar antes do item i, se ele abre um grupo novo. */
+export function tituloGrupo(links: NavItem[], i: number) {
+  const g = links[i].grupo;
+  return g && g !== links[i - 1]?.grupo ? g : null;
+}
+
+/** A tela está no menu deste usuário (e não é "Em breve")? Tutorial e Painel seguem isso. */
+export function rotaVisivel(to: string, ctx: Contexto) {
+  return navItems.some((n) => n.to === to && !n.emBreve && itemVisivel(n, ctx));
+}
+
+/** Barra inferior (mobile) — os 4 primeiros itens que o usuário enxerga; o 5º é o botão "Menu". */
+export function bottomNavItems(ctx: Contexto) {
+  return navItems.filter((l) => !l.emBreve && itemVisivel(l, ctx)).slice(0, 4);
+}

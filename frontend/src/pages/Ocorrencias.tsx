@@ -8,6 +8,7 @@ import { LABEL } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { FilterPills } from '@/components/shared/FilterPills';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,6 +28,12 @@ const STATUS_OPCOES = [
 
 const VAZIO = { titulo: '', descricao: '', categoria: 'outro' };
 
+const FILTROS = [
+  { value: 'abertas', label: 'Em aberto' },
+  { value: 'concluido', label: 'Encerradas' },
+  { value: '', label: 'Todas' }
+];
+
 export default function Ocorrencias() {
   const { isSindico } = useAuth();
   const { ocorrencias, carregando, criar, atualizarStatus, recarregar } = useOcorrencias();
@@ -34,6 +41,10 @@ export default function Ocorrencias() {
   const [loading, setLoading] = useState(false);
   const [aberto, setAberto] = useState(false);
   const [salvandoStatus, setSalvandoStatus] = useState(false);
+  const [filtro, setFiltro] = useState('abertas');
+  const visiveis = ocorrencias?.filter((o) =>
+    filtro === 'abertas' ? o.status !== 'concluido' : !filtro || o.status === filtro
+  );
   // Mudança de status aguardando o descritivo do síndico.
   const [pendente, setPendente] = useState<{ id: string; status: string; descricao: string } | null>(null);
 
@@ -79,7 +90,9 @@ export default function Ocorrencias() {
             <BookText className="h-4 w-4" /> Registrar ocorrência
           </Button>
         }
-      />
+      >
+        <FilterPills options={FILTROS} value={filtro} onChange={setFiltro} />
+      </PageHeader>
 
       <FormModal
         aberto={aberto}
@@ -134,17 +147,19 @@ export default function Ocorrencias() {
       </FormModal>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground">Ocorrências registradas</h3>
         {carregando ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-        ) : ocorrencias?.length === 0 ? (
-          <EmptyState icon={BookText} title="Nenhuma ocorrência registrada" />
+        ) : visiveis?.length === 0 ? (
+          <EmptyState
+            icon={BookText}
+            title={ocorrencias?.length ? 'Nada neste filtro' : 'Nenhuma ocorrência registrada'}
+          />
         ) : (
-          ocorrencias?.map((o) => (
+          visiveis?.map((o) => (
             <Card key={o.id}>
               <CardContent className="flex flex-wrap items-start justify-between gap-3 pt-5">
                 <div className="max-w-xl space-y-1">

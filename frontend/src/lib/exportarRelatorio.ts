@@ -1,4 +1,4 @@
-import { dataCurta } from '@/lib/format';
+import { dataCurta, duracaoTexto } from '@/lib/format';
 import { LABEL } from '@/types/condominio';
 import type { Ativo, Manutencao, OrdemServico } from '@/types/condominio';
 
@@ -46,7 +46,7 @@ export async function gerarRelatorioXlsx({
       'Fabricante / Modelo',
       'Nº Série / Patrimônio',
       'Data Instalação',
-      'Vida Útil (anos)',
+      'Vida Útil',
       'Responsável',
       'Observações'
     ],
@@ -58,7 +58,7 @@ export async function gerarRelatorioXlsx({
       a.fabricanteModelo,
       a.numeroSerie,
       dataCurta(a.dataInstalacao),
-      a.vidaUtilAnos,
+      duracaoTexto(a.vidaUtil, a.vidaUtilUnidade),
       a.responsavel,
       a.observacoes
     ])

@@ -5,7 +5,7 @@ import { useFuncionarios, type DadosFuncionario } from '@/hooks/useFuncionarios'
 import { CARGOS_PORTARIA, LABEL } from '@/types/condominio';
 import type { Cargo, Funcionario } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { PageHeader, Resumo } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
 import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
@@ -51,7 +51,7 @@ export default function Funcionarios() {
     setLoading(true);
     try {
       if (editandoId) {
-        await atualizar(editandoId, { nome: form.nome, telefone: form.telefone, cargo: form.cargo });
+        await atualizar(editandoId, { nome: form.nome, telefone: form.telefone, cargo: form.cargo, senha: form.senha || undefined });
       } else {
         await criar(form);
       }
@@ -75,7 +75,9 @@ export default function Funcionarios() {
             <Plus className="h-4 w-4" /> Novo funcionário
           </Button>
         }
-      />
+      >
+        {!carregando && <Resumo n={funcionarios.length} um="funcionário" varios="funcionários" />}
+      </PageHeader>
 
       <FormModal
         aberto={aberto}
@@ -102,6 +104,18 @@ export default function Funcionarios() {
                 ))}
               </select>
             </Field>
+            {editandoId && (
+              <Field label="Nova senha" htmlFor="nova-senha" hint="Só se a pessoa esqueceu. Em branco, mantém a atual.">
+                <Input
+                  id="nova-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={6}
+                  value={form.senha}
+                  onChange={(e) => set('senha', e.target.value)}
+                />
+              </Field>
+            )}
             <Field label="Telefone" htmlFor="tel">
               <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
             </Field>

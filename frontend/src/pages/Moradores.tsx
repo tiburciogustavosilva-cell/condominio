@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
+import { BuscaInput, bate } from '@/components/shared/BuscaInput';
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -35,6 +36,7 @@ export default function Moradores() {
   const [loading, setLoading] = useState(false);
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
+  const [busca, setBusca] = useState('');
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -96,7 +98,8 @@ export default function Moradores() {
           telefone: form.telefone,
           papel: form.papel,
           vinculo: form.vinculo,
-          unidadeId: form.unidadeId || null
+          unidadeId: form.unidadeId || null,
+          senha: form.senha || undefined
         });
       } else {
         await criar(form);
@@ -149,7 +152,11 @@ export default function Moradores() {
             </>
           )
         }
-      />
+      >
+        {moradores.length > 0 && (
+          <BuscaInput value={busca} onChange={setBusca} placeholder="Buscar nome, e-mail ou unidade…" />
+        )}
+      </PageHeader>
 
       {resultado && (
         <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
@@ -182,6 +189,18 @@ export default function Moradores() {
                   />
                 </Field>
               </>
+            )}
+            {editandoId && (
+              <Field label="Nova senha" htmlFor="nova-senha" hint="Só se a pessoa esqueceu. Em branco, mantém a atual.">
+                <Input
+                  id="nova-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={6}
+                  value={form.senha}
+                  onChange={(e) => set('senha', e.target.value)}
+                />
+              </Field>
             )}
             <Field label="Telefone" htmlFor="tel">
               <Input id="tel" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
@@ -243,7 +262,9 @@ export default function Moradores() {
         <EmptyState icon={Users} title="Nenhum morador cadastrado" />
       ) : (
         <div className="space-y-3">
-          {moradores.map((m) => (
+          {moradores
+            .filter((m) => bate(busca, m.nome, m.email, m.telefone, nomeUnidade(m.unidadeId)))
+            .map((m) => (
             <Card key={m.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
                 <div className="space-y-1">

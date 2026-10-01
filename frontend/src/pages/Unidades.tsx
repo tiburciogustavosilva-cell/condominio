@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
+import { BuscaInput, bate } from '@/components/shared/BuscaInput';
+import { rotuloUnidade } from '@/lib/format';
 
 const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '', pesoVoto: '1' };
 const selectCls =
@@ -30,6 +32,7 @@ export default function Unidades() {
   const [loading, setLoading] = useState(false);
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
+  const [busca, setBusca] = useState('');
   const arquivoRef = useRef<HTMLInputElement>(null);
 
   async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -129,7 +132,11 @@ export default function Unidades() {
             </>
           )
         }
-      />
+      >
+        {unidades.length > 0 && (
+          <BuscaInput value={busca} onChange={setBusca} placeholder="Buscar bloco, número ou morador…" />
+        )}
+      </PageHeader>
 
       {resultado && (
         <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
@@ -204,14 +211,15 @@ export default function Unidades() {
       ) : unidades.length === 0 ? (
         <EmptyState icon={Building2} title="Nenhuma unidade cadastrada" />
       ) : (
+        <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          {unidades.map((u) => (
+          {unidades
+            .filter((u) => bate(busca, u.bloco, u.numero, rotuloUnidade(u), ...(u.moradores ?? [])))
+            .map((u) => (
             <Card key={u.id}>
               <CardContent className="space-y-2 pt-5">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold">
-                    {u.bloco} · {u.numero}
-                  </p>
+                  <p className="font-semibold">{rotuloUnidade(u)}</p>
                   <Badge variant="outline" className="capitalize">
                     {u.tipo}
                   </Badge>
@@ -235,7 +243,7 @@ export default function Unidades() {
                         Remover
                       </Button>
                     }
-                    title={`Remover unidade ${u.bloco} ${u.numero}?`}
+                    title={`Remover unidade ${rotuloUnidade(u)}?`}
                     confirmLabel="Remover"
                     confirmVariant="destructive"
                     successMessage="Unidade removida"
@@ -245,6 +253,7 @@ export default function Unidades() {
               </CardContent>
             </Card>
           ))}
+        </div>
         </div>
       )}
     </div>

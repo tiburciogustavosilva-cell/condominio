@@ -4,7 +4,8 @@ import { Brand } from '@/components/shared/Brand';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
-import { itemVisivel, navItems } from './nav-items';
+import { Fragment } from 'react';
+import { itemVisivel, navItems, tituloGrupo } from './nav-items';
 import { NavLink } from './NavLink';
 import { SidebarFooter } from './SidebarFooter';
 
@@ -32,10 +33,18 @@ export function AppSidebar({ collapsed, onToggleCollapse, onTutorial }: Props) {
 
       {/* navegação */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2 no-scrollbar">
-        {links.map(({ to, label, icon: Icon, end, emBreve }) =>
-          emBreve ? (
+        {links.map(({ to, label, icon: Icon, end, emBreve }, i) => (
+          <Fragment key={to}>
+          {tituloGrupo(links, i) &&
+            (collapsed ? (
+              <hr className="mx-2 my-3 border-sidebar-border" />
+            ) : (
+              <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {tituloGrupo(links, i)}
+              </p>
+            ))}
+          {emBreve ? (
             <div
-              key={to}
               aria-disabled="true"
               title={collapsed ? `${label} (em breve)` : undefined}
               className={cn(
@@ -55,7 +64,6 @@ export function AppSidebar({ collapsed, onToggleCollapse, onTutorial }: Props) {
             </div>
           ) : (
             <NavLink
-              key={to}
               to={to}
               end={end}
               title={collapsed ? label : undefined}
@@ -68,8 +76,9 @@ export function AppSidebar({ collapsed, onToggleCollapse, onTutorial }: Props) {
               <Icon className="h-[18px] w-[18px] shrink-0" />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
-          )
-        )}
+          )}
+          </Fragment>
+        ))}
       </nav>
 
       <SidebarFooter collapsed={collapsed} onTutorial={onTutorial} />
