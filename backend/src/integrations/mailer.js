@@ -23,9 +23,9 @@ function criarTransporte() {
 const transporte = criarTransporte();
 const emailSimulado = !temSMTP;
 
-async function enviarEmail({ para, assunto, texto, html }) {
+async function enviarEmail({ para, assunto, texto, html, attachments }) {
   const from = process.env.MAIL_FROM || 'Condomínio <nao-responder@condominio.local>';
-  const info = await transporte.sendMail({ from, to: para, subject: assunto, text: texto, html });
+  const info = await transporte.sendMail({ from, to: para, subject: assunto, text: texto, html, attachments });
   if (emailSimulado) {
     console.log(
       `\n───────── E-MAIL (SIMULADO) ─────────\n` +

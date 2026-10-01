@@ -2,7 +2,7 @@ const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
 const { condominioDe, exigirAfetado, CARGOS } = require('../utils/acesso');
 const { umDe } = require('../utils/validar');
-const { criarPerfil } = require('./moradores.service');
+const { criarPerfil, novaSenha } = require('./moradores.service');
 
 const FUNCIONARIO = { papel: 'funcionario' };
 const SELECT = { id: true, nome: true, email: true, telefone: true, cargo: true, criadoEm: true };
@@ -24,7 +24,7 @@ function criar(usuario, dados) {
 }
 
 async function atualizar(usuario, id, dados) {
-  const data = {};
+  const data = await novaSenha(dados);
   if (dados.nome) data.nome = dados.nome;
   if (dados.telefone !== undefined) data.telefone = dados.telefone || null;
   if (dados.cargo) data.cargo = umDe(dados.cargo, CARGOS, 'cargo');

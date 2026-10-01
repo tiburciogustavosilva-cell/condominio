@@ -24,6 +24,13 @@ async function validarUnidade(condominioId, unidadeId) {
   }
 }
 
+/** Síndico redefinindo a senha (morador/funcionário esqueceu): só troca se veio preenchida. */
+async function novaSenha(dados) {
+  if (!dados.senha) return {};
+  validarSenha(dados.senha);
+  return { senhaHash: await bcrypt.hash(dados.senha, 10) };
+}
+
 /** Cria um login no condomínio do síndico. Usado também por funcionarios.service. */
 async function criarPerfil(condominioId, dados, extra) {
   const email = normalizarEmail(dados.email);
@@ -57,7 +64,7 @@ async function criar(usuario, dados) {
 /** unidadeId: null limpa a unidade; string troca; ausente/'' mantém. */
 async function atualizar(usuario, id, dados) {
   const condominioId = condominioDe(usuario);
-  const data = {};
+  const data = await novaSenha(dados);
   if (dados.nome) data.nome = dados.nome;
   if (dados.telefone !== undefined && dados.telefone !== null) data.telefone = dados.telefone;
   if (dados.papel) data.papel = umDe(dados.papel, PAPEIS, 'papel');
@@ -81,4 +88,4 @@ async function remover(usuario, id) {
   );
 }
 
-module.exports = { listar, criar, atualizar, remover, criarPerfil };
+module.exports = { listar, criar, atualizar, remover, criarPerfil, novaSenha };

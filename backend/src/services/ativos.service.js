@@ -2,6 +2,7 @@ const prisma = require('../models/prisma');
 const { condominioDe, exigirAfetado } = require('../utils/acesso');
 const { obrigatorio, umDe, paraData, numeroOuNull, parcial } = require('../utils/validar');
 
+const UNIDADES_TEMPO = ['dias', 'semanas', 'meses', 'anos'];
 const CATEGORIAS = ['eletrica', 'hidraulica', 'elevadores', 'incendio', 'climatizacao', 'civil', 'outros'];
 
 const CAMPOS = {
@@ -12,7 +13,8 @@ const CAMPOS = {
   fabricanteModelo: null,
   numeroSerie: null,
   dataInstalacao: paraData,
-  vidaUtilAnos: numeroOuNull,
+  vidaUtil: numeroOuNull,
+  vidaUtilUnidade: (v) => umDe(v, UNIDADES_TEMPO, 'vidaUtilUnidade'),
   responsavel: null,
   observacoes: null
 };

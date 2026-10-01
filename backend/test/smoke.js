@@ -80,6 +80,17 @@ async function main() {
     assert.ok(morador && portaria && zelador, 'criados pelo síndico conseguem logar');
     assert.equal((await api('GET', '/funcionarios', { token: portaria })).status, 403);
 
+    // --- Síndico redefine a senha de quem esqueceu (vazia = mantém) ---
+    const idMorador = moradoresLista.find((m) => m.email === email('morador')).id;
+    assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: sindico, body: { senha: '123' } })).status, 400, 'senha curta');
+    assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: sindico, body: { nome: 'morador' } })).status, 204);
+    assert.ok(await login(email('morador'), senha), 'sem senha no corpo, a senha não muda');
+    assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: sindico, body: { senha: 'nova-senha-1' } })).status, 204);
+    assert.ok(!(await login(email('morador'), senha)), 'senha antiga deixa de valer');
+    assert.ok(await login(email('morador'), 'nova-senha-1'), 'entra com a nova');
+    assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: sindico, body: { senha } })).status, 204);
+    assert.equal((await api('PUT', `/moradores/${idMorador}`, { token: morador, body: { senha: 'hack-123' } })).status, 403, 'só síndico');
+
     // --- Escopo síndico x morador x funcionário ---
     assert.equal((await api('GET', '/prestadores', { token: morador })).status, 403);
     assert.equal((await api('POST', '/avisos', { token: morador, body: { titulo: 'x', mensagem: 'y' } })).status, 403);
@@ -302,6 +313,10 @@ async function main() {
     const dash = (await api('GET', '/dashboard', { token: sindico })).json;
     assert.equal(dash.chamados.aberto, 1);
     assert.equal(dash.totais.moradores, 2, 'síndico + morador; funcionário não conta');
+    assert.equal(dash.totais.funcionarios, 2);
+    assert.equal(typeof dash.sindico.tarefasHoje.total, 'number');
+    assert.ok(Array.isArray(dash.sindico.proximasManutencoes));
+    assert.equal((await api('GET', '/dashboard', { token: morador })).json.sindico, null, 'resumo do síndico não vaza pro morador');
 
     console.log('smoke ok');
   } finally {
