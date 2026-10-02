@@ -9,6 +9,15 @@ import { Input } from '@/components/ui/input';
 
 const VINCULOS: Vinculo[] = ['proprietario', 'inquilino', 'procurador'];
 
+const normalizar = (t: string) =>
+  t
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+
+const ehSimOuNao = (t: string) => ['sim', 'nao'].includes(normalizar(t));
+
 export const PAUTA_VAZIA: NovaPauta = {
   titulo: '',
   descricao: '',
@@ -27,9 +36,15 @@ export function CamposPauta({ id, pauta, onChange }: Props) {
   const [novaOpcao, setNovaOpcao] = useState('');
   const set = (campos: Partial<NovaPauta>) => onChange({ ...pauta, ...campos });
 
+  /** Opção fora de Sim/Não: tira o "Sim"/"Não" padrão (não fazem sentido numa pauta de outro tipo), mas mantém Abstenção. */
   function adicionarOpcao() {
     const texto = novaOpcao.trim();
-    if (texto && !pauta.opcoes.includes(texto)) set({ opcoes: [...pauta.opcoes, texto] });
+    if (!texto || pauta.opcoes.includes(texto)) {
+      setNovaOpcao('');
+      return;
+    }
+    const base = ehSimOuNao(texto) ? pauta.opcoes : pauta.opcoes.filter((o) => !ehSimOuNao(o));
+    set({ opcoes: [...base, texto] });
     setNovaOpcao('');
   }
 
