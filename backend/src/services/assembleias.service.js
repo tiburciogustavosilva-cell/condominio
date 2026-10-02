@@ -4,38 +4,31 @@ const HttpError = require('../utils/httpError');
 const { isSindico, condominioDe, exigirAfetado, VINCULOS } = require('../utils/acesso');
 const { obrigatorio } = require('../utils/validar');
 
-const JANELA_MS = 60_000; // muitos idosos: código troca devagar e vale por até 3 min (janela atual + 2)
-const JANELAS_ACEITAS = 3;
-// QR do telão: quem escaneia ainda pode ter que fazer login (idoso digitando senha) → vale 10 min.
-const JANELAS_QR = 10;
 const OPCOES_PADRAO = ['Sim', 'Não', 'Abstenção'];
 const STATUS_PAUTA = ['rascunho', 'votando', 'encerrada']; // só avança nessa ordem
 
-// ---------- Código de check-in rotativo ----------
+// ---------- Código de check-in ----------
+// Fixo por assembleia (não muda enquanto ela está aberta) — é só um número, mais fácil pra quem está na sala.
 
-const janelaAtual = (agora = Date.now()) => Math.floor(agora / JANELA_MS);
-
-/** 6 dígitos derivados do segredo da assembleia e da janela de 60 s (estilo TOTP). */
-function codigo(segredo, janela) {
-  const hmac = crypto.createHmac('sha256', segredo).update(String(janela)).digest();
+/** 6 dígitos derivados do segredo da assembleia. */
+function codigo(segredo) {
+  const hmac = crypto.createHmac('sha256', segredo).digest();
   return String(hmac.readUInt32BE(0) % 1_000_000).padStart(6, '0');
 }
 
 /** Token do QR: derivado de outro segredo, para um não servir no lugar do outro. */
-const tokenQr = (segredo, janela) => codigo(`${segredo}|qr`, janela);
+const tokenQr = (segredo) => codigo(`${segredo}|qr`);
 
-const valeEm = (gerar, janelas, digitado, agora) => {
-  const j = janelaAtual(agora);
+/** Ignora espaços/traços de quem digita devagar. */
+const codigoValido = (segredo, digitado) => {
   const alvo = String(digitado ?? '').replace(/\D/g, '');
-  return alvo.length === 6 && Array.from({ length: janelas }, (_, i) => j - i).some((n) => gerar(n) === alvo);
+  return alvo.length === 6 && alvo === codigo(segredo);
 };
 
-/** Aceita a janela atual e as 2 anteriores (quem digita devagar). Repassar pelo WhatsApp ainda fica difícil. */
-const codigoValido = (segredo, digitado, agora = Date.now()) =>
-  valeEm((j) => codigo(segredo, j), JANELAS_ACEITAS, digitado, agora);
-
-/** ponytail: foto do QR repassada vale 10 min; encurtar JANELAS_QR se virar abuso (o síndico vê os presentes). */
-const qrValido = (segredo, digitado, agora = Date.now()) => valeEm((j) => tokenQr(segredo, j), JANELAS_QR, digitado, agora);
+const qrValido = (segredo, digitado) => {
+  const alvo = String(digitado ?? '').replace(/\D/g, '');
+  return alvo.length === 6 && alvo === tokenQr(segredo);
+};
 
 // ---------- Limite de tentativas de check-in (contra adivinhar o código por script) ----------
 
@@ -45,7 +38,7 @@ const falhas = new Map(); // "usuario|assembleia" → { n, desde }
 
 /**
  * ponytail: em memória, por processo; zera ao reiniciar a API. Mover para o banco/Redis se rodar em várias instâncias.
- * Com 5 erros/minuto, acertar 1 de 3 códigos válidos em 1 milhão leva, em média, mais de 100 dias.
+ * Com 5 erros/minuto, adivinhar 1 código certo em 1 milhão leva, em média, mais de 300 dias.
  */
 function bloqueado(chave, agora = Date.now()) {
   const f = falhas.get(chave);
@@ -255,7 +248,7 @@ async function checkin(usuario, id, { codigo: digitado, qr } = {}) {
   }
   const erro =
     qr !== undefined
-      ? !qrValido(assembleia.segredo, qr) && 'O QR code expirou. Digite o número do telão.'
+      ? !qrValido(assembleia.segredo, qr) && 'QR code inválido. Digite o número do telão.'
       : !codigoValido(assembleia.segredo, digitado) && 'Esse número não confere. Olhe o telão e digite de novo.';
   if (erro) {
     registrarFalha(chave);
@@ -357,7 +350,6 @@ async function estado(usuario, id) {
       : []
   ]);
 
-  const agora = Date.now();
   const pesoPresente = presencas.reduce((soma, p) => soma + Number(p.unidade.pesoVoto), 0);
   return {
     id: assembleia.id,
@@ -382,10 +374,8 @@ async function estado(usuario, id) {
       presencas: presencas.map(({ unidadeId, ...p }) => p),
       procuracoes,
       ...(assembleia.status === 'aberta' && {
-        agora: new Date(agora), // a contagem regressiva usa a hora do servidor, não a do aparelho
-        codigo: codigo(assembleia.segredo, janelaAtual(agora)),
-        qr: tokenQr(assembleia.segredo, janelaAtual(agora)),
-        codigoExpiraEm: new Date((janelaAtual(agora) + 1) * JANELA_MS)
+        codigo: codigo(assembleia.segredo),
+        qr: tokenQr(assembleia.segredo)
       })
     })
   };
@@ -412,6 +402,5 @@ module.exports = {
   tokenQr,
   qrValido,
   bloqueado,
-  registrarFalha,
-  JANELA_MS
+  registrarFalha
 };

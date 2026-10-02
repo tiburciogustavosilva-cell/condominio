@@ -532,10 +532,8 @@ export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
     unidadeOutorgante: { id: string; numero: string; bloco: string };
     unidadeProcuradora: { id: string; numero: string; bloco: string };
   }[];
-  /** Só síndico, com a assembleia aberta: código de check-in que troca a cada minuto. */
+  /** Só síndico, com a assembleia aberta: código de check-in fixo (não muda). */
   codigo?: string;
-  codigoExpiraEm?: string;
-  /** Só síndico: token do QR do telão (vale 10 min, dá tempo de fazer login). */
+  /** Só síndico: token do QR do telão (mesmo código, não expira). */
   qr?: string;
-  agora?: string;
 }

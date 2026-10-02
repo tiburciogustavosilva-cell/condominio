@@ -92,12 +92,11 @@ export function PainelSindico({ assembleia: a, acoes }: { assembleia: Assembleia
 
 /**
  * Para projetar: QR (abre a votação no celular, pede login se preciso, e já confirma a presença)
- * + número de 6 dígitos para quem prefere digitar. Os dois trocam a cada minuto.
+ * + número de 6 dígitos para quem prefere digitar. Os dois são fixos enquanto a assembleia está aberta.
  */
 function CodigoPresenca({ assembleia: a }: { assembleia: Assembleia }) {
   const ref = useRef<HTMLDivElement>(null);
   const link = `${window.location.origin}/votacoes/${a.id}?qr=${a.qr ?? ''}`;
-  const restante = a.codigoExpiraEm && a.agora ? new Date(a.codigoExpiraEm).getTime() - new Date(a.agora).getTime() : 0;
   // Quórum pelo peso do voto (cadastrado na unidade), não pela contagem simples de unidades.
   const quorum = a.pesoTotal ? Math.round((a.pesoPresente / a.pesoTotal) * 100) : 0;
 
@@ -131,14 +130,6 @@ function CodigoPresenca({ assembleia: a }: { assembleia: Assembleia }) {
               {a.codigo ? `${a.codigo.slice(0, 3)} ${a.codigo.slice(3)}` : '—'}
             </p>
           </div>
-        </div>
-        <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full bg-primary transition-[width] duration-[2000ms] ease-linear"
-            style={{
-              width: `${Math.max(0, Math.min(100, (restante / 60_000) * 100))}%`
-            }}
-          />
         </div>
         <p className="text-lg font-semibold">
           {a.presentes} de {a.totalUnidades} unidades presentes ({quorum}%)

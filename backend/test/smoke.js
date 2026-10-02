@@ -5,7 +5,7 @@ const assert = require('assert');
 const bcrypt = require('bcryptjs');
 const app = require('../src/app');
 const prisma = require('../src/models/prisma');
-const { codigo: codigoCheckin, JANELA_MS } = require('../src/services/assembleias.service');
+const { codigo: codigoCheckin } = require('../src/services/assembleias.service');
 const { gerarTokenSenha } = require('../src/utils/jwt');
 
 const sufixo = Date.now();
@@ -301,7 +301,7 @@ async function main() {
     );
     assert.ok(!(await api('GET', '/tarefas/hoje', { token: zelador })).json.tarefas.some((t) => t.id === tarefa.json.id), 'desativada some');
 
-    // --- Assembleia: check-in com código rotativo, 1 voto secreto por unidade ---
+    // --- Assembleia: check-in com código fixo, 1 voto secreto por unidade ---
     const assembleia = await api('POST', '/assembleias', {
       token: sindico,
       body: { titulo: 'AGO', pautas: [{ titulo: 'Pintar a fachada', opcoes: ['Verde', 'Azul', 'Não pintar'] }] }
@@ -321,9 +321,10 @@ async function main() {
     assert.equal((await votar(morador, pauta.opcoes[0].id)).status, 403, 'sem check-in');
     const { codigo: codigoTela } = (await api('GET', rotaA, { token: sindico })).json;
     const { segredo } = await prisma.assembleia.findUnique({ where: { id: assembleia.json.id } });
-    assert.equal(codigoTela, codigoCheckin(segredo, Math.floor(Date.now() / JANELA_MS)));
-    const antigo = codigoCheckin(segredo, Math.floor(Date.now() / JANELA_MS) - 5);
-    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: antigo } })).status, 400, 'código velho');
+    assert.equal(codigoTela, codigoCheckin(segredo));
+    assert.equal((await api('GET', rotaA, { token: sindico })).json.codigo, codigoTela, 'código fixo, não muda entre consultas');
+    const codigoErrado = codigoTela === '000000' ? '000001' : '000000';
+    assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { codigo: codigoErrado } })).status, 400, 'código errado');
     const { qr } = (await api('GET', rotaA, { token: sindico })).json;
     assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { qr: codigoTela } })).status, 400, 'número não serve como QR');
     assert.equal((await api('POST', `${rotaA}/checkin`, { token: morador, body: { qr } })).status, 204, 'check-in pelo QR');
