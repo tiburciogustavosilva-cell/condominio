@@ -50,7 +50,7 @@ export function useManutencoes() {
     carregando,
     recarregar,
     criar: async (dados: {
-      prestadorId: string;
+      prestadorIds: string[];
       ativoId?: string;
       titulo: string;
       descricao: string;
@@ -72,8 +72,8 @@ export function useManutencoes() {
     concluir: async (id: string, data?: string) => {
       await api.post(`/manutencoes/${id}/concluir`, { data });
     },
-    /** Envia o lembrete por e-mail agora. Retorna { para, simulado }. */
-    notificar: (id: string) => api.post<{ para: string; simulado: boolean }>(`/manutencoes/${id}/notificar`),
+    /** Envia o lembrete por e-mail agora, a todos os prestadores com e-mail. Retorna { para: string[], simulado }. */
+    notificar: (id: string) => api.post<{ para: string[]; simulado: boolean }>(`/manutencoes/${id}/notificar`),
     remover: async (id: string) => {
       await api.delete(`/manutencoes/${id}`);
     }

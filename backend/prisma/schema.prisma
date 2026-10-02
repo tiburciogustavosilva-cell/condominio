@@ -281,27 +281,40 @@ model EncomendaAutorizado {
 }
 
 model Prestador {
-  id           String       @id @default(uuid()) @db.Uuid
-  condominioId String       @map("condominio_id") @db.Uuid
-  condominio   Condominio   @relation(fields: [condominioId], references: [id])
+  id           String                @id @default(uuid()) @db.Uuid
+  condominioId String                @map("condominio_id") @db.Uuid
+  condominio   Condominio            @relation(fields: [condominioId], references: [id])
   nome         String
   email        String
-  servico      String       @default("")
-  empresa      String       @default("")
-  telefone     String       @default("")
-  observacao   String       @default("")
-  criadoEm     DateTime     @default(now()) @map("criado_em") @db.Timestamptz
-  manutencoes  Manutencao[]
+  servico      String                @default("")
+  empresa      String                @default("")
+  telefone     String                @default("")
+  observacao   String                @default("")
+  criadoEm     DateTime              @default(now()) @map("criado_em") @db.Timestamptz
+  manutencoes  ManutencaoPrestador[]
 
   @@map("prestadores")
+}
+
+/** Ligação N:N entre plano de manutenção e prestador — um plano pode ter mais de um responsável. */
+model ManutencaoPrestador {
+  id           String     @id @default(uuid()) @db.Uuid
+  manutencaoId String     @map("manutencao_id") @db.Uuid
+  manutencao   Manutencao @relation(fields: [manutencaoId], references: [id], onDelete: Cascade)
+  prestadorId  String     @map("prestador_id") @db.Uuid
+  prestador    Prestador  @relation(fields: [prestadorId], references: [id], onDelete: Cascade)
+
+  @@unique([manutencaoId, prestadorId])
+  @@index([prestadorId])
+  @@map("manutencao_prestadores")
 }
 
 model Manutencao {
   id                  String                @id @default(uuid()) @db.Uuid
   condominioId        String                @map("condominio_id") @db.Uuid
   condominio          Condominio            @relation(fields: [condominioId], references: [id])
-  prestadorId         String                @map("prestador_id") @db.Uuid
-  prestador           Prestador             @relation(fields: [prestadorId], references: [id], onDelete: Cascade)
+  // Um plano de manutenção pode ter mais de um prestador (ex.: empresa + técnico).
+  prestadores         ManutencaoPrestador[]
   ativoId             String?               @map("ativo_id") @db.Uuid
   equipamento         Ativo?                @relation(fields: [ativoId], references: [id], onDelete: Restrict)
   titulo              String
@@ -320,7 +333,6 @@ model Manutencao {
   criadoEm            DateTime              @default(now()) @map("criado_em") @db.Timestamptz
   historico           ManutencaoHistorico[]
 
-  @@index([prestadorId])
   @@map("manutencoes")
 }
 

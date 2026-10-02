@@ -98,14 +98,14 @@ function emailLembrete(condominio, prestador, m, proxima) {
 }
 
 /**
- * Varre as manutenções (de todos os condomínios) e dispara e-mail para o
- * prestador quando entra na janela de antecedência (ou vence) e ainda não foi
- * avisada neste ciclo. Com `forcarId`, envia imediatamente aquela manutenção.
+ * Varre as manutenções (de todos os condomínios) e dispara e-mail pra cada
+ * prestador (pode ter mais de um) quando entra na janela de antecedência (ou
+ * vence) e ainda não foi avisada neste ciclo. Com `forcarId`, envia imediatamente.
  */
 async function processarLembretes({ forcarId = null } = {}) {
   const manutencoes = await prisma.manutencao.findMany({
     where: forcarId ? { id: forcarId } : { ativo: true },
-    include: { prestador: true, condominio: { select: { nome: true } } }
+    include: { prestadores: { include: { prestador: true } }, condominio: { select: { nome: true } } }
   });
   const enviados = [];
 
@@ -116,31 +116,38 @@ async function processarLembretes({ forcarId = null } = {}) {
       if (status !== 'vencida' && status !== 'proxima') continue;
       if (m.ultimoLembreteCiclo && dia(m.ultimoLembreteCiclo) === proxima) continue; // já avisado neste ciclo
     }
-    if (!m.prestador?.email) continue;
+    const prestadoresComEmail = m.prestadores.map((p) => p.prestador).filter((p) => p?.email);
+    if (!prestadoresComEmail.length) continue;
 
-    try {
-      const { simulado } = await enviarEmail({
-        para: m.prestador.email,
-        ...emailLembrete(m.condominio, m.prestador, m, proxima)
-      });
-      await prisma.manutencao.update({
-        where: { id: m.id },
-        data: {
-          ultimoLembreteCiclo: new Date(proxima),
-          historico: {
-            create: {
-              tipo: 'lembrete',
-              data: new Date(proxima),
-              detalhe: `E-mail ${simulado ? '(simulado) ' : ''}enviado para ${m.prestador.email}`,
-              condominioId: m.condominioId
-            }
+    const desteCiclo = [];
+    for (const prestador of prestadoresComEmail) {
+      try {
+        const { simulado } = await enviarEmail({
+          para: prestador.email,
+          ...emailLembrete(m.condominio, prestador, m, proxima)
+        });
+        desteCiclo.push({ prestador: prestador.nome, para: prestador.email, simulado });
+      } catch (e) {
+        console.error(`Falha ao enviar lembrete da manutenção ${m.id} para ${prestador.email}:`, e.message);
+      }
+    }
+    if (!desteCiclo.length) continue; // nenhum envio deu certo: tenta de novo no próximo ciclo
+
+    await prisma.manutencao.update({
+      where: { id: m.id },
+      data: {
+        ultimoLembreteCiclo: new Date(proxima),
+        historico: {
+          create: {
+            tipo: 'lembrete',
+            data: new Date(proxima),
+            detalhe: `E-mail enviado para ${desteCiclo.map((e) => `${e.prestador}${e.simulado ? ' (simulado)' : ''}`).join(', ')}`,
+            condominioId: m.condominioId
           }
         }
-      });
-      enviados.push({ manutencaoId: m.id, prestador: m.prestador.nome, para: m.prestador.email, proxima, simulado });
-    } catch (e) {
-      console.error(`Falha ao enviar lembrete da manutenção ${m.id}:`, e.message);
-    }
+      }
+    });
+    for (const e of desteCiclo) enviados.push({ manutencaoId: m.id, prestador: e.prestador, para: e.para, proxima, simulado: e.simulado });
   }
 
   return enviados;

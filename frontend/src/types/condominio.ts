@@ -291,7 +291,8 @@ export type Categoria = 'eletrica' | 'hidraulica' | 'elevadores' | 'incendio' | 
 
 export interface Manutencao {
   id: string;
-  prestadorId: string;
+  /** Um plano pode ter mais de um prestador. */
+  prestadores: { id: string; nome: string; email: string }[];
   titulo: string;
   descricao: string;
   ultimaManutencao: string;
@@ -301,8 +302,8 @@ export interface Manutencao {
   ativo: boolean;
   ultimoLembreteCiclo: string | null;
   historico: HistoricoManutencao[];
+  /** Nomes dos prestadores já juntos por vírgula, pra exibição. */
   prestadorNome?: string;
-  prestadorEmail?: string;
   proximaManutencao?: string | null;
   diasParaProxima?: number | null;
   /** Status calculado a partir do prazo (em_dia/proxima/vencida) — não confundir com statusManual. */

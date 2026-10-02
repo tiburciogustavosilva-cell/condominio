@@ -19,7 +19,7 @@ import { useOrdensServico } from '@/hooks/useOrdensServico';
 import { dataCurta, duracaoTexto, frequenciaTexto, prazoTexto } from '@/lib/format';
 import { gerarRelatorioXlsx } from '@/lib/exportarRelatorio';
 import { LABEL } from '@/types/condominio';
-import type { Ativo, Manutencao, OrdemServico } from '@/types/condominio';
+import type { Ativo, Manutencao, OrdemServico, Prestador } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
@@ -59,7 +59,7 @@ const ATIVO_VAZIO = {
 };
 
 const PLANO_VAZIO = {
-  prestadorId: '',
+  prestadorIds: [] as string[],
   ativoId: '',
   titulo: '',
   descricao: '',
@@ -182,7 +182,7 @@ export default function ManutencaoPredial() {
         <TabsContent value="prestadores">
           <AbaPrestadores
             {...prestadoresHook}
-            // remover prestador apaga as manutenções dele: o plano recarrega junto
+            // remover prestador só tira ele dos planos (não apaga o plano): o plano recarrega junto
             recarregar={async () => {
               await Promise.all([prestadoresHook.recarregar(), recarregarPlanos()]);
             }}
@@ -524,7 +524,7 @@ function AbaPlano({
 }: {
   manutencoes: Manutencao[];
   ativos: Ativo[];
-  prestadores: { id: string; nome: string }[];
+  prestadores: Prestador[];
   criar: (d: any) => Promise<void>;
   atualizar: (id: string, d: any) => Promise<void>;
   concluir: (id: string, data?: string) => Promise<void>;
@@ -543,10 +543,19 @@ function AbaPlano({
     setForm((f: any) => ({ ...f, [campo]: valor }));
   }
 
+  function alternarPrestador(id: string) {
+    setForm((f: any) => ({
+      ...f,
+      prestadorIds: f.prestadorIds.includes(id)
+        ? f.prestadorIds.filter((p: string) => p !== id)
+        : [...f.prestadorIds, id]
+    }));
+  }
+
   function editar(m: Manutencao) {
     setEditandoId(m.id);
     setForm({
-      prestadorId: m.prestadorId,
+      prestadorIds: m.prestadores.map((p) => p.id),
       ativoId: m.ativoId ?? '',
       titulo: m.titulo,
       descricao: m.descricao,
@@ -630,18 +639,32 @@ function AbaPlano({
                   ))}
                 </select>
               </Field>
-              <Field label="Responsável / Empresa" htmlFor="p-prest">
-                <select id="p-prest" className={selectCls} value={form.prestadorId} onChange={(e) => set('prestadorId', e.target.value)} required>
-                  <option value="">Selecione…</option>
-                  {prestadores.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
-                  ))}
-                </select>
-              </Field>
               <Field label="Última manutenção *" hint="Base para calcular a próxima data.">
                 <DatePicker value={form.ultimaManutencao} onChange={(v) => set('ultimaManutencao', v)} />
               </Field>
             </div>
+
+            <Field
+              label="Responsáveis / Empresas"
+              htmlFor="p-prest-0"
+              hint="Pode marcar mais de um (ex.: a empresa e o técnico)."
+            >
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                {prestadores.map((p, i) => (
+                  <label key={p.id} htmlFor={`p-prest-${i}`} className="flex items-center gap-2 text-sm">
+                    <input
+                      id={`p-prest-${i}`}
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={form.prestadorIds.includes(p.id)}
+                      onChange={() => alternarPrestador(p.id)}
+                    />
+                    {p.nome}
+                    {p.empresa && <span className="text-muted-foreground">— {p.empresa}</span>}
+                  </label>
+                ))}
+              </div>
+            </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Periodicidade" htmlFor="p-freq">
@@ -703,7 +726,7 @@ function AbaPlano({
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
-              <Button type="submit" variant="brand" disabled={saving || !form.ultimaManutencao}>
+              <Button type="submit" variant="brand" disabled={saving || !form.ultimaManutencao || form.prestadorIds.length === 0}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editandoId ? 'Salvar' : 'Criar plano'}
               </Button>
@@ -766,11 +789,10 @@ function AbaPlano({
                     onClick={() => {
                       setEnviandoId(m.id);
                       notificar(m.id)
-                        .then((r: any) =>
-                          toast.success(
-                            r?.simulado ? `E-mail simulado para ${r.para}` : `E-mail enviado para ${r.para}`
-                          )
-                        )
+                        .then((r: any) => {
+                          const para = Array.isArray(r?.para) ? r.para.join(', ') : r?.para;
+                          toast.success(r?.simulado ? `E-mail simulado para ${para}` : `E-mail enviado para ${para}`);
+                        })
                         .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar'))
                         .finally(() => setEnviandoId(null));
                     }}

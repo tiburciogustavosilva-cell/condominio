@@ -234,7 +234,7 @@ export function AbaPrestadores({
                       </Button>
                     }
                     title={`Remover ${p.nome}?`}
-                    description="As manutenções vinculadas a este prestador também serão removidas."
+                    description="Ele sai dos planos de manutenção vinculados (que continuam existindo, com os outros prestadores se houver)."
                     confirmLabel="Remover"
                     confirmVariant="destructive"
                     successMessage="Prestador removido"

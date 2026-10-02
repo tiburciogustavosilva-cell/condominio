@@ -44,7 +44,7 @@ async function resumo(usuario) {
       prisma.unidade.count({ where: { condominioId, profiles: { none: {} } } }),
       prisma.manutencao.findMany({
         where: { condominioId, ativo: true, statusManual: { notIn: ['concluida', 'cancelada'] } },
-        include: { prestador: { select: { nome: true } } }
+        include: { prestadores: { select: { prestador: { select: { nome: true } } } } }
       }),
       prisma.ocorrencia.groupBy({ by: ['status'], where: { condominioId }, _count: { _all: true } }),
       prisma.ocorrencia.findMany({
@@ -72,7 +72,10 @@ async function resumo(usuario) {
       const { status, proxima, dias } = statusManutencao(m);
       if (status === 'vencida') manutencoes.vencidas++;
       else if (status === 'proxima') manutencoes.proximas++;
-      if (proxima) agenda.push({ id: m.id, titulo: m.titulo, prestadorNome: m.prestador?.nome ?? '', proxima, dias, status });
+      if (proxima) {
+        const prestadorNome = m.prestadores.map((p) => p.prestador.nome).join(', ');
+        agenda.push({ id: m.id, titulo: m.titulo, prestadorNome, proxima, dias, status });
+      }
     }
     agenda.sort((a, b) => a.dias - b.dias);
 

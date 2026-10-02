@@ -20,6 +20,10 @@ async function limpar() {
   const where = { condominioId: { in: condominioIds } };
   await prisma.mapaItem.deleteMany({ where });
   await prisma.assinaturaPagamento.deleteMany({ where });
+  await prisma.ordemServico.deleteMany({ where });
+  await prisma.manutencao.deleteMany({ where }); // histórico e vínculos com prestadores caem em cascata
+  await prisma.prestador.deleteMany({ where });
+  await prisma.ativo.deleteMany({ where });
   await prisma.assembleia.deleteMany({ where }); // presenças, pautas, opções e votantes caem em cascata
   await prisma.encomenda.deleteMany({ where });
   await prisma.tarefaExecucao.deleteMany({ where }); // fotos caem em cascata
@@ -152,6 +156,60 @@ async function main() {
     assert.equal((await api('POST', '/avisos', { token: morador, body: { titulo: 'x', mensagem: 'y' } })).status, 403);
     assert.equal((await api('POST', '/moradores', { token: morador, body: { nome: 'x', email: email('x'), senha } })).status, 403);
     assert.equal((await api('GET', '/chamados', { token: portaria })).status, 403, 'funcionário fora de chamados');
+
+    // --- Manutenção: um plano pode ter mais de um prestador ---
+    const prestA = await api('POST', '/prestadores', { token: sindico, body: { nome: 'João', email: email('presta') } });
+    assert.equal(prestA.status, 201);
+    const prestB = await api('POST', '/prestadores', { token: sindico, body: { nome: 'Maria', email: email('prestb') } });
+    assert.equal(prestB.status, 201);
+    const planoBase = { titulo: 'Elevador', ultimaManutencao: '2030-01-01', frequenciaUnidade: 'mensal' };
+    assert.equal(
+      (await api('POST', '/manutencoes', { token: sindico, body: { ...planoBase, prestadorIds: [] } })).status,
+      400,
+      'precisa de ao menos 1 prestador'
+    );
+    assert.equal(
+      (await api('POST', '/manutencoes', { token: sindico, body: { ...planoBase, prestadorIds: ['00000000-0000-0000-0000-000000000000'] } }))
+        .status,
+      400,
+      'prestador inválido'
+    );
+    const plano = await api('POST', '/manutencoes', {
+      token: sindico,
+      body: { ...planoBase, prestadorIds: [prestA.json.id, prestB.json.id] }
+    });
+    assert.equal(plano.status, 201);
+    const planoDe = async (token = sindico) =>
+      (await api('GET', '/manutencoes', { token })).json.find((m) => m.id === plano.json.id);
+    let planoListado = await planoDe();
+    assert.equal(planoListado.prestadores.length, 2);
+    assert.ok(planoListado.prestadorNome.includes('João') && planoListado.prestadorNome.includes('Maria'));
+
+    // atualizar troca o conjunto inteiro (não acumula)
+    assert.equal(
+      (await api('PUT', `/manutencoes/${plano.json.id}`, { token: sindico, body: { ...planoBase, prestadorIds: [prestA.json.id] } })).status,
+      204
+    );
+    planoListado = await planoDe();
+    assert.deepEqual(planoListado.prestadores.map((p) => p.id), [prestA.json.id]);
+
+    // notificar manda e-mail pra todos os prestadores com e-mail cadastrados no plano
+    assert.equal(
+      (await api('PUT', `/manutencoes/${plano.json.id}`, {
+        token: sindico,
+        body: { ...planoBase, prestadorIds: [prestA.json.id, prestB.json.id] }
+      })).status,
+      204
+    );
+    const notif = await api('POST', `/manutencoes/${plano.json.id}/notificar`, { token: sindico });
+    assert.equal(notif.status, 200);
+    assert.equal(notif.json.para.length, 2);
+
+    // remover prestador só tira ele do plano — o plano continua existindo com o(s) outro(s)
+    assert.equal((await api('DELETE', `/prestadores/${prestA.json.id}`, { token: sindico })).status, 204);
+    planoListado = await planoDe();
+    assert.ok(planoListado, 'plano continua existindo depois de remover 1 dos prestadores');
+    assert.deepEqual(planoListado.prestadores.map((p) => p.id), [prestB.json.id]);
 
     const doSindico = await api('POST', '/chamados', {
       token: sindico,
