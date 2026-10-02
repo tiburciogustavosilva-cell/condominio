@@ -32,6 +32,9 @@ model Condominio {
   qtdComercio         Int?            @map("qtd_comercio")
   temPorteiro         Boolean         @default(false) @map("tem_porteiro")
   temAreasReserva     Boolean         @default(false) @map("tem_areas_reserva")
+  // Qual campo da unidade decide o peso do voto/quórum nas assembleias: "peso" (manual, padrão),
+  // "fracaoIdeal" ou "pontos" — condomínios diferentes usam sistemas diferentes.
+  pesoVotoPor         String          @default("peso") @map("peso_voto_por")
   onboardingConcluido Boolean         @default(false) @map("onboarding_concluido")
   // Preenchido pelo admin da plataforma = acesso travado (ex.: mensalidade atrasada). null = liberado.
   bloqueadoMotivo     String?         @map("bloqueado_motivo")
@@ -126,6 +129,9 @@ model Unidade {
   // ou fração pra unidade com peso diferente). Independente da fração ideal,
   // que é usada pra outras coisas (ex.: rateio).
   pesoVoto     Decimal    @default(1) @map("peso_voto") @db.Decimal(10, 4)
+  // Sistema de pontos (alternativa à fração ideal que alguns condomínios usam).
+  // Qual desses três decide o voto é escolhido no condomínio (`pesoVotoPor`).
+  pontos       Decimal    @default(0) @map("pontos") @db.Decimal(10, 4)
   criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz
 
   profiles    Profile[]

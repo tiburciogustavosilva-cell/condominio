@@ -78,7 +78,11 @@ export interface Condominio {
   onboardingConcluido: boolean;
   /** Preenchido pelo admin da plataforma = acesso travado (ex.: mensalidade atrasada). */
   bloqueadoMotivo: string | null;
+  /** Qual campo da unidade decide o peso do voto/quórum nas assembleias. */
+  pesoVotoPor: PesoVotoPor;
 }
+
+export type PesoVotoPor = 'peso' | 'fracaoIdeal' | 'pontos';
 
 export interface RespostasOnboarding {
   temBlocos: boolean;
@@ -111,6 +115,8 @@ export interface Unidade {
   fracaoIdeal: number;
   /** Peso do voto nas assembleias (padrão 1 = um voto normal; pode ser outro inteiro ou fração). */
   pesoVoto: number;
+  /** Sistema de pontos (alternativa à fração ideal). Qual dos três conta é escolhido no condomínio. */
+  pontos: number;
   moradores?: string[];
   /** Só vêm para o síndico. */
   encomendasAguardando?: number;
@@ -394,6 +400,11 @@ export const LABEL = {
     inquilino: 'Inquilino',
     procurador: 'Procurador'
   } as Record<string, string>,
+  pesoVotoPor: {
+    peso: 'Peso manual',
+    fracaoIdeal: 'Fração ideal',
+    pontos: 'Pontos'
+  } as Record<string, string>,
   cargo: {
     porteiro: 'Porteiro',
     zelador: 'Zelador',
@@ -520,7 +531,9 @@ export interface Pauta {
 /** Estado da assembleia (GET /assembleias/:id), recarregado a cada 2 s. */
 export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
   totalUnidades: number;
-  /** Soma do peso do voto de todas as unidades do condomínio / das presentes — decide o quórum de verdade. */
+  /** Qual campo da unidade decidiu pesoTotal/pesoPresente abaixo (peso | fracaoIdeal | pontos). */
+  pesoVotoPor: PesoVotoPor;
+  /** Soma do campo escolhido (pesoVotoPor) de todas as unidades do condomínio / das presentes — decide o quórum de verdade. */
   pesoTotal: number;
   pesoPresente: number;
   pautas: Pauta[];

@@ -8,6 +8,7 @@ type DadosUnidade = {
   tipo: string;
   fracaoIdeal: string | number;
   pesoVoto: string | number;
+  pontos: string | number;
 };
 
 export function useUnidades() {

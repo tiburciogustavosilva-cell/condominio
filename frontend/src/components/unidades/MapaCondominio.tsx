@@ -786,6 +786,7 @@ export function MapaCondominio({ unidades, onEditar }: { unidades: Unidade[]; on
                   {aberta.tipo}
                   {aberta.tipo === 'casa' && aberta.bloco && aberta.bloco !== '-' && ` · Quadra ${aberta.bloco}`}
                   {' · '}Fração ideal: {Number(aberta.fracaoIdeal) ? `${Number(aberta.fracaoIdeal).toLocaleString('pt-BR')}%` : 'não informada'}
+                  {' · '}Pontos: {Number(aberta.pontos) ? Number(aberta.pontos).toLocaleString('pt-BR') : 'não informado'}
                 </p>
                 <div>
                   <p className="font-medium">Moradores</p>

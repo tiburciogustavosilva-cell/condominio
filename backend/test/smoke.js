@@ -400,6 +400,55 @@ async function main() {
     const estadoMorador = (await api('GET', rotaA, { token: morador })).json;
     assert.deepEqual(estadoMorador.pautas[0].votosPorUnidade, estado.pautas[0].votosPorUnidade, 'morador também vê');
 
+    // --- pesoVotoPor: condomínio escolhe qual campo da unidade decide o peso do voto/quórum ---
+    assert.equal(
+      (await api('PATCH', '/condominios/peso-voto', { token: morador, body: { pesoVotoPor: 'fracaoIdeal' } })).status,
+      403,
+      'só síndico muda'
+    );
+    assert.equal((await api('PATCH', '/condominios/peso-voto', { token: sindico, body: { pesoVotoPor: 'invalido' } })).status, 400);
+    assert.equal((await api('PATCH', '/condominios/peso-voto', { token: sindico, body: { pesoVotoPor: 'fracaoIdeal' } })).status, 204);
+    assert.equal(
+      (await api('PUT', `/unidades/${unidade.id}`, { token: sindico, body: { numero: unidade.numero, bloco: unidade.bloco, fracaoIdeal: '10' } })).status,
+      204
+    );
+    assert.equal(
+      (await api('PUT', `/unidades/${semCelular.id}`, { token: sindico, body: { numero: semCelular.numero, bloco: semCelular.bloco, fracaoIdeal: '5' } })).status,
+      204
+    );
+    const assembleia2 = await api('POST', '/assembleias', {
+      token: sindico,
+      body: { titulo: 'Extra', pautas: [{ titulo: 'Teste de peso', opcoes: ['Sim', 'Não'] }] }
+    });
+    const rotaA2 = `/assembleias/${assembleia2.json.id}`;
+    let estado2 = (await api('GET', rotaA2, { token: sindico })).json;
+    assert.equal(estado2.pesoVotoPor, 'fracaoIdeal');
+    assert.equal(estado2.pesoTotal, 15, 'soma da fração ideal de todas as unidades (10 + 5 + 0 + 0)');
+    const pautaExtra = estado2.pautas[0];
+    assert.equal((await api('PATCH', `/assembleias/pautas/${pautaExtra.id}`, { token: sindico, body: { status: 'votando' } })).status, 204);
+    const { codigo: codigoExtra } = (await api('GET', rotaA2, { token: sindico })).json;
+    assert.equal((await api('POST', `${rotaA2}/checkin`, { token: morador, body: { codigo: codigoExtra } })).status, 204);
+    assert.equal(
+      (await api('POST', `/assembleias/pautas/${pautaExtra.id}/votar`, { token: morador, body: { opcaoId: pautaExtra.opcoes[0].id } })).status,
+      204
+    );
+    estado2 = (await api('GET', rotaA2, { token: sindico })).json;
+    assert.equal(estado2.pesoPresente, 10, 'peso pela fração ideal da unidade, não pela contagem simples');
+    assert.equal((await api('POST', `${rotaA2}/encerrar`, { token: sindico })).status, 204);
+    estado2 = (await api('GET', rotaA2, { token: sindico })).json;
+    assert.equal(Number(estado2.pautas[0].opcoes[0].pesoVotos), 10, 'voto pesou pela fração ideal, não 1');
+    // trocar pra pontos muda o cálculo na hora, sem precisar de nova assembleia
+    assert.equal(
+      (await api('PUT', `/unidades/${unidade.id}`, { token: sindico, body: { numero: unidade.numero, bloco: unidade.bloco, fracaoIdeal: '10', pontos: '7' } }))
+        .status,
+      204
+    );
+    assert.equal((await api('PATCH', '/condominios/peso-voto', { token: sindico, body: { pesoVotoPor: 'pontos' } })).status, 204);
+    estado2 = (await api('GET', rotaA2, { token: sindico })).json;
+    assert.equal(estado2.pesoVotoPor, 'pontos');
+    assert.equal(estado2.pesoPresente, 7, 'trocou a métrica: agora usa pontos, não mais fração ideal');
+    assert.equal((await api('PATCH', '/condominios/peso-voto', { token: sindico, body: { pesoVotoPor: 'peso' } })).status, 204);
+
     // --- Isolamento entre condomínios ---
     const outro = await api('POST', '/auth/cadastro', {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }

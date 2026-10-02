@@ -134,6 +134,9 @@ function CodigoPresenca({ assembleia: a }: { assembleia: Assembleia }) {
         <p className="text-lg font-semibold">
           {a.presentes} de {a.totalUnidades} unidades presentes ({quorum}%)
         </p>
+        {a.pesoVotoPor !== 'peso' && (
+          <p className="text-sm text-muted-foreground">Quórum e resultado calculados por {LABEL.pesoVotoPor[a.pesoVotoPor]}</p>
+        )}
         <Button variant="outline" size="sm" onClick={() => ref.current?.requestFullscreen?.()}>
           <Expand className="h-4 w-4" /> Tela cheia para projetar
         </Button>

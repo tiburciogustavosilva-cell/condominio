@@ -10,6 +10,10 @@ const CARGOS_PORTARIA = ['porteiro']; // registram e liberam encomendas
 // também usado pra restringir quem pode votar em cada pauta (assembleias.service).
 const VINCULOS = ['proprietario', 'inquilino', 'procurador'];
 
+// Qual campo da unidade decide o peso do voto/quórum nas assembleias (condominios.service,
+// assembleias.service) — condomínios diferentes usam sistemas diferentes.
+const PESO_VOTO_POR = ['peso', 'fracaoIdeal', 'pontos'];
+
 // Equipe da portaria: quem registra e libera encomendas.
 const isEquipe = (usuario) =>
   isSindico(usuario) || (usuario.papel === 'funcionario' && CARGOS_PORTARIA.includes(usuario.cargo));
@@ -19,7 +23,7 @@ function condominioDe(usuario) {
   return usuario.condominioId;
 }
 
-module.exports = { isSindico, isEquipe, condominioDe, CARGOS, VINCULOS };
+module.exports = { isSindico, isEquipe, condominioDe, CARGOS, VINCULOS, PESO_VOTO_POR };
 
 // updateMany/deleteMany com filtro de condomínio: 0 linhas = não existe *para este usuário*.
 function exigirAfetado({ count }) {

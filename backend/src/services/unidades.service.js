@@ -35,6 +35,7 @@ function campos(d) {
     bloco: d.bloco || '-',
     tipo: d.tipo || 'apartamento',
     fracaoIdeal: Number(d.fracaoIdeal) || 0,
+    pontos: Number(d.pontos) || 0,
     pesoVoto
   };
 }

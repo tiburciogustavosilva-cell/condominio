@@ -3,8 +3,9 @@ import { Building2, Download, Loader2, Plus, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUnidades } from '@/hooks/useUnidades';
 import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 import { baixarModeloUnidades, lerModeloUnidades } from '@/lib/importarUnidades';
-import type { Unidade } from '@/types/condominio';
+import { LABEL, type PesoVotoPor, type Unidade } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { FilterPills } from '@/components/shared/FilterPills';
@@ -21,22 +22,36 @@ import { ListSkeleton } from '@/components/shared/ListSkeleton';
 import { BuscaInput, bate } from '@/components/shared/BuscaInput';
 import { rotuloUnidade } from '@/lib/format';
 
-const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '', pesoVoto: '1' };
+const VAZIO = { numero: '', bloco: '', tipo: 'apartamento', fracaoIdeal: '', pesoVoto: '1', pontos: '' };
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 export default function Unidades() {
   const { unidades, carregando, recarregar, criar, atualizar, remover } = useUnidades();
-  const { condominio } = useAuth();
+  const { condominio, isSindico, recarregarCondominio } = useAuth();
   const [form, setForm] = useState<any>(VAZIO);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [salvandoPeso, setSalvandoPeso] = useState(false);
   const [resultado, setResultado] = useState<{ sucesso: number; erros: { erro: string }[] } | null>(null);
   const [busca, setBusca] = useState('');
   const [vista, setVista] = useState('mapa');
   const arquivoRef = useRef<HTMLInputElement>(null);
+
+  async function mudarPesoVotoPor(pesoVotoPor: PesoVotoPor) {
+    setSalvandoPeso(true);
+    try {
+      await api.patch('/condominios/peso-voto', { pesoVotoPor });
+      await recarregarCondominio();
+      toast.success('Peso do voto atualizado');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+    } finally {
+      setSalvandoPeso(false);
+    }
+  }
 
   async function handleArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
@@ -72,7 +87,14 @@ export default function Unidades() {
 
   function editar(u: Unidade) {
     setEditandoId(u.id);
-    setForm({ numero: u.numero, bloco: u.bloco, tipo: u.tipo, fracaoIdeal: u.fracaoIdeal ?? '', pesoVoto: u.pesoVoto ?? 1 });
+    setForm({
+      numero: u.numero,
+      bloco: u.bloco,
+      tipo: u.tipo,
+      fracaoIdeal: u.fracaoIdeal ?? '',
+      pesoVoto: u.pesoVoto ?? 1,
+      pontos: u.pontos ?? ''
+    });
     setAberto(true);
   }
 
@@ -151,6 +173,31 @@ export default function Unidades() {
         )}
       </PageHeader>
 
+      {isSindico && condominio && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+            <div>
+              <p className="text-sm font-semibold">Peso do voto nas assembleias</p>
+              <p className="text-xs text-muted-foreground">
+                Qual campo da unidade decide o peso do voto e o quórum. Condomínios diferentes usam sistemas diferentes.
+              </p>
+            </div>
+            <select
+              className={selectCls + ' w-auto'}
+              value={condominio.pesoVotoPor}
+              disabled={salvandoPeso}
+              onChange={(e) => mudarPesoVotoPor(e.target.value as PesoVotoPor)}
+            >
+              {Object.entries(LABEL.pesoVotoPor).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </CardContent>
+        </Card>
+      )}
+
       {resultado && (
         <ResultadoImportacao sucesso={resultado.sucesso} erros={resultado.erros} onFechar={() => setResultado(null)} />
       )}
@@ -206,6 +253,20 @@ export default function Unidades() {
                 onChange={(e) => set('pesoVoto', e.target.value)}
               />
             </Field>
+            <Field
+              label="Pontos"
+              htmlFor="pontos"
+              hint="Sistema de pontos, alternativa à fração ideal (alguns condomínios usam um dos dois)."
+            >
+              <Input
+                id="pontos"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.pontos}
+                onChange={(e) => set('pontos', e.target.value)}
+              />
+            </Field>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={cancelarEdicao}>
@@ -245,6 +306,7 @@ export default function Unidades() {
                 {u.pesoVoto !== 1 && (
                   <p className="text-xs text-muted-foreground">Peso do voto: {u.pesoVoto}</p>
                 )}
+                {!!u.pontos && <p className="text-xs text-muted-foreground">Pontos: {u.pontos}</p>}
                 <p className="text-xs text-muted-foreground">
                   Moradores: {u.moradores?.length ? u.moradores.join(', ') : '—'}
                 </p>

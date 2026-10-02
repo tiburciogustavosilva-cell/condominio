@@ -4,6 +4,8 @@ const { apenasSindico, exigirLiberado } = require('../middlewares/auth');
 
 // Onboarding do condomínio ativo (síndico/administradora)
 router.put('/atual', exigirLiberado, apenasSindico, c.responderOnboarding);
+// Qual campo da unidade decide o peso do voto nas assembleias
+router.patch('/peso-voto', exigirLiberado, apenasSindico, c.atualizarPesoVoto);
 // Administradora: seus condomínios (checagem de papel no service)
 router.get('/', c.listar);
 router.post('/', c.criar);

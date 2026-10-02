@@ -1,7 +1,7 @@
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
-const { condominioDe } = require('../utils/acesso');
-const { obrigatorio } = require('../utils/validar');
+const { condominioDe, PESO_VOTO_POR } = require('../utils/acesso');
+const { obrigatorio, umDe } = require('../utils/validar');
 
 function administradoraDe(usuario) {
   if (usuario.papel !== 'administradora' || !usuario.administradoraId) {
@@ -57,4 +57,10 @@ function responderOnboarding(usuario, r) {
   });
 }
 
-module.exports = { listarDaAdministradora, criar, ativar, responderOnboarding };
+/** Qual campo da unidade decide o peso do voto/quórum nas assembleias (peso | fracaoIdeal | pontos). */
+async function atualizarPesoVoto(usuario, pesoVotoPor) {
+  umDe(pesoVotoPor, PESO_VOTO_POR, 'pesoVotoPor');
+  await prisma.condominio.update({ where: { id: condominioDe(usuario) }, data: { pesoVotoPor } });
+}
+
+module.exports = { listarDaAdministradora, criar, ativar, responderOnboarding, atualizarPesoVoto };

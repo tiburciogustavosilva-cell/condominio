@@ -7,6 +7,16 @@ const { obrigatorio } = require('../utils/validar');
 const OPCOES_PADRAO = ['Sim', 'Não', 'Abstenção'];
 const STATUS_PAUTA = ['rascunho', 'votando', 'encerrada']; // só avança nessa ordem
 
+// Qual campo da unidade decide o peso do voto/quórum — configurável por condomínio (pesoVotoPor).
+const CAMPO_PESO = { peso: 'pesoVoto', fracaoIdeal: 'fracaoIdeal', pontos: 'pontos' };
+const SELECT_PESO = { pesoVoto: true, fracaoIdeal: true, pontos: true };
+
+/** Unidade sem o campo escolhido preenchido pesa 0 (não entra no quórum/resultado) — reflete o cadastro real. */
+function pesoDaUnidade(pesoVotoPor, unidade) {
+  const campo = CAMPO_PESO[pesoVotoPor] || 'pesoVoto';
+  return Number(unidade?.[campo] ?? 0) || 0;
+}
+
 // ---------- Código de check-in ----------
 // Fixo por assembleia (não muda enquanto ela está aberta) — é só um número, mais fácil pra quem está na sala.
 
@@ -299,8 +309,12 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
   }
 
   // Peso configurado no cadastro da unidade — decide o resultado junto com a contagem simples.
-  const unidade = await prisma.unidade.findUnique({ where: { id: unidadeId }, select: { pesoVoto: true } });
-  const peso = unidade?.pesoVoto ?? 1;
+  // Qual campo conta (peso manual, fração ideal ou pontos) é escolhido no condomínio (pesoVotoPor).
+  const [unidade, condominio] = await Promise.all([
+    prisma.unidade.findUnique({ where: { id: unidadeId }, select: SELECT_PESO }),
+    prisma.condominio.findUnique({ where: { id: condominioDe(usuario) }, select: { pesoVotoPor: true } })
+  ]);
+  const peso = pesoDaUnidade(condominio?.pesoVotoPor, unidade);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -319,7 +333,7 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
 // ---------- Estado (polling) ----------
 
 const UNIDADE = { select: { id: true, numero: true, bloco: true } };
-const UNIDADE_COM_PESO = { select: { id: true, numero: true, bloco: true, pesoVoto: true } };
+const UNIDADE_COM_PESO = { select: { id: true, numero: true, bloco: true, ...SELECT_PESO } };
 
 /**
  * Tudo que a tela da assembleia precisa. Enquanto a pauta está em votação, nem o total por opção sai
@@ -329,7 +343,8 @@ const UNIDADE_COM_PESO = { select: { id: true, numero: true, bloco: true, pesoVo
 async function estado(usuario, id) {
   const assembleia = await buscar(usuario, id);
   const sindico = isSindico(usuario);
-  const [pautas, presencas, unidadesAgg, votadas, procuracoes] = await Promise.all([
+  const [condominio, pautas, presencas, unidadesAgg, votadas, procuracoes] = await Promise.all([
+    prisma.condominio.findUnique({ where: { id: assembleia.condominioId }, select: { pesoVotoPor: true } }),
     prisma.pauta.findMany({
       where: { assembleiaId: id },
       include: {
@@ -344,7 +359,7 @@ async function estado(usuario, id) {
       select: { unidadeId: true, manual: true, criadoEm: true, unidade: UNIDADE_COM_PESO },
       orderBy: { criadoEm: 'asc' }
     }),
-    prisma.unidade.aggregate({ where: { condominioId: assembleia.condominioId }, _count: true, _sum: { pesoVoto: true } }),
+    prisma.unidade.aggregate({ where: { condominioId: assembleia.condominioId }, _count: true, _sum: SELECT_PESO }),
     usuario.unidadeId
       ? prisma.pautaVotante.findMany({ where: { unidadeId: usuario.unidadeId, pauta: { assembleiaId: id } }, select: { pautaId: true } })
       : [],
@@ -357,7 +372,8 @@ async function estado(usuario, id) {
       : []
   ]);
 
-  const pesoPresente = presencas.reduce((soma, p) => soma + Number(p.unidade.pesoVoto), 0);
+  const pesoVotoPor = condominio?.pesoVotoPor || 'peso';
+  const pesoPresente = presencas.reduce((soma, p) => soma + pesoDaUnidade(pesoVotoPor, p.unidade), 0);
   return {
     id: assembleia.id,
     titulo: assembleia.titulo,
@@ -366,8 +382,10 @@ async function estado(usuario, id) {
     encerradaEm: assembleia.encerradaEm,
     presentes: presencas.length,
     totalUnidades: unidadesAgg._count,
-    // Peso do voto (cadastrado na unidade) decide o quórum e o resultado — não é só contagem de unidade.
-    pesoTotal: Number(unidadesAgg._sum.pesoVoto ?? 0),
+    // Qual campo da unidade decidiu o peso abaixo (peso | fracaoIdeal | pontos) — configurável no condomínio.
+    pesoVotoPor,
+    // Decide o quórum e o resultado — não é só contagem de unidade.
+    pesoTotal: pesoDaUnidade(pesoVotoPor, unidadesAgg._sum),
     pesoPresente,
     pautas: pautas.map(({ _count, condominioId, assembleiaId, votantes: votantesLista, ...p }) => ({
       ...p,

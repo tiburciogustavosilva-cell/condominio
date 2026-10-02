@@ -1,0 +1,2 @@
+ALTER TABLE "unidades" ADD COLUMN "pontos" DECIMAL(10,4) NOT NULL DEFAULT 0;
+ALTER TABLE "condominios" ADD COLUMN "peso_voto_por" TEXT NOT NULL DEFAULT 'peso';

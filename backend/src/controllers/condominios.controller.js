@@ -7,5 +7,9 @@ module.exports = {
     await service.ativar(req.usuario, req.params.id);
     res.status(204).end();
   },
-  responderOnboarding: async (req, res) => res.json(await service.responderOnboarding(req.usuario, req.body))
+  responderOnboarding: async (req, res) => res.json(await service.responderOnboarding(req.usuario, req.body)),
+  atualizarPesoVoto: async (req, res) => {
+    await service.atualizarPesoVoto(req.usuario, req.body.pesoVotoPor);
+    res.status(204).end();
+  }
 };
