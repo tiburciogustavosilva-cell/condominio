@@ -13,7 +13,8 @@ type Acoes = ReturnType<typeof useAssembleia>;
 
 /**
  * Quem não tem celular: o síndico escolhe a unidade presente e entrega o aparelho;
- * a pessoa vota sozinha na mesma tela grande do condômino e devolve. O voto continua secreto.
+ * a pessoa vota sozinha na mesma tela grande do condômino e devolve. Ninguém ao redor vê a
+ * escolha enquanto a pauta está em votação, só depois de encerrada (ver `estado`).
  */
 export function VotoPelaMesa({
   assembleia,

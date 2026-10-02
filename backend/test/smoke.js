@@ -392,6 +392,13 @@ async function main() {
     assert.deepEqual(estado.pautas[0].opcoes.map((o) => o.votos), [1, 1, 1], 'placar aparece ao encerrar');
     assert.equal(estado.codigo, undefined, 'encerrada não tem código');
     assert.equal(estado.qr, undefined);
+    // voto deixou de ser secreto: depois de encerrada, dá pra ver quem votou em quê
+    const votoDe = (unidadeId) => estado.pautas[0].votosPorUnidade.find((v) => v.unidade.id === unidadeId)?.opcaoId;
+    assert.equal(votoDe(unidade.id), pauta.opcoes[1].id, 'morador votou na opção 2');
+    assert.equal(votoDe(semCelular.id), pauta.opcoes[2].id, 'voto pela mesa');
+    assert.equal(votoDe(doSindicoUnidade.id), pauta.opcoes[0].id, 'síndico votando pela própria unidade');
+    const estadoMorador = (await api('GET', rotaA, { token: morador })).json;
+    assert.deepEqual(estadoMorador.pautas[0].votosPorUnidade, estado.pautas[0].votosPorUnidade, 'morador também vê');
 
     // --- Isolamento entre condomínios ---
     const outro = await api('POST', '/auth/cadastro', {

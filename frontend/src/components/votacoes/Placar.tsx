@@ -1,4 +1,5 @@
 import type { Pauta } from '@/types/condominio';
+import { rotuloUnidade } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /** Barras com o total de cada opção; a mais votada fica destacada (na cor do resultado, se informada). */
@@ -43,7 +44,22 @@ export function Placar({ pauta, corLider = 'bg-primary', liderId }: Props) {
           </div>
         );
       })}
-      <p className="text-xs text-muted-foreground">{pauta.votantes} unidade(s) votaram · voto secreto</p>
+      <p className="text-xs text-muted-foreground">{pauta.votantes} unidade(s) votaram</p>
+      {pauta.votosPorUnidade && pauta.votosPorUnidade.length > 0 && (
+        <div className="space-y-1.5 pt-2">
+          <p className="text-xs font-medium text-muted-foreground">Voto de cada unidade</p>
+          <ul className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+            {pauta.votosPorUnidade.map((v, i) => (
+              <li key={i} className="flex justify-between gap-2">
+                <span className="text-muted-foreground">{rotuloUnidade(v.unidade)}</span>
+                <span className="font-medium">
+                  {pauta.opcoes.find((o) => o.id === v.opcaoId)?.texto ?? '—'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -63,7 +79,7 @@ export function Andamento({ pauta, presentes, grande }: { pauta: Pauta; presente
         <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
       <p className={cn('text-muted-foreground', grande ? 'text-base' : 'text-xs')}>
-        O resultado aparece quando a votação for encerrada. Assim o voto de cada um continua secreto.
+        O resultado, com o voto de cada unidade, aparece quando a votação for encerrada.
       </p>
     </div>
   );

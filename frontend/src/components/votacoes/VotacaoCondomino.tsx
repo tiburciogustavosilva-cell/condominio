@@ -228,7 +228,8 @@ export function VotarAgora({
           })}
         </div>
         <p className="text-center text-base text-muted-foreground">
-          Seu voto é secreto. Ninguém fica sabendo o que você escolheu.
+          Ninguém vê sua escolha enquanto a votação está aberta. Depois de encerrada, o resultado mostra o voto de
+          cada unidade.
         </p>
       </CardContent>
 

@@ -264,7 +264,9 @@ async function checkin(usuario, id, { codigo: digitado, qr } = {}) {
 
 /**
  * Condômino vota pela própria unidade. Síndico vota pela unidade dele (se tiver) ou "pela mesa": informa a unidade
- * presente de quem não tem celular e entrega o aparelho para a pessoa escolher sozinha. O banco nunca liga voto a unidade.
+ * presente de quem não tem celular e entrega o aparelho para a pessoa escolher sozinha. O voto não é mais secreto:
+ * depois de encerrada a pauta, dá pra ver qual unidade escolheu qual opção — mas isso só vaza nessa hora, nunca
+ * durante a votação (ver `estado`).
  */
 async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } = {}) {
   const sindico = isSindico(usuario);
@@ -305,7 +307,7 @@ async function votar(usuario, pautaId, { opcaoId, unidadeId: unidadeInformada } 
       // trava a pauta: "encerrar" espera este voto terminar (ou o voto vê a pauta já encerrada) — nunca conta voto atrasado
       const [atual] = await tx.$queryRaw`SELECT status FROM pautas WHERE id = ${pautaId}::uuid FOR UPDATE`;
       if (atual?.status !== 'votando') throw new HttpError(400, 'A votação dessa pauta acabou de ser encerrada');
-      await tx.pautaVotante.create({ data: { pautaId, unidadeId } });
+      await tx.pautaVotante.create({ data: { pautaId, unidadeId, opcaoId } });
       await tx.pautaOpcao.update({ where: { id: opcaoId }, data: { votos: { increment: 1 }, pesoVotos: { increment: peso } } });
     });
   } catch (err) {
@@ -320,8 +322,9 @@ const UNIDADE = { select: { id: true, numero: true, bloco: true } };
 const UNIDADE_COM_PESO = { select: { id: true, numero: true, bloco: true, pesoVoto: true } };
 
 /**
- * Tudo que a tela da assembleia precisa. Nunca liga voto a unidade. Enquanto a pauta está em votação, nem o total
- * por opção sai (votos: null) — senão quem olha o placar na hora de um voto (ex.: na mesa) descobre o voto.
+ * Tudo que a tela da assembleia precisa. Enquanto a pauta está em votação, nem o total por opção sai
+ * (votos: null) nem quem votou em quê — senão quem olha a tela na hora de um voto (ex.: na mesa) descobre
+ * o voto antes da hora. Depois de encerrada, o voto deixa de ser secreto: todo mundo vê unidade → opção.
  */
 async function estado(usuario, id) {
   const assembleia = await buscar(usuario, id);
@@ -329,7 +332,11 @@ async function estado(usuario, id) {
   const [pautas, presencas, unidadesAgg, votadas, procuracoes] = await Promise.all([
     prisma.pauta.findMany({
       where: { assembleiaId: id },
-      include: { opcoes: { orderBy: { ordem: 'asc' } }, _count: { select: { votantes: true } } },
+      include: {
+        opcoes: { orderBy: { ordem: 'asc' } },
+        votantes: { select: { opcaoId: true, unidade: UNIDADE } },
+        _count: { select: { votantes: true } }
+      },
       orderBy: { ordem: 'asc' }
     }),
     prisma.assembleiaPresenca.findMany({
@@ -362,10 +369,14 @@ async function estado(usuario, id) {
     // Peso do voto (cadastrado na unidade) decide o quórum e o resultado — não é só contagem de unidade.
     pesoTotal: Number(unidadesAgg._sum.pesoVoto ?? 0),
     pesoPresente,
-    pautas: pautas.map(({ _count, condominioId, assembleiaId, ...p }) => ({
+    pautas: pautas.map(({ _count, condominioId, assembleiaId, votantes: votantesLista, ...p }) => ({
       ...p,
       opcoes: p.status === 'votando' ? p.opcoes.map((o) => ({ ...o, votos: null, pesoVotos: null })) : p.opcoes,
-      votantes: _count.votantes
+      votantes: _count.votantes,
+      // Só depois de encerrada: o voto deixou de ser secreto, mas enquanto vota ninguém vê quem escolheu o quê.
+      ...(p.status === 'encerrada' && {
+        votosPorUnidade: votantesLista.map(({ unidade, opcaoId }) => ({ unidade, opcaoId }))
+      })
     })),
     minhaUnidade: usuario.unidadeId
       ? { presente: presencas.some((p) => p.unidadeId === usuario.unidadeId), pautasVotadas: votadas.map((v) => v.pautaId) }

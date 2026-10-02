@@ -504,15 +504,17 @@ export interface Pauta {
   ordem: number;
   status: StatusPauta;
   /**
-   * Só o total por opção (o voto é secreto) e só depois de encerrada: em votação, `votos`/`pesoVotos` vêm null.
-   * `votos` conta unidades (1 unidade = 1); `pesoVotos` soma o peso do voto de cada unidade — é o que decide
-   * o resultado (ver `pesoVoto` no cadastro da unidade).
+   * Só o total por opção e só depois de encerrada: em votação, `votos`/`pesoVotos` vêm null (senão quem olha
+   * a tela na hora de um voto descobre a escolha antes da hora). `votos` conta unidades (1 unidade = 1);
+   * `pesoVotos` soma o peso do voto de cada unidade — é o que decide o resultado (ver `pesoVoto` da unidade).
    */
   opcoes: { id: string; texto: string; votos: number | null; pesoVotos: number | null }[];
   /** Quantas unidades já votaram. */
   votantes: number;
   /** Quem pode votar por conta própria (condômino, ou síndico pela própria unidade). Por padrão, todos. */
   vinculosPermitidos: Vinculo[];
+  /** Só depois de encerrada: o voto não é mais secreto — qual unidade escolheu qual opção. */
+  votosPorUnidade?: { unidade: { id: string; numero: string; bloco: string }; opcaoId: string | null }[];
 }
 
 /** Estado da assembleia (GET /assembleias/:id), recarregado a cada 2 s. */

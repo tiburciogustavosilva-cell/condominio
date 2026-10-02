@@ -48,7 +48,7 @@ export function FormAssembleia({ aberto, onFechar, onCriada }: Props) {
         <DialogHeader>
           <DialogTitle>Nova assembleia</DialogTitle>
           <DialogDescription>
-            Na reunião, projete o código de presença. Só quem fizer o check-in vota: 1 voto secreto por unidade.
+            Na reunião, projete o código de presença. Só quem fizer o check-in vota: 1 voto por unidade.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={salvar} className="space-y-5">

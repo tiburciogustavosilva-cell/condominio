@@ -522,8 +522,9 @@ model PautaOpcao {
   pauta     Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
   texto     String
   ordem     Int     @default(0)
-  votos     Int     @default(0) // total de unidades (1 unidade = 1): só o total, o voto é secreto
+  votos     Int     @default(0) // total de unidades (1 unidade = 1)
   pesoVotos Decimal @default(0) @map("peso_votos") @db.Decimal(14, 4) // soma do peso_voto de quem escolheu — decide o resultado
+  votantes  PautaVotante[]
 
   @@index([pautaId])
   @@map("pauta_opcoes")
@@ -531,11 +532,15 @@ model PautaOpcao {
 
 /// Quem já votou (uma vez por unidade). Sem a opção nem a hora — é o que mantém o voto secreto.
 model PautaVotante {
-  id        String  @id @default(uuid()) @db.Uuid
-  pautaId   String  @map("pauta_id") @db.Uuid
-  pauta     Pauta   @relation(fields: [pautaId], references: [id], onDelete: Cascade)
-  unidadeId String  @map("unidade_id") @db.Uuid
-  unidade   Unidade @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  id        String      @id @default(uuid()) @db.Uuid
+  pautaId   String      @map("pauta_id") @db.Uuid
+  pauta     Pauta       @relation(fields: [pautaId], references: [id], onDelete: Cascade)
+  unidadeId String      @map("unidade_id") @db.Uuid
+  unidade   Unidade     @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  // Voto deixou de ser secreto: qual opção essa unidade escolheu. Null só em votos
+  // registrados antes dessa mudança (não dá pra reconstruir o que já era anônimo).
+  opcaoId   String?     @map("opcao_id") @db.Uuid
+  opcao     PautaOpcao? @relation(fields: [opcaoId], references: [id], onDelete: Restrict)
 
   @@unique([pautaId, unidadeId])
   @@map("pauta_votantes")
