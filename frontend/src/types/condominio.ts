@@ -230,7 +230,7 @@ export interface EncomendaAutorizado {
 export interface Encomenda {
   id: string;
   unidadeId: string;
-  descricao: string;
+  observacao: string;
   remetente: string;
   status: StatusEncomenda;
   /** Quem retirou (nome registrado pela portaria junto com o código). */

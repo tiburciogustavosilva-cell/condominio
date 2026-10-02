@@ -236,7 +236,7 @@ model Encomenda {
   condominio         Condominio @relation(fields: [condominioId], references: [id])
   unidadeId          String     @map("unidade_id") @db.Uuid
   unidade            Unidade    @relation(fields: [unidadeId], references: [id])
-  descricao          String
+  observacao         String
   remetente          String     @default("")
   status             String     @default("aguardando") // aguardando | entregue
   recebidoPor        String?    @map("recebido_por") // quem retirou (informou o código)

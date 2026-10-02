@@ -174,7 +174,7 @@ async function main() {
     const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]).toString('base64');
     const pacote = {
       unidadeId: unidade.id,
-      descricao: 'Caixa teste',
+      observacao: 'Caixa teste',
       codigoRastreio: ' aa123456789br ',
       volumeGrande: true,
       foto: webp
@@ -217,6 +217,24 @@ async function main() {
     assert.deepEqual(retirada.liberadoPor, { nome: 'portaria', papel: 'funcionario', cargo: 'porteiro' });
     assert.equal(retirada.bloqueada, false);
     assert.equal((await retirar(portaria, { codigo, retiradoPor: 'Maria' })).status, 404, 'não retira duas vezes');
+
+    // --- Encomendas: retirada principal pelo QR (portaria gera, o próprio morador confirma) ---
+    const pacote2 = await api('POST', '/encomendas', { token: portaria, body: { ...pacote, observacao: 'Caixa QR' } });
+    assert.equal(pacote2.status, 201);
+    const gerarQr = (token) => api('POST', `/encomendas/${pacote2.json.id}/qr-retirada`, { token });
+    assert.equal((await gerarQr(morador)).status, 403, 'só a portaria gera o QR');
+    const qr1 = await gerarQr(portaria);
+    assert.equal(qr1.status, 200);
+    assert.equal(typeof qr1.json.token, 'string');
+    const retirarQr = (token, qrToken) => api('POST', '/encomendas/retirar-qr', { token, body: { token: qrToken } });
+    assert.equal((await retirarQr(morador, 'lixo')).status, 400, 'token inválido');
+    assert.equal((await retirarQr(portaria, qr1.json.token)).status, 403, 'portaria não mora na unidade');
+    assert.equal((await retirarQr(morador, qr1.json.token)).status, 204);
+    const viaQr = (await api('GET', '/encomendas', { token: portaria })).json.find((e) => e.id === pacote2.json.id);
+    assert.equal(viaQr.status, 'entregue');
+    assert.equal(viaQr.recebidoPor, 'morador');
+    assert.deepEqual(viaQr.liberadoPor, { nome: 'portaria', papel: 'funcionario', cargo: 'porteiro' });
+    assert.equal((await retirarQr(morador, qr1.json.token)).status, 404, 'QR de uso único');
 
     // --- Tarefas: síndico cria por cargo, funcionário do cargo conclui com foto ---
     const tarefa = await api('POST', '/tarefas', {

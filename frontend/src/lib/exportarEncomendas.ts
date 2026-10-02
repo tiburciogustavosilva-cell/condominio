@@ -14,7 +14,7 @@ export async function gerarRelatorioEncomendas(encomendas: Encomenda[], de: stri
     [
       'Recebida em',
       'Unidade',
-      'Descrição',
+      'Observação',
       'Remetente',
       'Rastreio',
       'Volume grande',
@@ -28,7 +28,7 @@ export async function gerarRelatorioEncomendas(encomendas: Encomenda[], de: stri
     ...periodo.map((e) => [
       dataHora(e.criadoEm),
       e.unidadeLabel ?? '',
-      e.descricao,
+      e.observacao,
       e.remetente,
       e.codigoRastreio ?? '',
       e.volumeGrande ? 'Sim' : 'Não',

@@ -4,7 +4,7 @@ import type { Encomenda, EncomendaAutorizado } from '@/types/condominio';
 
 export type NovaEncomenda = {
   unidadeId: string;
-  descricao: string;
+  observacao: string;
   remetente: string;
   codigoRastreio: string;
   /** data URL .webp (ver lib/imagem.ts) */
@@ -33,9 +33,17 @@ export function useEncomendas() {
     criar: async (dados: NovaEncomenda) => {
       await api.post('/encomendas', dados);
     },
-    /** Portaria libera informando o código de 5 dígitos e quem o informou. */
+    /** Alternativa: portaria libera informando o código de 5 dígitos e quem o informou. */
     retirar: async (id: string, dados: { codigo: string; retiradoPor: string }) => {
       await api.patch(`/encomendas/${id}/retirar`, dados);
+    },
+    /** Principal: portaria gera um QR de uso único (vale 3 min) pro morador escanear. */
+    gerarQrRetirada: async (id: string) => {
+      return api.post<{ token: string; expiraEmSegundos: number }>(`/encomendas/${id}/qr-retirada`);
+    },
+    /** O próprio morador confirma a retirada lendo o QR mostrado pela portaria. */
+    retirarComQr: async (token: string) => {
+      await api.post('/encomendas/retirar-qr', { token });
     },
     /** Síndico libera nova tentativa numa encomenda travada por códigos errados. */
     desbloquear: async (id: string) => {

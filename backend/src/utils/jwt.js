@@ -34,4 +34,27 @@ function verificarTokenSenha(token, profile) {
   return jwt.verify(token, segredoSenha(profile));
 }
 
-module.exports = { gerarToken, verificarToken, gerarTokenSuporte, gerarTokenSenha, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN };
+// QR de retirada de encomenda: a portaria gera, o morador escaneia com o celular.
+// Segredo próprio (não serve como token de login) e vida curta — é de uso único,
+// já que a retirada marca a encomenda como entregue.
+const segredoEncomenda = SECRET + ':encomenda';
+
+function gerarTokenEncomendaQr(encomendaId, geradoPorId) {
+  return jwt.sign({ enc: encomendaId, por: geradoPorId }, segredoEncomenda, { expiresIn: '3m' });
+}
+
+function verificarTokenEncomendaQr(token) {
+  return jwt.verify(token, segredoEncomenda);
+}
+
+module.exports = {
+  gerarToken,
+  verificarToken,
+  gerarTokenSuporte,
+  gerarTokenSenha,
+  idDoTokenSenha,
+  verificarTokenSenha,
+  gerarTokenEncomendaQr,
+  verificarTokenEncomendaQr,
+  EXPIRES_IN
+};

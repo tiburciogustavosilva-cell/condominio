@@ -5,6 +5,7 @@ const HttpError = require('../utils/httpError');
 const { isEquipe, condominioDe, exigirAfetado } = require('../utils/acesso');
 const { obrigatorio } = require('../utils/validar');
 const { lerFotoWebp } = require('../utils/foto');
+const { gerarTokenEncomendaQr, verificarTokenEncomendaQr } = require('../utils/jwt');
 
 const LIMITE_TENTATIVAS = 5; // códigos errados até bloquear; só o síndico desbloqueia
 const PESSOA = { select: { nome: true, papel: true, cargo: true } };
@@ -55,7 +56,7 @@ async function criar(usuario, d) {
   const { id } = await prisma.encomenda.create({
     data: {
       unidadeId: d.unidadeId,
-      descricao: obrigatorio(d.descricao, 'descricao'),
+      observacao: obrigatorio(d.observacao, 'observacao'),
       remetente: d.remetente || '',
       codigoRastreio: String(d.codigoRastreio || '').trim().toUpperCase() || null,
       volumeGrande: !!d.volumeGrande,
@@ -108,6 +109,45 @@ async function retirar(usuario, id, { codigo, retiradoPor }) {
   });
 }
 
+/**
+ * Portaria gera um QR de uso único (vale 3 min) pra mostrar na tela. O próprio
+ * morador escaneia com o celular e confirma a retirada — vira a forma principal;
+ * código de 5 dígitos + nome fica só de alternativa.
+ */
+async function gerarQrRetirada(usuario, id) {
+  const encomenda = await prisma.encomenda.findFirst({
+    where: { id, condominioId: condominioDe(usuario), status: 'aguardando' },
+    select: { id: true, tentativasRetirada: true }
+  });
+  if (!encomenda) throw new HttpError(404, 'Encomenda não encontrada ou já retirada');
+  if (encomenda.tentativasRetirada >= LIMITE_TENTATIVAS) {
+    throw new HttpError(423, 'Retirada bloqueada por excesso de códigos errados — o síndico precisa desbloquear');
+  }
+  return { token: gerarTokenEncomendaQr(id, usuario.id), expiraEmSegundos: 180 };
+}
+
+/** Confirma a retirada pelo QR: só serve pra morador da própria unidade da encomenda. */
+async function retirarComQr(usuario, token) {
+  let payload;
+  try {
+    payload = verificarTokenEncomendaQr(obrigatorio(token, 'token'));
+  } catch {
+    throw new HttpError(400, 'QR code expirado ou inválido — peça para a portaria gerar outro');
+  }
+  const encomenda = await prisma.encomenda.findFirst({
+    where: { id: payload.enc, condominioId: condominioDe(usuario), status: 'aguardando' },
+    select: { id: true, unidadeId: true }
+  });
+  if (!encomenda) throw new HttpError(404, 'Encomenda não encontrada ou já retirada');
+  if (!usuario.unidadeId || encomenda.unidadeId !== usuario.unidadeId) {
+    throw new HttpError(403, 'Esse QR code é de uma encomenda de outra unidade');
+  }
+  await prisma.encomenda.update({
+    where: { id: encomenda.id },
+    data: { status: 'entregue', recebidoPor: usuario.nome, entregueEm: new Date(), liberadoPorId: payload.por }
+  });
+}
+
 /** Síndico zera as tentativas de uma encomenda bloqueada. */
 async function desbloquear(usuario, id) {
   exigirAfetado(
@@ -149,4 +189,15 @@ async function removerAutorizado(usuario, id, autorizadoId) {
   exigirAfetado(await prisma.encomendaAutorizado.deleteMany({ where: { id: autorizadoId, encomendaId: id } }));
 }
 
-module.exports = { listar, criar, foto, retirar, desbloquear, remover, adicionarAutorizado, removerAutorizado };
+module.exports = {
+  listar,
+  criar,
+  foto,
+  retirar,
+  gerarQrRetirada,
+  retirarComQr,
+  desbloquear,
+  remover,
+  adicionarAutorizado,
+  removerAutorizado
+};

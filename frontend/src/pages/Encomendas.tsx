@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Camera,
   Download,
@@ -10,6 +12,7 @@ import {
   Lock,
   Package,
   Plus,
+  QrCode,
   UserPlus,
   X,
 } from "lucide-react";
@@ -19,6 +22,7 @@ import { useUnidades } from "@/hooks/useUnidades";
 import { useAuth } from "@/hooks/useAuth";
 import { dataHora } from "@/lib/format";
 import { paraWebp } from "@/lib/imagem";
+import { remetenteDoCodigo } from "@/lib/rastreio";
 import { gerarRelatorioEncomendas } from "@/lib/exportarEncomendas";
 import { nomeComFuncao, type Encomenda } from "@/types/condominio";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -29,6 +33,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Field } from "@/components/shared/Field";
 import { AsyncConfirmDialog } from "@/components/shared/AsyncConfirmDialog";
 import { BotaoDitado, juntarDitado } from "@/components/shared/BotaoDitado";
+import { BotaoLeitorCodigoBarras } from "@/components/shared/LeitorCodigoBarras";
 import { UnidadeSelect } from "@/components/shared/UnidadeSelect";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,7 +50,7 @@ import { ListSkeleton } from "@/components/shared/ListSkeleton";
 
 const VAZIO: NovaEncomenda = {
   unidadeId: "",
-  descricao: "",
+  observacao: "",
   remetente: "",
   codigoRastreio: "",
   foto: "",
@@ -73,6 +78,8 @@ export default function Encomendas() {
     recarregar,
     criar,
     retirar,
+    gerarQrRetirada,
+    retirarComQr,
     desbloquear,
     fotoUrl,
     remover,
@@ -80,12 +87,34 @@ export default function Encomendas() {
     removerAutorizado,
   } = useEncomendas();
   const { unidades } = useUnidades();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState<NovaEncomenda>(VAZIO);
   const [convertendo, setConvertendo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
   const [filtro, setFiltro] = useState("aguardando");
   const [busca, setBusca] = useState("");
+
+  // Morador escaneou o QR que a portaria mostrou: confirma a retirada sozinho.
+  useEffect(() => {
+    const token = searchParams.get("retirarQr");
+    if (!token) return;
+    retirarComQr(token)
+      .then(() => {
+        toast.success("Retirada confirmada!");
+        recarregar();
+      })
+      .catch((err) =>
+        toast.error(
+          err instanceof Error ? err.message : "Não foi possível confirmar a retirada",
+        ),
+      )
+      .finally(() => {
+        searchParams.delete("retirarQr");
+        setSearchParams(searchParams, { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ponytail: filtro/busca no cliente; paginar no backend quando a lista passar de alguns milhares
   const visiveis = useMemo(() => {
@@ -95,7 +124,7 @@ export default function Encomendas() {
       .filter(
         (e) =>
           !termo ||
-          [e.descricao, e.unidadeLabel, e.codigoRastreio, e.remetente]
+          [e.observacao, e.unidadeLabel, e.codigoRastreio, e.remetente]
             .filter(Boolean)
             .some((campo) => campo!.toLowerCase().includes(termo)),
       )
@@ -202,31 +231,41 @@ export default function Encomendas() {
                 <Field
                   label="Código de rastreio"
                   htmlFor="rastreio"
-                  hint="Da etiqueta, se houver."
+                  hint="Da etiqueta, se houver. Pode escanear o código de barras."
                 >
-                  <Input
-                    id="rastreio"
-                    autoComplete="off"
-                    className="font-mono uppercase"
-                    placeholder="AA123456789BR"
-                    value={form.codigoRastreio}
-                    onChange={(e) => set("codigoRastreio", e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="rastreio"
+                      autoComplete="off"
+                      className="font-mono uppercase"
+                      placeholder="AA123456789BR"
+                      value={form.codigoRastreio}
+                      onChange={(e) => set("codigoRastreio", e.target.value)}
+                    />
+                    <BotaoLeitorCodigoBarras
+                      onCodigo={(codigo) => {
+                        set("codigoRastreio", codigo);
+                        const remetente = remetenteDoCodigo(codigo);
+                        if (remetente && !form.remetente) set("remetente", remetente);
+                        toast.success("Código lido!");
+                      }}
+                    />
+                  </div>
                 </Field>
               </div>
-              <Field label="Descrição" htmlFor="desc">
+              <Field label="Observação" htmlFor="obs">
                 <div className="flex gap-2">
                   <Input
-                    id="desc"
-                    value={form.descricao}
-                    onChange={(e) => set("descricao", e.target.value)}
+                    id="obs"
+                    value={form.observacao}
+                    onChange={(e) => set("observacao", e.target.value)}
                     required
                   />
                   <BotaoDitado
                     onTexto={(texto) =>
                       setForm((f) => ({
                         ...f,
-                        descricao: juntarDitado(f.descricao, texto),
+                        observacao: juntarDitado(f.observacao, texto),
                       }))
                     }
                   />
@@ -314,7 +353,7 @@ export default function Encomendas() {
               <CardContent className="space-y-4 pt-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold">{e.descricao}</p>
+                    <p className="font-semibold">{e.observacao}</p>
                     {isEquipe && (
                       <p className="text-sm text-muted-foreground">
                         Unidade {e.unidadeLabel}
@@ -391,17 +430,23 @@ export default function Encomendas() {
                       />
                     )}
                     {isEquipe && e.status === "aguardando" && !e.bloqueada && (
-                      <LiberarRetirada
-                        encomenda={e}
-                        onLiberar={(dados) =>
-                          retirar(e.id, dados)
-                            .then(recarregar)
-                            .catch((err) => {
-                              recarregar(); // o erro pode ter bloqueado a encomenda
-                              throw err;
-                            })
-                        }
-                      />
+                      <>
+                        <LiberarRetiradaQr
+                          encomenda={e}
+                          gerar={() => gerarQrRetirada(e.id)}
+                        />
+                        <LiberarRetirada
+                          encomenda={e}
+                          onLiberar={(dados) =>
+                            retirar(e.id, dados)
+                              .then(recarregar)
+                              .catch((err) => {
+                                recarregar(); // o erro pode ter bloqueado a encomenda
+                                throw err;
+                              })
+                          }
+                        />
+                      </>
                     )}
                     {isSindico && (
                       <AsyncConfirmDialog
@@ -657,7 +702,96 @@ function Info({
   );
 }
 
-/** Portaria pede o código de 5 dígitos e registra o nome de quem informou. */
+/**
+ * Principal: portaria mostra um QR de uso único (vale 3 min) e o morador escaneia
+ * com o celular — a própria tela do morador confirma a retirada, sem digitar nada.
+ */
+function LiberarRetiradaQr({
+  encomenda,
+  gerar,
+}: {
+  encomenda: Encomenda;
+  gerar: () => Promise<{ token: string; expiraEmSegundos: number }>;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [restante, setRestante] = useState(0);
+
+  async function gerarNovo() {
+    setCarregando(true);
+    setToken(null);
+    try {
+      const r = await gerar();
+      setToken(r.token);
+      setRestante(r.expiraEmSegundos);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar QR");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    if (aberto) gerarNovo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
+
+  useEffect(() => {
+    if (!token || restante <= 0) return;
+    const t = setInterval(() => setRestante((r) => r - 1), 1000);
+    return () => clearInterval(t);
+  }, [token, restante]);
+
+  const link = token ? `${window.location.origin}/encomendas?retirarQr=${token}` : "";
+
+  return (
+    <Dialog open={aberto} onOpenChange={setAberto}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="brand">
+          <QrCode className="h-4 w-4" /> Gerar QR de retirada
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>QR de retirada — {encomenda.unidadeLabel}</DialogTitle>
+        </DialogHeader>
+        <p className="text-center text-sm text-muted-foreground">
+          Peça para o morador apontar a câmera do celular para o QR abaixo.
+        </p>
+        {carregando ? (
+          <div className="grid aspect-square place-items-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : token && restante > 0 ? (
+          <>
+            {/* fundo branco sempre: leitor de QR falha com QR claro em fundo escuro */}
+            <div className="mx-auto w-fit rounded-xl bg-white p-3">
+              <QRCodeSVG
+                value={link}
+                size={220}
+                marginSize={1}
+                aria-label="QR code de retirada da encomenda"
+              />
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Expira em {restante}s
+            </p>
+          </>
+        ) : (
+          <div className="space-y-3 py-4 text-center">
+            <p className="text-sm text-muted-foreground">O QR expirou.</p>
+            <Button type="button" variant="outline" onClick={gerarNovo}>
+              Gerar novo QR
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Alternativa ao QR: portaria pede o código de 5 dígitos e registra o nome de quem informou. */
 function LiberarRetirada({
   encomenda,
   onLiberar,
@@ -673,8 +807,12 @@ function LiberarRetirada({
 
   return (
     <AsyncConfirmDialog
-      trigger={<Button size="sm">Liberar retirada</Button>}
-      title={`Liberar "${encomenda.descricao}"`}
+      trigger={
+        <Button size="sm" variant="ghost">
+          Liberar por código
+        </Button>
+      }
+      title={`Liberar "${encomenda.observacao}"`}
       description={`Unidade ${encomenda.unidadeLabel}. Peça o código de 5 dígitos que o morador recebeu no app.`}
       confirmLabel="Liberar"
       successMessage="Retirada registrada"

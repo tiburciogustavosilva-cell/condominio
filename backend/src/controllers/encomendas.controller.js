@@ -8,6 +8,11 @@ module.exports = {
     await service.retirar(req.usuario, req.params.id, req.body);
     res.status(204).end();
   },
+  gerarQrRetirada: async (req, res) => res.json(await service.gerarQrRetirada(req.usuario, req.params.id)),
+  retirarComQr: async (req, res) => {
+    await service.retirarComQr(req.usuario, req.body.token);
+    res.status(204).end();
+  },
   desbloquear: async (req, res) => {
     await service.desbloquear(req.usuario, req.params.id);
     res.status(204).end();
