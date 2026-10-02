@@ -184,6 +184,7 @@ export interface Ocorrencia {
   unidadeId: string | null;
   autorNome?: string;
   unidadeLabel?: string;
+  temFoto: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }

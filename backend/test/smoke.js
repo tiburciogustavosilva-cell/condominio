@@ -170,8 +170,24 @@ async function main() {
     assert.equal(reservas[0].data, '2030-01-15');
     assert.equal(typeof areas[0].taxa, 'number');
 
-    // --- Encomendas: portaria registra com foto, só o morador vê o código, retirada exige código ---
+    // --- Ocorrências: morador registra (com ou sem foto), só o síndico ou o próprio autor vê a foto ---
     const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]).toString('base64');
+    const ocSemFoto = await api('POST', '/ocorrencias', { token: morador, body: { titulo: 'Vazamento', descricao: 'teste' } });
+    assert.equal(ocSemFoto.status, 201);
+    const ocComFoto = await api('POST', '/ocorrencias', {
+      token: morador,
+      body: { titulo: 'Barulho', descricao: 'teste com foto', foto: webp }
+    });
+    assert.equal(ocComFoto.status, 201);
+    const listaMorador = (await api('GET', '/ocorrencias', { token: morador })).json;
+    assert.equal(listaMorador.find((o) => o.id === ocSemFoto.json.id).temFoto, false);
+    assert.equal(listaMorador.find((o) => o.id === ocComFoto.json.id).temFoto, true);
+    const fotoOcorrencia = (id, token) => fetch(`${base}/ocorrencias/${id}/foto`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal((await fotoOcorrencia(ocComFoto.json.id, morador)).status, 200);
+    assert.equal((await fotoOcorrencia(ocSemFoto.json.id, morador)).status, 404, 'sem foto');
+    assert.equal((await fotoOcorrencia(ocComFoto.json.id, sindico)).status, 200, 'síndico vê qualquer foto');
+
+    // --- Encomendas: portaria registra com foto, só o morador vê o código, retirada exige código ---
     const pacote = {
       unidadeId: unidade.id,
       observacao: 'Caixa teste',

@@ -3,6 +3,7 @@ const service = require('../services/ocorrencias.service');
 module.exports = {
   listar: async (req, res) => res.json(await service.listar(req.usuario)),
   criar: async (req, res) => res.status(201).json(await service.criar(req.usuario, req.body)),
+  foto: async (req, res) => res.type('image/webp').send(await service.foto(req.usuario, req.params.id)),
   atualizarStatus: async (req, res) => {
     await service.atualizarStatus(req.usuario, req.params.id, req.body.status, req.body.descricao);
     res.status(204).end();

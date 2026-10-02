@@ -388,6 +388,7 @@ model Ocorrencia {
   descricao    String
   categoria    String     @default("outro")
   status       String     @default("aberto")
+  foto         Bytes?
   usuarioId    String     @map("usuario_id") @db.Uuid
   usuario      Profile    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   unidadeId    String?    @map("unidade_id") @db.Uuid

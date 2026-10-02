@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { BookText, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BookText, Camera, ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOcorrencias } from '@/hooks/useOcorrencias';
 import { useAuth } from '@/hooks/useAuth';
 import { dataCurta, dataHora } from '@/lib/format';
+import { paraWebp } from '@/lib/imagem';
 import { LABEL } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,7 +12,9 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { FilterPills } from '@/components/shared/FilterPills';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Field } from '@/components/shared/Field';
+import { BotaoDitado, juntarDitado } from '@/components/shared/BotaoDitado';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -26,7 +29,7 @@ const STATUS_OPCOES = [
   ['concluido', 'Encerrado']
 ];
 
-const VAZIO = { titulo: '', descricao: '', categoria: 'outro' };
+const VAZIO = { titulo: '', descricao: '', categoria: 'outro', foto: '' };
 
 const FILTROS = [
   { value: 'abertas', label: 'Em aberto' },
@@ -36,8 +39,9 @@ const FILTROS = [
 
 export default function Ocorrencias() {
   const { isSindico } = useAuth();
-  const { ocorrencias, carregando, criar, atualizarStatus, recarregar } = useOcorrencias();
+  const { ocorrencias, carregando, criar, atualizarStatus, fotoUrl, recarregar } = useOcorrencias();
   const [form, setForm] = useState(VAZIO);
+  const [convertendo, setConvertendo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aberto, setAberto] = useState(false);
   const [salvandoStatus, setSalvandoStatus] = useState(false);
@@ -47,6 +51,20 @@ export default function Ocorrencias() {
   );
   // Mudança de status aguardando o descritivo do síndico.
   const [pendente, setPendente] = useState<{ id: string; status: string; descricao: string } | null>(null);
+
+  async function escolherFoto(arquivo: File | undefined) {
+    if (!arquivo) return;
+    setConvertendo(true);
+    try {
+      setForm((f) => ({ ...f, foto: '' }));
+      const webp = await paraWebp(arquivo);
+      setForm((f) => ({ ...f, foto: webp }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível ler a foto');
+    } finally {
+      setConvertendo(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -126,19 +144,45 @@ export default function Ocorrencias() {
             </Field>
           </div>
           <Field label="Descrição" htmlFor="descricao">
-            <Textarea
-              id="descricao"
-              rows={4}
-              value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              required
-            />
+            <div className="flex gap-2">
+              <Textarea
+                id="descricao"
+                rows={4}
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                required
+              />
+              <BotaoDitado
+                onTexto={(texto) =>
+                  setForm((f) => ({ ...f, descricao: juntarDitado(f.descricao, texto) }))
+                }
+              />
+            </div>
+          </Field>
+          <Field label="Foto (opcional)" htmlFor="foto">
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="outline" asChild>
+                <label htmlFor="foto" className="cursor-pointer">
+                  {convertendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  {form.foto ? 'Trocar foto' : 'Tirar / anexar foto'}
+                </label>
+              </Button>
+              <input
+                id="foto"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={(e) => escolherFoto(e.target.files?.[0])}
+              />
+              {form.foto && <img src={form.foto} alt="Prévia da ocorrência" className="h-16 w-16 rounded-md object-cover" />}
+            </div>
           </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setAberto(false)}>
               Cancelar
             </Button>
-            <Button type="submit" variant="brand" disabled={loading}>
+            <Button type="submit" variant="brand" disabled={loading || convertendo}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Registrar
             </Button>
@@ -171,6 +215,9 @@ export default function Ocorrencias() {
                       : ''}
                   </p>
                   <p className="text-sm text-muted-foreground">{o.descricao}</p>
+                  {o.temFoto && (
+                    <VerFoto carregar={() => fotoUrl(o.id)} />
+                  )}
                   {o.historico.length > 0 && (
                     <ul className="space-y-2 border-l-2 pl-3 pt-1">
                       {o.historico.map((h) => (
@@ -238,5 +285,45 @@ export default function Ocorrencias() {
         </form>
       </FormModal>
     </div>
+  );
+}
+
+/** A foto exige o token, então é baixada via fetch e exibida como blob URL. */
+function VerFoto({ carregar }: { carregar: () => Promise<string> }) {
+  const [aberto, setAberto] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    let atual: string | null = null;
+    carregar()
+      .then((u) => setUrl((atual = u)))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Erro ao carregar a foto'));
+    return () => {
+      if (atual) URL.revokeObjectURL(atual);
+      setUrl(null);
+    };
+  }, [aberto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Dialog open={aberto} onOpenChange={setAberto}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+          <ImageIcon className="h-3.5 w-3.5" /> Ver foto
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Foto da ocorrência</DialogTitle>
+        </DialogHeader>
+        {url ? (
+          <img src={url} alt="Ocorrência" className="aspect-square w-full rounded-md bg-muted object-contain" />
+        ) : (
+          <div className="grid aspect-square w-full place-items-center rounded-md bg-muted">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
