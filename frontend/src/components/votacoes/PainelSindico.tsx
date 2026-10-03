@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { CamposPauta, PAUTA_VAZIA } from './CamposPauta';
 import { Andamento } from './Placar';
 import { VotoPelaMesa } from './VotoPelaMesa';
@@ -221,25 +222,30 @@ function PresencaManual({ assembleia: a, acoes }: { assembleia: Assembleia; acoe
 }
 
 /**
- * Registro (ata) de procurações: qual unidade concedeu (outorgante, ausente) a
- * procuração pra qual unidade a representar (procuradora). Só documentação —
- * não marca presença nem muda quem pode votar.
+ * Registro (ata) de procurações: quem (nome + CPF, pode ser de fora) recebeu a
+ * procuração de quais unidades ausentes. Só documentação — não marca presença
+ * nem muda quem pode votar.
  */
 function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: Acoes }) {
   const { unidades } = useUnidades();
-  const [outorganteId, setOutorganteId] = useState('');
-  const [procuradoraId, setProcuradoraId] = useState('');
+  const [nome, setNome] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
   const jaOutorgaram = new Set(a.procuracoes?.map((p) => p.unidadeOutorgante.id));
-  const disponiveis = unidades.filter((u) => !jaOutorgaram.has(u.id));
-  const opcoesProcuradora = unidades.filter((u) => u.id !== outorganteId);
+  const disponiveis = unidades.filter((u) => !jaOutorgaram.has(u.id) && !selecionadas.includes(u.id));
+  // Uma linha por procurador (CPF), com todas as unidades que ele representa.
+  const porProcurador = new Map<string, NonNullable<Assembleia['procuracoes']>>();
+  for (const p of a.procuracoes ?? []) porProcurador.set(p.procuradorCpf, [...(porProcurador.get(p.procuradorCpf) ?? []), p]);
+  const cpfValido = cpf.replace(/\D/g, '').length === 11;
 
   async function enviar() {
     setEnviando(true);
     try {
-      await acoes.adicionarProcuracao(outorganteId, procuradoraId);
-      setOutorganteId('');
-      setProcuradoraId('');
+      await acoes.adicionarProcuracao(nome.trim(), cpf, selecionadas);
+      setNome('');
+      setCpf('');
+      setSelecionadas([]);
       toast.success('Procuração registrada');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao registrar');
@@ -254,53 +260,91 @@ function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: 
         <p className="flex items-center gap-1.5 text-sm font-semibold">
           <FileSignature className="h-4 w-4" /> Procurações
         </p>
-        {a.procuracoes?.length ? (
-          <div className="flex flex-wrap gap-2">
-            {a.procuracoes.map((p) => (
-              <Badge key={p.id} variant="outline" className="gap-1 pr-1">
-                {rotuloUnidade(p.unidadeOutorgante)} → {rotuloUnidade(p.unidadeProcuradora)}
-                <AsyncConfirmDialog
-                  trigger={
-                    <button
-                      type="button"
-                      className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label={`Remover procuração de ${rotuloUnidade(p.unidadeOutorgante)}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  }
-                  title="Remover essa procuração?"
-                  confirmLabel="Remover"
-                  confirmVariant="destructive"
-                  successMessage="Procuração removida"
-                  onConfirm={() => acoes.removerProcuracao(p.id)}
-                />
-              </Badge>
-            ))}
-          </div>
+        {porProcurador.size ? (
+          <ul className="space-y-2">
+            {[...porProcurador.values()].map((lista) => {
+              const [{ procuradorNome, procuradorCpf }] = lista;
+              return (
+                <li key={procuradorCpf} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-medium">{procuradorNome || 'Sem nome'}</span>
+                  <span className="text-muted-foreground">- {formatarCpf(procuradorCpf)} -</span>
+                  {lista.map((p) => (
+                    <Badge key={p.id} variant="outline" className="gap-1 pr-1">
+                      {rotuloUnidade(p.unidadeOutorgante)}
+                      <AsyncConfirmDialog
+                        trigger={
+                          <button
+                            type="button"
+                            className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label={`Remover procuração de ${rotuloUnidade(p.unidadeOutorgante)}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        }
+                        title={`Remover a procuração de ${rotuloUnidade(p.unidadeOutorgante)}?`}
+                        confirmLabel="Remover"
+                        confirmVariant="destructive"
+                        successMessage="Procuração removida"
+                        onConfirm={() => acoes.removerProcuracao(p.id)}
+                      />
+                    </Badge>
+                  ))}
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhuma procuração registrada.</p>
         )}
-        {disponiveis.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <UnidadeSelect
-              ariaLabel="Unidade que concede a procuração"
-              unidades={disponiveis}
-              value={outorganteId}
-              onChange={(v) => {
-                setOutorganteId(v);
-                if (v === procuradoraId) setProcuradoraId('');
-              }}
-              placeholder="Unidade que concede…"
-            />
-            <UnidadeSelect
-              ariaLabel="Unidade que recebe a procuração"
-              unidades={opcoesProcuradora}
-              value={procuradoraId}
-              onChange={setProcuradoraId}
-              placeholder="Unidade que representa…"
-            />
-            <Button variant="outline" onClick={enviar} disabled={!outorganteId || !procuradoraId || enviando}>
+        {(disponiveis.length > 0 || selecionadas.length > 0) && (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Input
+                aria-label="Nome do procurador"
+                placeholder="Nome do procurador"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                className="w-auto flex-1"
+              />
+              <Input
+                aria-label="CPF do procurador"
+                placeholder="CPF"
+                inputMode="numeric"
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <UnidadeSelect
+                ariaLabel="Unidades que concedem a procuração"
+                unidades={disponiveis}
+                value=""
+                onChange={(v) => v && setSelecionadas((s) => [...s, v])}
+                placeholder="Adicionar unidade que concede…"
+              />
+              {selecionadas.map((uid) => {
+                const rotulo = rotuloUnidade(unidades.find((u) => u.id === uid));
+                return (
+                  <Badge key={uid} variant="secondary" className="gap-1 pr-1">
+                    {rotulo}
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label={`Tirar ${rotulo}`}
+                      onClick={() => setSelecionadas((s) => s.filter((x) => x !== uid))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              onClick={enviar}
+              disabled={!nome.trim() || !cpfValido || !selecionadas.length || enviando}
+            >
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-4 w-4" />}
               Registrar
             </Button>
@@ -310,6 +354,8 @@ function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: 
     </Card>
   );
 }
+
+const formatarCpf = (cpf: string) => cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
 type PropsPauta = {
   pauta: Pauta;

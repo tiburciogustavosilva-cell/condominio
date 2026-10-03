@@ -71,8 +71,8 @@ export function useAssembleia(id: string | undefined) {
     /** Só de unidade que ainda não votou. */
     removerPresenca: (unidadeId: string) => depois(api.delete(`/assembleias/${id}/presencas/${unidadeId}`)),
     /** Registro (ata) de quem concedeu procuração a quem — não afeta check-in nem voto. */
-    adicionarProcuracao: (unidadeOutorganteId: string, unidadeProcuradoraId: string) =>
-      depois(api.post(`/assembleias/${id}/procuracoes`, { unidadeOutorganteId, unidadeProcuradoraId })),
+    adicionarProcuracao: (procuradorNome: string, procuradorCpf: string, unidadeIds: string[]) =>
+      depois(api.post(`/assembleias/${id}/procuracoes`, { procuradorNome, procuradorCpf, unidadeIds })),
     removerProcuracao: (procuracaoId: string) => depois(api.delete(`/assembleias/${id}/procuracoes/${procuracaoId}`)),
     /** Só sem votos. Não recarrega: a assembleia deixa de existir (quem chama navega para a lista). */
     excluir: () => api.delete(`/assembleias/${id}`),

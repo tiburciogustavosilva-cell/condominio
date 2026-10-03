@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 import {
   Boxes,
   CalendarClock,
@@ -12,74 +12,96 @@ import {
   Paperclip,
   Plus,
   Wallet,
-  X
-} from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAtivos } from '@/hooks/useAtivos';
-import { useManutencoes, usePrestadores } from '@/hooks/usePrestadores';
-import { useOrdensServico } from '@/hooks/useOrdensServico';
-import { dataCurta, duracaoTexto, frequenciaTexto, prazoTexto } from '@/lib/format';
-import { gerarRelatorioXlsx } from '@/lib/exportarRelatorio';
-import { lerComoDataUrl } from '@/lib/arquivo';
-import { LABEL } from '@/types/condominio';
-import type { Ativo, Manutencao, OrdemServico, OrdemServicoAnexo, Prestador, TipoAnexoOs } from '@/types/condominio';
-import { FormModal } from '@/components/shared/FormModal';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatCard } from '@/components/shared/StatCard';
-import { EmptyState } from '@/components/shared/EmptyState';
-import { Field } from '@/components/shared/Field';
-import { DatePicker } from '@/components/shared/DatePicker';
-import { StatusBadge, PrioridadeBadge } from '@/components/shared/StatusBadge';
-import { AsyncConfirmDialog } from '@/components/shared/AsyncConfirmDialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ListSkeleton } from '@/components/shared/ListSkeleton';
-import { AbaPrestadores } from '@/components/manutencao/AbaPrestadores';
-import { AbaRegulamentacao } from '@/components/manutencao/AbaRegulamentacao';
+  X,
+} from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAtivos } from "@/hooks/useAtivos";
+import { useManutencoes, usePrestadores } from "@/hooks/usePrestadores";
+import { useOrdensServico } from "@/hooks/useOrdensServico";
+import {
+  dataCurta,
+  duracaoTexto,
+  frequenciaTexto,
+  prazoTexto,
+} from "@/lib/format";
+import { gerarRelatorioXlsx } from "@/lib/exportarRelatorio";
+import { lerComoDataUrl } from "@/lib/arquivo";
+import { LABEL } from "@/types/condominio";
+import type {
+  Ativo,
+  Manutencao,
+  OrdemServico,
+  OrdemServicoAnexo,
+  Prestador,
+  TipoAnexoOs,
+} from "@/types/condominio";
+import { FormModal } from "@/components/shared/FormModal";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Field } from "@/components/shared/Field";
+import { DatePicker } from "@/components/shared/DatePicker";
+import { StatusBadge, PrioridadeBadge } from "@/components/shared/StatusBadge";
+import { AsyncConfirmDialog } from "@/components/shared/AsyncConfirmDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ListSkeleton } from "@/components/shared/ListSkeleton";
+import { AbaPrestadores } from "@/components/manutencao/AbaPrestadores";
+import { AbaRegulamentacao } from "@/components/manutencao/AbaRegulamentacao";
 
 const selectCls =
-  'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function moeda(v: number | null | undefined) {
-  return (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return (v ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
 const ATIVO_VAZIO = {
-  codigo: '',
-  nome: '',
-  categoria: 'outros',
-  localizacao: '',
-  fabricanteModelo: '',
-  numeroSerie: '',
-  dataInstalacao: '',
-  vidaUtil: '',
-  vidaUtilUnidade: 'anos',
-  responsavel: '',
-  observacoes: ''
+  codigo: "",
+  nome: "",
+  categoria: "outros",
+  localizacao: "",
+  fabricanteModelo: "",
+  numeroSerie: "",
+  dataInstalacao: "",
+  vidaUtil: "",
+  vidaUtilUnidade: "anos",
+  responsavel: "",
+  observacoes: "",
 };
 
 const PLANO_VAZIO = {
   prestadorIds: [] as string[],
-  ativoId: '',
-  titulo: '',
-  descricao: '',
-  ultimaManutencao: '',
-  frequenciaUnidade: 'mensal',
-  frequenciaIntervalo: '1',
-  diasAntecedencia: '7',
-  tipo: 'preventiva',
-  prioridade: 'media',
-  statusManual: 'programada',
-  custoPrevisto: '',
-  numeroOs: ''
+  ativoId: "",
+  titulo: "",
+  descricao: "",
+  ultimaManutencao: "",
+  frequenciaUnidade: "mensal",
+  frequenciaIntervalo: "1",
+  diasAntecedencia: "7",
+  tipo: "preventiva",
+  prioridade: "media",
+  statusManual: "programada",
+  custoPrevisto: "",
+  numeroOs: "",
 };
 
-const ABAS = ['dashboard', 'ativos', 'prestadores', 'plano', 'ordens', 'regulamentacao'];
+const ABAS = [
+  "dashboard",
+  "ativos",
+  "prestadores",
+  "plano",
+  "ordens",
+  "regulamentacao",
+];
 
 // Mais urgente primeiro; planos sem próxima data vão para o fim.
 function porUrgencia(a: Manutencao, b: Manutencao) {
@@ -87,24 +109,31 @@ function porUrgencia(a: Manutencao, b: Manutencao) {
 }
 
 const OS_VAZIA = {
-  numeroOs: '',
+  numeroOs: "",
   dataAbertura: new Date().toISOString().slice(0, 10),
-  dataExecucao: '',
-  ativoId: '',
-  tipo: 'corretiva',
-  descricao: '',
-  diagnostico: '',
-  acaoExecutada: '',
-  responsavel: '',
-  prioridade: 'media',
-  status: 'programada',
-  custoMaterial: '',
-  custoMaoDeObra: '',
-  observacoes: ''
+  dataExecucao: "",
+  ativoId: "",
+  tipo: "corretiva",
+  descricao: "",
+  diagnostico: "",
+  acaoExecutada: "",
+  responsavel: "",
+  prioridade: "media",
+  status: "programada",
+  custoMaterial: "",
+  custoMaoDeObra: "",
+  observacoes: "",
 };
 
 export default function ManutencaoPredial() {
-  const { ativos, carregando: carregandoAtivos, recarregar: recarregarAtivos, criar: criarAtivo, atualizar: atualizarAtivo, remover: removerAtivo } = useAtivos();
+  const {
+    ativos,
+    carregando: carregandoAtivos,
+    recarregar: recarregarAtivos,
+    criar: criarAtivo,
+    atualizar: atualizarAtivo,
+    remover: removerAtivo,
+  } = useAtivos();
   const {
     manutencoes,
     carregando: carregandoPlanos,
@@ -113,7 +142,7 @@ export default function ManutencaoPredial() {
     atualizar: atualizarPlano,
     concluir: concluirPlano,
     notificar: notificarPlano,
-    remover: removerPlano
+    remover: removerPlano,
   } = useManutencoes();
   const prestadoresHook = usePrestadores();
   const { prestadores, carregando: carregandoPrestadores } = prestadoresHook;
@@ -127,22 +156,30 @@ export default function ManutencaoPredial() {
     listarAnexos,
     adicionarAnexo,
     removerAnexo,
-    anexoUrl
+    anexoUrl,
   } = useOrdensServico();
 
   const [gerando, setGerando] = useState(false);
   const [params, setParams] = useSearchParams();
-  const aba = ABAS.includes(params.get('aba') ?? '') ? params.get('aba')! : 'dashboard';
+  const aba = ABAS.includes(params.get("aba") ?? "")
+    ? params.get("aba")!
+    : "dashboard";
   const irPara = (v: string) => setParams({ aba: v }, { replace: true });
-  const carregando = carregandoAtivos || carregandoPlanos || carregandoPrestadores || carregandoOrdens;
+  const carregando =
+    carregandoAtivos ||
+    carregandoPlanos ||
+    carregandoPrestadores ||
+    carregandoOrdens;
 
   async function baixarRelatorio() {
     setGerando(true);
     try {
       await gerarRelatorioXlsx({ ativos, manutencoes, ordens });
-      toast.success('Relatório gerado');
+      toast.success("Relatório gerado");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao gerar relatório');
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao gerar relatório"
+      );
     } finally {
       setGerando(false);
     }
@@ -155,7 +192,11 @@ export default function ManutencaoPredial() {
         description="Equipamentos/áreas, prestadores, plano de manutenção e registro de serviços — mesmo modelo da planilha de controle predial."
         actions={
           <Button variant="brand" onClick={baixarRelatorio} disabled={gerando}>
-            {gerando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {gerando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             Baixar relatório (.xlsx)
           </Button>
         }
@@ -173,66 +214,73 @@ export default function ManutencaoPredial() {
       {carregando ? (
         <ListSkeleton count={4} />
       ) : (
-      <>
+        <>
+          <TabsContent value="dashboard">
+            <PainelDashboard
+              ativos={ativos}
+              manutencoes={manutencoes}
+              ordens={ordens}
+              verPlano={() => irPara("plano")}
+            />
+          </TabsContent>
 
-        <TabsContent value="dashboard">
-          <PainelDashboard ativos={ativos} manutencoes={manutencoes} ordens={ordens} verPlano={() => irPara('plano')} />
-        </TabsContent>
+          <TabsContent value="ativos">
+            <AbaAtivos
+              ativos={ativos}
+              criar={criarAtivo}
+              atualizar={atualizarAtivo}
+              remover={removerAtivo}
+              recarregar={recarregarAtivos}
+            />
+          </TabsContent>
 
-        <TabsContent value="ativos">
-          <AbaAtivos
-            ativos={ativos}
-            criar={criarAtivo}
-            atualizar={atualizarAtivo}
-            remover={removerAtivo}
-            recarregar={recarregarAtivos}
-          />
-        </TabsContent>
+          <TabsContent value="prestadores">
+            <AbaPrestadores
+              {...prestadoresHook}
+              // remover prestador só tira ele dos planos (não apaga o plano): o plano recarrega junto
+              recarregar={async () => {
+                await Promise.all([
+                  prestadoresHook.recarregar(),
+                  recarregarPlanos(),
+                ]);
+              }}
+            />
+          </TabsContent>
 
-        <TabsContent value="prestadores">
-          <AbaPrestadores
-            {...prestadoresHook}
-            // remover prestador só tira ele dos planos (não apaga o plano): o plano recarrega junto
-            recarregar={async () => {
-              await Promise.all([prestadoresHook.recarregar(), recarregarPlanos()]);
-            }}
-          />
-        </TabsContent>
+          <TabsContent value="plano">
+            <AbaPlano
+              manutencoes={manutencoes}
+              ativos={ativos}
+              prestadores={prestadores}
+              criar={criarPlano}
+              atualizar={atualizarPlano}
+              concluir={concluirPlano}
+              notificar={notificarPlano}
+              remover={removerPlano}
+              recarregar={recarregarPlanos}
+              irParaPrestadores={() => irPara("prestadores")}
+            />
+          </TabsContent>
 
-        <TabsContent value="plano">
-          <AbaPlano
-            manutencoes={manutencoes}
-            ativos={ativos}
-            prestadores={prestadores}
-            criar={criarPlano}
-            atualizar={atualizarPlano}
-            concluir={concluirPlano}
-            notificar={notificarPlano}
-            remover={removerPlano}
-            recarregar={recarregarPlanos}
-            irParaPrestadores={() => irPara('prestadores')}
-          />
-        </TabsContent>
+          <TabsContent value="ordens">
+            <AbaOrdens
+              ordens={ordens}
+              ativos={ativos}
+              criar={criarOrdem}
+              atualizar={atualizarOrdem}
+              remover={removerOrdem}
+              recarregar={recarregarOrdens}
+              listarAnexos={listarAnexos}
+              adicionarAnexo={adicionarAnexo}
+              removerAnexo={removerAnexo}
+              anexoUrl={anexoUrl}
+            />
+          </TabsContent>
 
-        <TabsContent value="ordens">
-          <AbaOrdens
-            ordens={ordens}
-            ativos={ativos}
-            criar={criarOrdem}
-            atualizar={atualizarOrdem}
-            remover={removerOrdem}
-            recarregar={recarregarOrdens}
-            listarAnexos={listarAnexos}
-            adicionarAnexo={adicionarAnexo}
-            removerAnexo={removerAnexo}
-            anexoUrl={anexoUrl}
-          />
-        </TabsContent>
-
-        <TabsContent value="regulamentacao">
-          <AbaRegulamentacao />
-        </TabsContent>
-      </>
+          <TabsContent value="regulamentacao">
+            <AbaRegulamentacao />
+          </TabsContent>
+        </>
       )}
     </Tabs>
   );
@@ -245,58 +293,99 @@ function PainelDashboard({
   ativos,
   manutencoes,
   ordens,
-  verPlano
+  verPlano,
 }: {
   ativos: Ativo[];
   manutencoes: Manutencao[];
   ordens: OrdemServico[];
   verPlano: () => void;
 }) {
-  const vencidas = manutencoes.filter((m) => m.status === 'vencida').length;
-  const vencem30 = manutencoes.filter((m) => (m.diasParaProxima ?? 999) >= 0 && (m.diasParaProxima ?? 999) <= 30).length;
-  const custoPrevisto = manutencoes.reduce((s, m) => s + (m.custoPrevisto ?? 0), 0);
+  const vencidas = manutencoes.filter((m) => m.status === "vencida").length;
+  const vencem30 = manutencoes.filter(
+    (m) => (m.diasParaProxima ?? 999) >= 0 && (m.diasParaProxima ?? 999) <= 30
+  ).length;
+  const custoPrevisto = manutencoes.reduce(
+    (s, m) => s + (m.custoPrevisto ?? 0),
+    0
+  );
   const custoRealizado = ordens.reduce((s, o) => s + o.custoTotal, 0);
-  const porTipo = (tipo: string) => manutencoes.filter((m) => m.tipo === tipo).length;
+  const porTipo = (tipo: string) =>
+    manutencoes.filter((m) => m.tipo === tipo).length;
   // mesmo critério do lembrete por e-mail: só planos ativos e ainda em aberto
   const atencao = manutencoes
-    .filter((m) => m.ativo && !['concluida', 'cancelada'].includes(m.statusManual) && (m.diasParaProxima ?? 999) <= 30)
+    .filter(
+      (m) =>
+        m.ativo &&
+        !["concluida", "cancelada"].includes(m.statusManual) &&
+        (m.diasParaProxima ?? 999) <= 30
+    )
     .sort(porUrgencia);
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Equipamentos / áreas cadastrados" value={ativos.length} icon={Boxes} tone="secondary" />
-        <StatCard label="Manutenções planejadas" value={manutencoes.length} icon={CalendarClock} tone="info" />
-        <StatCard label="Ordens de serviço" value={ordens.length} icon={ClipboardList} tone="secondary" />
         <StatCard
-         
+          label="Equipamentos / áreas cadastrados"
+          value={ativos.length}
+          icon={Boxes}
+          tone="secondary"
+        />
+        <StatCard
+          label="Manutenções planejadas"
+          value={manutencoes.length}
+          icon={CalendarClock}
+          tone="info"
+        />
+        <StatCard
+          label="Ordens de serviço"
+          value={ordens.length}
+          icon={ClipboardList}
+          tone="secondary"
+        />
+        <StatCard
           label="Vencidas"
           value={vencidas}
           icon={Gauge}
-          tone={vencidas ? 'destructive' : 'success'}
+          tone={vencidas ? "destructive" : "success"}
         />
-        <StatCard label="Vencem em até 30 dias" value={vencem30} icon={Gauge} tone="warning" />
-        <StatCard label="Custo previsto" value={moeda(custoPrevisto)} icon={Wallet} tone="secondary" />
+        <StatCard
+          label="Vencem em até 30 dias"
+          value={vencem30}
+          icon={Gauge}
+          tone="warning"
+        />
+        <StatCard
+          label="Custo previsto"
+          value={moeda(custoPrevisto)}
+          icon={Wallet}
+          tone="secondary"
+        />
       </div>
 
       {atencao.length > 0 && (
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Precisam de atenção</CardTitle>
-            <Button size="sm" variant="outline" onClick={verPlano}>Ver plano</Button>
+            <Button size="sm" variant="outline" onClick={verPlano}>
+              Ver plano
+            </Button>
           </CardHeader>
           <CardContent className="divide-y divide-border">
             {atencao.slice(0, 8).map((m) => (
-              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+              >
                 <span>
                   <strong>{m.titulo}</strong>
                   <span className="text-muted-foreground">
-                    {m.ativoNome ? ` · ${m.ativoNome}` : ''} · {m.prestadorNome}
+                    {m.ativoNome ? ` · ${m.ativoNome}` : ""} · {m.prestadorNome}
                   </span>
                 </span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {dataCurta(m.proximaManutencao)} ({prazoTexto(m.diasParaProxima)})
-                  <StatusBadge status={m.status ?? 'em_dia'} />
+                  {dataCurta(m.proximaManutencao)} (
+                  {prazoTexto(m.diasParaProxima)})
+                  <StatusBadge status={m.status ?? "em_dia"} />
                 </span>
               </div>
             ))}
@@ -311,15 +400,21 @@ function PainelDashboard({
         <CardContent className="grid grid-cols-3 gap-3">
           <div className="rounded-md bg-muted p-3 text-center">
             <p className="text-xs text-muted-foreground">Preventiva</p>
-            <p className="font-heading text-2xl font-extrabold">{porTipo('preventiva')}</p>
+            <p className="font-heading text-2xl font-extrabold">
+              {porTipo("preventiva")}
+            </p>
           </div>
           <div className="rounded-md bg-muted p-3 text-center">
             <p className="text-xs text-muted-foreground">Corretiva</p>
-            <p className="font-heading text-2xl font-extrabold">{porTipo('corretiva')}</p>
+            <p className="font-heading text-2xl font-extrabold">
+              {porTipo("corretiva")}
+            </p>
           </div>
           <div className="rounded-md bg-muted p-3 text-center">
             <p className="text-xs text-muted-foreground">Preditiva</p>
-            <p className="font-heading text-2xl font-extrabold">{porTipo('preditiva')}</p>
+            <p className="font-heading text-2xl font-extrabold">
+              {porTipo("preditiva")}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -330,12 +425,20 @@ function PainelDashboard({
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">
           <div className="rounded-md bg-muted p-3">
-            <p className="text-xs text-muted-foreground">Previsto (plano de manutenção)</p>
-            <p className="font-heading text-xl font-extrabold">{moeda(custoPrevisto)}</p>
+            <p className="text-xs text-muted-foreground">
+              Previsto (plano de manutenção)
+            </p>
+            <p className="font-heading text-xl font-extrabold">
+              {moeda(custoPrevisto)}
+            </p>
           </div>
           <div className="rounded-md bg-muted p-3">
-            <p className="text-xs text-muted-foreground">Realizado (ordens de serviço)</p>
-            <p className="font-heading text-xl font-extrabold">{moeda(custoRealizado)}</p>
+            <p className="text-xs text-muted-foreground">
+              Realizado (ordens de serviço)
+            </p>
+            <p className="font-heading text-xl font-extrabold">
+              {moeda(custoRealizado)}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -351,7 +454,7 @@ function AbaAtivos({
   criar,
   atualizar,
   remover,
-  recarregar
+  recarregar,
 }: {
   ativos: Ativo[];
   criar: (d: any) => Promise<void>;
@@ -377,11 +480,11 @@ function AbaAtivos({
       localizacao: a.localizacao,
       fabricanteModelo: a.fabricanteModelo,
       numeroSerie: a.numeroSerie,
-      dataInstalacao: a.dataInstalacao ?? '',
-      vidaUtil: a.vidaUtil?.toString() ?? '',
+      dataInstalacao: a.dataInstalacao ?? "",
+      vidaUtil: a.vidaUtil?.toString() ?? "",
       vidaUtilUnidade: a.vidaUtilUnidade,
       responsavel: a.responsavel,
-      observacoes: a.observacoes
+      observacoes: a.observacoes,
     });
     setAberto(true);
   }
@@ -398,15 +501,15 @@ function AbaAtivos({
     try {
       if (editandoId) {
         await atualizar(editandoId, form);
-        toast.success('Ativo atualizado');
+        toast.success("Ativo atualizado");
       } else {
         await criar(form);
-        toast.success('Ativo cadastrado');
+        toast.success("Ativo cadastrado");
       }
       cancelar();
       recarregar();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }
@@ -421,7 +524,9 @@ function AbaAtivos({
       </div>
       <FormModal
         aberto={aberto}
-        titulo={editandoId ? 'Editar equipamento / área' : 'Novo equipamento / área'}
+        titulo={
+          editandoId ? "Editar equipamento / área" : "Novo equipamento / área"
+        }
         onFechar={cancelar}
         salvando={saving}
         className="sm:max-w-3xl"
@@ -429,52 +534,108 @@ function AbaAtivos({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Código" htmlFor="a-codigo">
-              <Input id="a-codigo" value={form.codigo} onChange={(e) => set('codigo', e.target.value)} required />
+              <Input
+                id="a-codigo"
+                value={form.codigo}
+                onChange={(e) => set("codigo", e.target.value)}
+                required
+              />
             </Field>
             <Field label="Equipamento / Área" htmlFor="a-nome">
-              <Input id="a-nome" value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
+              <Input
+                id="a-nome"
+                value={form.nome}
+                onChange={(e) => set("nome", e.target.value)}
+                required
+              />
             </Field>
             <Field label="Categoria" htmlFor="a-cat">
-              <select id="a-cat" className={selectCls} value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
+              <select
+                id="a-cat"
+                className={selectCls}
+                value={form.categoria}
+                onChange={(e) => set("categoria", e.target.value)}
+              >
                 {Object.entries(LABEL.categoria).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Localização" htmlFor="a-local">
-              <Input id="a-local" value={form.localizacao} onChange={(e) => set('localizacao', e.target.value)} />
+              <Input
+                id="a-local"
+                value={form.localizacao}
+                onChange={(e) => set("localizacao", e.target.value)}
+              />
             </Field>
             <Field label="Fabricante / Modelo" htmlFor="a-fab">
-              <Input id="a-fab" value={form.fabricanteModelo} onChange={(e) => set('fabricanteModelo', e.target.value)} />
+              <Input
+                id="a-fab"
+                value={form.fabricanteModelo}
+                onChange={(e) => set("fabricanteModelo", e.target.value)}
+              />
             </Field>
             <Field label="Nº Série / Patrimônio" htmlFor="a-serie">
-              <Input id="a-serie" value={form.numeroSerie} onChange={(e) => set('numeroSerie', e.target.value)} />
+              <Input
+                id="a-serie"
+                value={form.numeroSerie}
+                onChange={(e) => set("numeroSerie", e.target.value)}
+              />
             </Field>
             <Field label="Data de instalação">
-              <DatePicker value={form.dataInstalacao} onChange={(v) => set('dataInstalacao', v)} />
+              <DatePicker
+                value={form.dataInstalacao}
+                onChange={(v) => set("dataInstalacao", v)}
+              />
             </Field>
             <Field label="Vida útil" htmlFor="a-vida">
               <div className="flex gap-2">
-                <Input id="a-vida" type="number" min={0} value={form.vidaUtil} onChange={(e) => set('vidaUtil', e.target.value)} />
-                <select aria-label="Unidade da vida útil" className={selectCls} value={form.vidaUtilUnidade} onChange={(e) => set('vidaUtilUnidade', e.target.value)}>
+                <Input
+                  id="a-vida"
+                  type="number"
+                  min={0}
+                  value={form.vidaUtil}
+                  onChange={(e) => set("vidaUtil", e.target.value)}
+                />
+                <select
+                  aria-label="Unidade da vida útil"
+                  className={selectCls}
+                  value={form.vidaUtilUnidade}
+                  onChange={(e) => set("vidaUtilUnidade", e.target.value)}
+                >
                   {Object.entries(LABEL.unidadeTempo).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
                   ))}
                 </select>
               </div>
             </Field>
             <Field label="Responsável" htmlFor="a-resp">
-              <Input id="a-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
+              <Input
+                id="a-resp"
+                value={form.responsavel}
+                onChange={(e) => set("responsavel", e.target.value)}
+              />
             </Field>
           </div>
           <Field label="Observações" htmlFor="a-obs">
-            <Textarea id="a-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+            <Textarea
+              id="a-obs"
+              rows={2}
+              value={form.observacoes}
+              onChange={(e) => set("observacoes", e.target.value)}
+            />
           </Field>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={cancelar}>
+              Cancelar
+            </Button>
             <Button type="submit" variant="brand" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editandoId ? 'Salvar' : 'Cadastrar'}
+              {editandoId ? "Salvar" : "Cadastrar"}
             </Button>
           </div>
         </form>
@@ -493,22 +654,41 @@ function AbaAtivos({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {LABEL.categoria[a.categoria] ?? a.categoria}
-                  {a.localizacao ? ` · ${a.localizacao}` : ''}
+                  {a.localizacao ? ` · ${a.localizacao}` : ""}
                 </p>
                 {(a.fabricanteModelo || a.numeroSerie) && (
                   <p className="text-xs text-muted-foreground">
-                    {[a.fabricanteModelo, a.numeroSerie].filter(Boolean).join(' · ')}
+                    {[a.fabricanteModelo, a.numeroSerie]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {a.dataInstalacao ? `Instalado em ${dataCurta(a.dataInstalacao)}` : 'Sem data de instalação'}
-                  {a.vidaUtil ? ` · vida útil ${duracaoTexto(a.vidaUtil, a.vidaUtilUnidade)}` : ''}
+                  {a.dataInstalacao
+                    ? `Instalado em ${dataCurta(a.dataInstalacao)}`
+                    : "Sem data de instalação"}
+                  {a.vidaUtil
+                    ? ` · vida útil ${duracaoTexto(
+                        a.vidaUtil,
+                        a.vidaUtilUnidade
+                      )}`
+                    : ""}
                 </p>
-                {a.responsavel && <p className="text-xs text-muted-foreground">Responsável: {a.responsavel}</p>}
+                {a.responsavel && (
+                  <p className="text-xs text-muted-foreground">
+                    Responsável: {a.responsavel}
+                  </p>
+                )}
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" onClick={() => editar(a)}>Editar</Button>
+                  <Button size="sm" variant="outline" onClick={() => editar(a)}>
+                    Editar
+                  </Button>
                   <AsyncConfirmDialog
-                    trigger={<Button size="sm" variant="ghost">Remover</Button>}
+                    trigger={
+                      <Button size="sm" variant="ghost">
+                        Remover
+                      </Button>
+                    }
                     title={`Remover ${a.nome}?`}
                     confirmLabel="Remover"
                     confirmVariant="destructive"
@@ -538,7 +718,7 @@ function AbaPlano({
   notificar,
   remover,
   recarregar,
-  irParaPrestadores
+  irParaPrestadores,
 }: {
   manutencoes: Manutencao[];
   ativos: Ativo[];
@@ -566,7 +746,7 @@ function AbaPlano({
       ...f,
       prestadorIds: f.prestadorIds.includes(id)
         ? f.prestadorIds.filter((p: string) => p !== id)
-        : [...f.prestadorIds, id]
+        : [...f.prestadorIds, id],
     }));
   }
 
@@ -574,7 +754,7 @@ function AbaPlano({
     setEditandoId(m.id);
     setForm({
       prestadorIds: m.prestadores.map((p) => p.id),
-      ativoId: m.ativoId ?? '',
+      ativoId: m.ativoId ?? "",
       titulo: m.titulo,
       descricao: m.descricao,
       ultimaManutencao: m.ultimaManutencao,
@@ -584,8 +764,8 @@ function AbaPlano({
       tipo: m.tipo,
       prioridade: m.prioridade,
       statusManual: m.statusManual,
-      custoPrevisto: m.custoPrevisto?.toString() ?? '',
-      numeroOs: m.numeroOs ?? ''
+      custoPrevisto: m.custoPrevisto?.toString() ?? "",
+      numeroOs: m.numeroOs ?? "",
     });
     setAberto(true);
   }
@@ -599,19 +779,23 @@ function AbaPlano({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const payload = { ...form, frequenciaIntervalo: Number(form.frequenciaIntervalo), diasAntecedencia: Number(form.diasAntecedencia) };
+    const payload = {
+      ...form,
+      frequenciaIntervalo: Number(form.frequenciaIntervalo),
+      diasAntecedencia: Number(form.diasAntecedencia),
+    };
     try {
       if (editandoId) {
         await atualizar(editandoId, payload);
-        toast.success('Plano atualizado');
+        toast.success("Plano atualizado");
       } else {
         await criar(payload);
-        toast.success('Plano de manutenção criado');
+        toast.success("Plano de manutenção criado");
       }
       cancelar();
       recarregar();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }
@@ -637,125 +821,236 @@ function AbaPlano({
               <Plus className="h-4 w-4" /> Novo plano de manutenção
             </Button>
           </div>
-        <FormModal
-          aberto={aberto}
-          titulo={editandoId ? 'Editar plano' : 'Novo plano de manutenção'}
-          onFechar={cancelar}
-          salvando={saving}
-          className="sm:max-w-3xl"
-        >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Atividade / Serviço" htmlFor="p-titulo">
-                <Input id="p-titulo" value={form.titulo} onChange={(e) => set('titulo', e.target.value)} required />
-              </Field>
-              <Field label="Equipamento / Área" htmlFor="p-ativo">
-                <select id="p-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
-                  <option value="">Sem vínculo</option>
-                  {ativos.map((a) => (
-                    <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Última manutenção *" hint="Base para calcular a próxima data.">
-                <DatePicker value={form.ultimaManutencao} onChange={(v) => set('ultimaManutencao', v)} />
-              </Field>
-            </div>
-
-            <Field
-              label="Responsáveis / Empresas"
-              htmlFor="p-prest-0"
-              hint="Pode marcar mais de um (ex.: a empresa e o técnico)."
-            >
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-3">
-                {prestadores.map((p, i) => (
-                  <label key={p.id} htmlFor={`p-prest-${i}`} className="flex items-center gap-2 text-sm">
-                    <input
-                      id={`p-prest-${i}`}
-                      type="checkbox"
-                      className="h-4 w-4 accent-primary"
-                      checked={form.prestadorIds.includes(p.id)}
-                      onChange={() => alternarPrestador(p.id)}
-                    />
-                    {p.nome}
-                    {p.empresa && <span className="text-muted-foreground">— {p.empresa}</span>}
-                  </label>
-                ))}
-              </div>
-            </Field>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Periodicidade" htmlFor="p-freq">
-                <select id="p-freq" className={selectCls} value={form.frequenciaUnidade} onChange={(e) => set('frequenciaUnidade', e.target.value)}>
-                  <option value="semanal">Semanal</option>
-                  <option value="mensal">Mensal</option>
-                  <option value="anual">Anual</option>
-                </select>
-              </Field>
-              <Field label="A cada quantos" htmlFor="p-int" hint={frequenciaTexto(form.frequenciaUnidade, Number(form.frequenciaIntervalo))}>
-                <Input id="p-int" type="number" min={1} value={form.frequenciaIntervalo} onChange={(e) => set('frequenciaIntervalo', e.target.value)} required />
-              </Field>
-            </div>
-
-            <details className="group rounded-md border border-border px-4 py-3">
-              <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground">
-                Mais opções <span className="font-normal">(tipo, prioridade, aviso, custo, observações)</span>
-              </summary>
-              <div className="mt-4 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <Field label="Tipo" htmlFor="p-tipo">
-                    <select id="p-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                      {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Prioridade" htmlFor="p-prio">
-                    <select id="p-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
-                      {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Status" htmlFor="p-status">
-                    <select id="p-status" className={selectCls} value={form.statusManual} onChange={(e) => set('statusManual', e.target.value)}>
-                      {Object.entries(LABEL.statusPlano).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Avisar (dias de antecedência)" htmlFor="p-ant">
-                    <Input id="p-ant" type="number" min={0} value={form.diasAntecedencia} onChange={(e) => set('diasAntecedencia', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Custo previsto (R$)" htmlFor="p-custo">
-                    <Input id="p-custo" type="number" step="0.01" min="0" value={form.custoPrevisto} onChange={(e) => set('custoPrevisto', e.target.value)} />
-                  </Field>
-                  <Field label="Nº OS / Contrato" htmlFor="p-os">
-                    <Input id="p-os" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
-                  </Field>
-                </div>
-                <Field label="Observações" htmlFor="p-desc">
-                  <Textarea id="p-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} />
+          <FormModal
+            aberto={aberto}
+            titulo={editandoId ? "Editar plano" : "Novo plano de manutenção"}
+            onFechar={cancelar}
+            salvando={saving}
+            className="sm:max-w-3xl"
+          >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Atividade / Serviço" htmlFor="p-titulo">
+                  <Input
+                    id="p-titulo"
+                    value={form.titulo}
+                    onChange={(e) => set("titulo", e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Equipamento / Área" htmlFor="p-ativo">
+                  <select
+                    id="p-ativo"
+                    className={selectCls}
+                    value={form.ativoId}
+                    onChange={(e) => set("ativoId", e.target.value)}
+                  >
+                    <option value="">Sem vínculo</option>
+                    {ativos.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.codigo} — {a.nome}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field
+                  label="Última manutenção *"
+                  hint="Base para calcular a próxima data."
+                >
+                  <DatePicker
+                    value={form.ultimaManutencao}
+                    onChange={(v) => set("ultimaManutencao", v)}
+                  />
                 </Field>
               </div>
-            </details>
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
-              <Button type="submit" variant="brand" disabled={saving || !form.ultimaManutencao || form.prestadorIds.length === 0}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editandoId ? 'Salvar' : 'Criar plano'}
-              </Button>
-            </div>
-          </form>
-        </FormModal>
+              <Field
+                label="Responsáveis / Empresas"
+                htmlFor="p-prest-0"
+                hint="Pode marcar mais de um (ex.: a empresa e o técnico)."
+              >
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                  {prestadores.map((p, i) => (
+                    <label
+                      key={p.id}
+                      htmlFor={`p-prest-${i}`}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        id={`p-prest-${i}`}
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={form.prestadorIds.includes(p.id)}
+                        onChange={() => alternarPrestador(p.id)}
+                      />
+                      {p.nome}
+                      {p.empresa && (
+                        <span className="text-muted-foreground">
+                          — {p.empresa}
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Periodicidade" htmlFor="p-freq">
+                  <select
+                    id="p-freq"
+                    className={selectCls}
+                    value={form.frequenciaUnidade}
+                    onChange={(e) => set("frequenciaUnidade", e.target.value)}
+                  >
+                    <option value="semanal">Semanal</option>
+                    <option value="mensal">Mensal</option>
+                    <option value="anual">Anual</option>
+                  </select>
+                </Field>
+                <Field
+                  label="A cada quantos"
+                  htmlFor="p-int"
+                  hint={frequenciaTexto(
+                    form.frequenciaUnidade,
+                    Number(form.frequenciaIntervalo)
+                  )}
+                >
+                  <Input
+                    id="p-int"
+                    type="number"
+                    min={1}
+                    value={form.frequenciaIntervalo}
+                    onChange={(e) => set("frequenciaIntervalo", e.target.value)}
+                    required
+                  />
+                </Field>
+              </div>
+
+              <details className="group rounded-md border border-border px-4 py-3">
+                <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground">
+                  Mais opções{" "}
+                  <span className="font-normal">
+                    (tipo, prioridade, aviso, custo, observações)
+                  </span>
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Field label="Tipo" htmlFor="p-tipo">
+                      <select
+                        id="p-tipo"
+                        className={selectCls}
+                        value={form.tipo}
+                        onChange={(e) => set("tipo", e.target.value)}
+                      >
+                        {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
+                          <option key={v} value={v}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Prioridade" htmlFor="p-prio">
+                      <select
+                        id="p-prio"
+                        className={selectCls}
+                        value={form.prioridade}
+                        onChange={(e) => set("prioridade", e.target.value)}
+                      >
+                        {Object.entries(LABEL.prioridadeManutencao).map(
+                          ([v, l]) => (
+                            <option key={v} value={v}>
+                              {l}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </Field>
+                    <Field label="Status" htmlFor="p-status">
+                      <select
+                        id="p-status"
+                        className={selectCls}
+                        value={form.statusManual}
+                        onChange={(e) => set("statusManual", e.target.value)}
+                      >
+                        {Object.entries(LABEL.statusPlano).map(([v, l]) => (
+                          <option key={v} value={v}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field
+                      label="Avisar (dias de antecedência)"
+                      htmlFor="p-ant"
+                    >
+                      <Input
+                        id="p-ant"
+                        type="number"
+                        min={0}
+                        value={form.diasAntecedencia}
+                        onChange={(e) =>
+                          set("diasAntecedencia", e.target.value)
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Custo previsto (R$)" htmlFor="p-custo">
+                      <Input
+                        id="p-custo"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.custoPrevisto}
+                        onChange={(e) => set("custoPrevisto", e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Nº OS / Contrato" htmlFor="p-os">
+                      <Input
+                        id="p-os"
+                        value={form.numeroOs}
+                        onChange={(e) => set("numeroOs", e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                  <Field label="Observações" htmlFor="p-desc">
+                    <Textarea
+                      id="p-desc"
+                      rows={2}
+                      value={form.descricao}
+                      onChange={(e) => set("descricao", e.target.value)}
+                    />
+                  </Field>
+                </div>
+              </details>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={cancelar}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="brand"
+                  disabled={
+                    saving ||
+                    !form.ultimaManutencao ||
+                    form.prestadorIds.length === 0
+                  }
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editandoId ? "Salvar" : "Criar plano"}
+                </Button>
+              </div>
+            </form>
+          </FormModal>
         </>
       )}
 
       {manutencoes.length === 0 ? (
-        <EmptyState icon={CalendarClock} title="Nenhum plano de manutenção cadastrado" />
+        <EmptyState
+          icon={CalendarClock}
+          title="Nenhum plano de manutenção cadastrado"
+        />
       ) : (
         <div className="space-y-3">
           {[...manutencoes].sort(porUrgencia).map((m) => (
@@ -764,34 +1059,42 @@ function AbaPlano({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">{m.titulo}</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{LABEL.tipoManutencao[m.tipo]}</Badge>
+                    <Badge variant="outline">
+                      {LABEL.tipoManutencao[m.tipo]}
+                    </Badge>
                     <PrioridadeBadge nivel={m.prioridade} />
                     <StatusBadge status={m.statusManual} />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {m.ativoNome ? `${m.ativoNome} · ` : ''}
-                  {m.prestadorNome} · {frequenciaTexto(m.frequenciaUnidade, m.frequenciaIntervalo)}
+                  {m.ativoNome ? `${m.ativoNome} · ` : ""}
+                  {m.prestadorNome} ·{" "}
+                  {frequenciaTexto(m.frequenciaUnidade, m.frequenciaIntervalo)}
                 </p>
                 <p className="text-sm">
-                  Última: <strong>{dataCurta(m.ultimaManutencao)}</strong> · Próxima:{' '}
-                  <strong>{dataCurta(m.proximaManutencao)}</strong>{' '}
-                  <span className="text-muted-foreground">({prazoTexto(m.diasParaProxima)})</span>
-                  {' · '}
-                  <StatusBadge status={m.status ?? 'em_dia'} />
+                  Última: <strong>{dataCurta(m.ultimaManutencao)}</strong> ·
+                  Próxima: <strong>{dataCurta(m.proximaManutencao)}</strong>{" "}
+                  <span className="text-muted-foreground">
+                    ({prazoTexto(m.diasParaProxima)})
+                  </span>
+                  {" · "}
+                  <StatusBadge status={m.status ?? "em_dia"} />
                 </p>
                 {(m.custoPrevisto || m.numeroOs) && (
                   <p className="text-xs text-muted-foreground">
-                    {m.custoPrevisto ? `Custo previsto: ${moeda(m.custoPrevisto)}` : ''}
-                    {m.custoPrevisto && m.numeroOs ? ' · ' : ''}
-                    {m.numeroOs ? `OS/Contrato: ${m.numeroOs}` : ''}
+                    {m.custoPrevisto
+                      ? `Custo previsto: ${moeda(m.custoPrevisto)}`
+                      : ""}
+                    {m.custoPrevisto && m.numeroOs ? " · " : ""}
+                    {m.numeroOs ? `OS/Contrato: ${m.numeroOs}` : ""}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2 pt-1">
                   <AsyncConfirmDialog
                     trigger={
                       <Button size="sm">
-                        <CheckCircle2 className="h-4 w-4" /> Registrar como feita
+                        <CheckCircle2 className="h-4 w-4" /> Registrar como
+                        feita
                       </Button>
                     }
                     title="Registrar manutenção como feita hoje?"
@@ -808,19 +1111,41 @@ function AbaPlano({
                       setEnviandoId(m.id);
                       notificar(m.id)
                         .then((r: any) => {
-                          const para = Array.isArray(r?.para) ? r.para.join(', ') : r?.para;
-                          toast.success(r?.simulado ? `E-mail simulado para ${para}` : `E-mail enviado para ${para}`);
+                          const para = Array.isArray(r?.para)
+                            ? r.para.join(", ")
+                            : r?.para;
+                          toast.success(
+                            r?.simulado
+                              ? `E-mail simulado para ${para}`
+                              : `E-mail enviado para ${para}`
+                          );
                         })
-                        .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar'))
+                        .catch((err: unknown) =>
+                          toast.error(
+                            err instanceof Error
+                              ? err.message
+                              : "Erro ao enviar"
+                          )
+                        )
                         .finally(() => setEnviandoId(null));
                     }}
                   >
-                    {enviandoId === m.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{' '}
+                    {enviandoId === m.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}{" "}
                     Enviar e-mail agora
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => editar(m)}>Editar</Button>
+                  <Button size="sm" variant="outline" onClick={() => editar(m)}>
+                    Editar
+                  </Button>
                   <AsyncConfirmDialog
-                    trigger={<Button size="sm" variant="ghost">Remover</Button>}
+                    trigger={
+                      <Button size="sm" variant="ghost">
+                        Remover
+                      </Button>
+                    }
                     title={`Remover "${m.titulo}"?`}
                     confirmLabel="Remover"
                     confirmVariant="destructive"
@@ -830,14 +1155,19 @@ function AbaPlano({
                 </div>
                 {m.historico?.length > 0 && (
                   <details className="pt-1 text-xs text-muted-foreground">
-                    <summary className="cursor-pointer select-none">Histórico ({m.historico.length})</summary>
+                    <summary className="cursor-pointer select-none">
+                      Histórico ({m.historico.length})
+                    </summary>
                     <ul className="mt-1 space-y-1 border-l border-border pl-3">
                       {[...m.historico]
                         .reverse()
                         .slice(0, 8)
                         .map((h, i) => (
                           <li key={i}>
-                            {h.tipo === 'realizada' ? '✅ Realizada' : '✉️ Lembrete'} — {dataCurta(h.data)} · {h.detalhe}
+                            {h.tipo === "realizada"
+                              ? "✅ Realizada"
+                              : "✉️ Lembrete"}{" "}
+                            — {dataCurta(h.data)} · {h.detalhe}
                           </li>
                         ))}
                     </ul>
@@ -865,7 +1195,7 @@ function AbaOrdens({
   listarAnexos,
   adicionarAnexo,
   removerAnexo,
-  anexoUrl
+  anexoUrl,
 }: {
   ordens: OrdemServico[];
   ativos: Ativo[];
@@ -874,7 +1204,10 @@ function AbaOrdens({
   remover: (id: string) => Promise<void>;
   recarregar: () => void;
   listarAnexos: (id: string) => Promise<OrdemServicoAnexo[]>;
-  adicionarAnexo: (id: string, dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }) => Promise<void>;
+  adicionarAnexo: (
+    id: string,
+    dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }
+  ) => Promise<void>;
   removerAnexo: (id: string, anexoId: string) => Promise<void>;
   anexoUrl: (id: string, anexoId: string) => Promise<string>;
 }) {
@@ -890,10 +1223,10 @@ function AbaOrdens({
   function editar(o: OrdemServico) {
     setEditandoId(o.id);
     setForm({
-      numeroOs: o.numeroOs ?? '',
+      numeroOs: o.numeroOs ?? "",
       dataAbertura: o.dataAbertura,
-      dataExecucao: o.dataExecucao ?? '',
-      ativoId: o.ativoId ?? '',
+      dataExecucao: o.dataExecucao ?? "",
+      ativoId: o.ativoId ?? "",
       tipo: o.tipo,
       descricao: o.descricao,
       diagnostico: o.diagnostico,
@@ -901,9 +1234,9 @@ function AbaOrdens({
       responsavel: o.responsavel,
       prioridade: o.prioridade,
       status: o.status,
-      custoMaterial: o.custoMaterial ? String(o.custoMaterial) : '',
-      custoMaoDeObra: o.custoMaoDeObra ? String(o.custoMaoDeObra) : '',
-      observacoes: o.observacoes
+      custoMaterial: o.custoMaterial ? String(o.custoMaterial) : "",
+      custoMaoDeObra: o.custoMaoDeObra ? String(o.custoMaoDeObra) : "",
+      observacoes: o.observacoes,
     });
     setAberto(true);
   }
@@ -920,15 +1253,15 @@ function AbaOrdens({
     try {
       if (editandoId) {
         await atualizar(editandoId, form);
-        toast.success('Ordem de serviço atualizada');
+        toast.success("Ordem de serviço atualizada");
       } else {
         await criar(form);
-        toast.success('Ordem de serviço registrada');
+        toast.success("Ordem de serviço registrada");
       }
       cancelar();
       recarregar();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }
@@ -943,100 +1276,190 @@ function AbaOrdens({
       </div>
       <FormModal
         aberto={aberto}
-        titulo={editandoId ? 'Editar ordem de serviço' : 'Nova ordem de serviço'}
+        titulo={
+          editandoId ? "Editar ordem de serviço" : "Nova ordem de serviço"
+        }
         onFechar={cancelar}
         salvando={saving}
         className="sm:max-w-3xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Nº OS" htmlFor="o-numero">
-              <Input id="o-numero" value={form.numeroOs} onChange={(e) => set('numeroOs', e.target.value)} />
+            <Field label="Nº OS/NF" htmlFor="o-numero">
+              <Input
+                id="o-numero"
+                value={form.numeroOs}
+                onChange={(e) => set("numeroOs", e.target.value)}
+              />
             </Field>
             <Field label="Data de abertura">
-              <DatePicker value={form.dataAbertura} onChange={(v) => set('dataAbertura', v)} />
+              <DatePicker
+                value={form.dataAbertura}
+                onChange={(v) => set("dataAbertura", v)}
+              />
             </Field>
             <Field label="Data de execução">
-              <DatePicker value={form.dataExecucao} onChange={(v) => set('dataExecucao', v)} />
+              <DatePicker
+                value={form.dataExecucao}
+                onChange={(v) => set("dataExecucao", v)}
+              />
             </Field>
             <Field label="Equipamento / Área" htmlFor="o-ativo">
-              <select id="o-ativo" className={selectCls} value={form.ativoId} onChange={(e) => set('ativoId', e.target.value)}>
+              <select
+                id="o-ativo"
+                className={selectCls}
+                value={form.ativoId}
+                onChange={(e) => set("ativoId", e.target.value)}
+              >
                 <option value="">Sem vínculo</option>
                 {ativos.map((a) => (
-                  <option key={a.id} value={a.id}>{a.codigo} — {a.nome}</option>
+                  <option key={a.id} value={a.id}>
+                    {a.codigo} — {a.nome}
+                  </option>
                 ))}
               </select>
             </Field>
           </div>
 
           <Field label="Descrição da ocorrência / serviço" htmlFor="o-desc">
-            <Textarea id="o-desc" rows={2} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} required />
+            <Textarea
+              id="o-desc"
+              rows={2}
+              value={form.descricao}
+              onChange={(e) => set("descricao", e.target.value)}
+              required
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Diagnóstico / Causa" htmlFor="o-diag">
-              <Textarea id="o-diag" rows={2} value={form.diagnostico} onChange={(e) => set('diagnostico', e.target.value)} />
+              <Textarea
+                id="o-diag"
+                rows={2}
+                value={form.diagnostico}
+                onChange={(e) => set("diagnostico", e.target.value)}
+              />
             </Field>
             <Field label="Ação executada" htmlFor="o-acao">
-              <Textarea id="o-acao" rows={2} value={form.acaoExecutada} onChange={(e) => set('acaoExecutada', e.target.value)} />
+              <Textarea
+                id="o-acao"
+                rows={2}
+                value={form.acaoExecutada}
+                onChange={(e) => set("acaoExecutada", e.target.value)}
+              />
             </Field>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Tipo" htmlFor="o-tipo">
-              <select id="o-tipo" className={selectCls} value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
+              <select
+                id="o-tipo"
+                className={selectCls}
+                value={form.tipo}
+                onChange={(e) => set("tipo", e.target.value)}
+              >
                 {Object.entries(LABEL.tipoManutencao).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Prioridade" htmlFor="o-prio">
-              <select id="o-prio" className={selectCls} value={form.prioridade} onChange={(e) => set('prioridade', e.target.value)}>
+              <select
+                id="o-prio"
+                className={selectCls}
+                value={form.prioridade}
+                onChange={(e) => set("prioridade", e.target.value)}
+              >
                 {Object.entries(LABEL.prioridadeManutencao).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Status" htmlFor="o-status">
-              <select id="o-status" className={selectCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
+              <select
+                id="o-status"
+                className={selectCls}
+                value={form.status}
+                onChange={(e) => set("status", e.target.value)}
+              >
                 {Object.entries(LABEL.statusPlano).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Responsável / Empresa" htmlFor="o-resp">
-              <Input id="o-resp" value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} />
+              <Input
+                id="o-resp"
+                value={form.responsavel}
+                onChange={(e) => set("responsavel", e.target.value)}
+              />
             </Field>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Custo material (R$)" htmlFor="o-mat">
-              <Input id="o-mat" type="number" step="0.01" min="0" value={form.custoMaterial} onChange={(e) => set('custoMaterial', e.target.value)} />
+              <Input
+                id="o-mat"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.custoMaterial}
+                onChange={(e) => set("custoMaterial", e.target.value)}
+              />
             </Field>
             <Field label="Custo mão de obra (R$)" htmlFor="o-mao">
-              <Input id="o-mao" type="number" step="0.01" min="0" value={form.custoMaoDeObra} onChange={(e) => set('custoMaoDeObra', e.target.value)} />
+              <Input
+                id="o-mao"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.custoMaoDeObra}
+                onChange={(e) => set("custoMaoDeObra", e.target.value)}
+              />
             </Field>
             <Field label="Custo total (R$)">
-              <Input value={moeda(Number(form.custoMaterial || 0) + Number(form.custoMaoDeObra || 0))} disabled />
+              <Input
+                value={moeda(
+                  Number(form.custoMaterial || 0) +
+                    Number(form.custoMaoDeObra || 0)
+                )}
+                disabled
+              />
             </Field>
           </div>
 
           <Field label="Observações" htmlFor="o-obs">
-            <Textarea id="o-obs" rows={2} value={form.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+            <Textarea
+              id="o-obs"
+              rows={2}
+              value={form.observacoes}
+              onChange={(e) => set("observacoes", e.target.value)}
+            />
           </Field>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={cancelar}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={cancelar}>
+              Cancelar
+            </Button>
             <Button type="submit" variant="brand" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editandoId ? 'Salvar' : 'Registrar'}
+              {editandoId ? "Salvar" : "Registrar"}
             </Button>
           </div>
         </form>
       </FormModal>
 
       {ordens.length === 0 ? (
-        <EmptyState icon={ClipboardList} title="Nenhuma ordem de serviço registrada" />
+        <EmptyState
+          icon={ClipboardList}
+          title="Nenhuma ordem de serviço registrada"
+        />
       ) : (
         <div className="space-y-3">
           {ordens.map((o) => (
@@ -1044,25 +1467,38 @@ function AbaOrdens({
               <CardContent className="space-y-2 pt-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">
-                    {o.numeroOs ? `OS ${o.numeroOs} · ` : ''}
+                    {o.numeroOs ? `OS ${o.numeroOs} · ` : ""}
                     {o.descricao}
                   </p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{LABEL.tipoManutencao[o.tipo]}</Badge>
+                    <Badge variant="outline">
+                      {LABEL.tipoManutencao[o.tipo]}
+                    </Badge>
                     <PrioridadeBadge nivel={o.prioridade} />
                     <StatusBadge status={o.status} />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {o.ativoNome ? `${o.ativoNome} · ` : ''}
+                  {o.ativoNome ? `${o.ativoNome} · ` : ""}
                   Aberta {dataCurta(o.dataAbertura)}
-                  {o.dataExecucao ? ` · executada ${dataCurta(o.dataExecucao)}` : ''}
-                  {o.responsavel ? ` · ${o.responsavel}` : ''}
+                  {o.dataExecucao
+                    ? ` · executada ${dataCurta(o.dataExecucao)}`
+                    : ""}
+                  {o.responsavel ? ` · ${o.responsavel}` : ""}
                 </p>
-                {o.diagnostico && <p className="text-xs text-muted-foreground">Diagnóstico: {o.diagnostico}</p>}
-                {o.acaoExecutada && <p className="text-xs text-muted-foreground">Ação: {o.acaoExecutada}</p>}
+                {o.diagnostico && (
+                  <p className="text-xs text-muted-foreground">
+                    Diagnóstico: {o.diagnostico}
+                  </p>
+                )}
+                {o.acaoExecutada && (
+                  <p className="text-xs text-muted-foreground">
+                    Ação: {o.acaoExecutada}
+                  </p>
+                )}
                 <p className="text-sm font-medium">
-                  Material {moeda(o.custoMaterial)} + mão de obra {moeda(o.custoMaoDeObra)} = total {moeda(o.custoTotal)}
+                  Material {moeda(o.custoMaterial)} + mão de obra{" "}
+                  {moeda(o.custoMaoDeObra)} = total {moeda(o.custoTotal)}
                 </p>
                 <Anexos
                   ordemId={o.id}
@@ -1072,9 +1508,15 @@ function AbaOrdens({
                   anexoUrl={anexoUrl}
                 />
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" onClick={() => editar(o)}>Editar</Button>
+                  <Button size="sm" variant="outline" onClick={() => editar(o)}>
+                    Editar
+                  </Button>
                   <AsyncConfirmDialog
-                    trigger={<Button size="sm" variant="ghost">Remover</Button>}
+                    trigger={
+                      <Button size="sm" variant="ghost">
+                        Remover
+                      </Button>
+                    }
                     title="Remover esta ordem de serviço?"
                     confirmLabel="Remover"
                     confirmVariant="destructive"
@@ -1097,16 +1539,19 @@ function Anexos({
   listarAnexos,
   adicionarAnexo,
   removerAnexo,
-  anexoUrl
+  anexoUrl,
 }: {
   ordemId: string;
   listarAnexos: (id: string) => Promise<OrdemServicoAnexo[]>;
-  adicionarAnexo: (id: string, dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }) => Promise<void>;
+  adicionarAnexo: (
+    id: string,
+    dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }
+  ) => Promise<void>;
   removerAnexo: (id: string, anexoId: string) => Promise<void>;
   anexoUrl: (id: string, anexoId: string) => Promise<string>;
 }) {
   const [anexos, setAnexos] = useState<OrdemServicoAnexo[] | null>(null);
-  const [tipo, setTipo] = useState<TipoAnexoOs>('nota_fiscal');
+  const [tipo, setTipo] = useState<TipoAnexoOs>("nota_fiscal");
   const [enviando, setEnviando] = useState(false);
   const [removendoId, setRemovendoId] = useState<string | null>(null);
 
@@ -1125,10 +1570,16 @@ function Anexos({
     setEnviando(true);
     try {
       const dataUrl = await lerComoDataUrl(arquivo);
-      await adicionarAnexo(ordemId, { tipo, nome: arquivo.name, arquivo: dataUrl });
+      await adicionarAnexo(ordemId, {
+        tipo,
+        nome: arquivo.name,
+        arquivo: dataUrl,
+      });
       recarregar();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao anexar arquivo');
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao anexar arquivo"
+      );
     } finally {
       setEnviando(false);
     }
@@ -1140,7 +1591,7 @@ function Anexos({
       await removerAnexo(ordemId, anexoId);
       recarregar();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao remover');
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     } finally {
       setRemovendoId(null);
     }
@@ -1148,9 +1599,11 @@ function Anexos({
 
   async function abrir(anexoId: string) {
     try {
-      window.open(await anexoUrl(ordemId, anexoId), '_blank');
+      window.open(await anexoUrl(ordemId, anexoId), "_blank");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao abrir o arquivo');
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao abrir o arquivo"
+      );
     }
   }
 
@@ -1165,7 +1618,10 @@ function Anexos({
         anexos.length > 0 && (
           <ul className="space-y-1">
             {anexos.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-2 text-sm">
+              <li
+                key={a.id}
+                className="flex items-center justify-between gap-2 text-sm"
+              >
                 <button
                   type="button"
                   onClick={() => abrir(a.id)}
@@ -1183,7 +1639,11 @@ function Anexos({
                   aria-label={`Remover ${a.nome}`}
                   className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-destructive disabled:opacity-50"
                 >
-                  {removendoId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                  {removendoId === a.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <X className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </li>
             ))}
@@ -1192,16 +1652,26 @@ function Anexos({
       )}
       <div className="flex flex-wrap items-center gap-2">
         <select
-          className={selectCls + ' w-auto'}
+          className={selectCls + " w-auto"}
           value={tipo}
           onChange={(e) => setTipo(e.target.value as TipoAnexoOs)}
         >
           <option value="nota_fiscal">Nota fiscal</option>
           <option value="orcamento">Orçamento</option>
         </select>
-        <Button type="button" size="sm" variant="outline" disabled={enviando} asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={enviando}
+          asChild
+        >
           <label htmlFor={`anexo-${ordemId}`} className="cursor-pointer">
-            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            {enviando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Paperclip className="h-4 w-4" />
+            )}
             Anexar arquivo
           </label>
         </Button>
@@ -1212,7 +1682,7 @@ function Anexos({
           className="sr-only"
           onChange={(e) => {
             escolherArquivo(e.target.files?.[0]);
-            e.target.value = '';
+            e.target.value = "";
           }}
         />
       </div>

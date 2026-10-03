@@ -561,7 +561,8 @@ export interface Assembleia extends Omit<AssembleiaResumo, 'pautas'> {
     id: string;
     criadoEm: string;
     unidadeOutorgante: { id: string; numero: string; bloco: string };
-    unidadeProcuradora: { id: string; numero: string; bloco: string };
+    procuradorNome: string;
+    procuradorCpf: string;
   }[];
   /** Só síndico, com a assembleia aberta: código de check-in fixo (não muda). */
   codigo?: string;
