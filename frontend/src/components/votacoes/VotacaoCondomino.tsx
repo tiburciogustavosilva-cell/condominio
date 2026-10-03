@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Andamento } from './Placar';
+import { Placar } from './Placar';
 import { ResultadoPauta } from './ResultadoPauta';
 
 type Acoes = ReturnType<typeof useAssembleia>;
@@ -66,7 +66,7 @@ export function VotacaoCondomino({ assembleia: a, acoes }: { assembleia: Assembl
           <CardContent className="space-y-3 pt-5">
             <p className="text-sm font-semibold uppercase tracking-wide text-success">Sua unidade já votou</p>
             <p className="text-lg font-semibold">{p.titulo}</p>
-            <Andamento pauta={p} presentes={a.presentes} grande />
+            <Placar pauta={p} presentes={a.presentes} />
           </CardContent>
         </Card>
       ))}
@@ -228,8 +228,7 @@ export function VotarAgora({
           })}
         </div>
         <p className="text-center text-base text-muted-foreground">
-          Ninguém vê sua escolha enquanto a votação está aberta. Depois de encerrada, o resultado mostra o voto de
-          cada unidade.
+          Seu voto aparece em tempo real pra todo mundo, junto com o de cada unidade.
         </p>
       </CardContent>
 

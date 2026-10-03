@@ -12,9 +12,8 @@ import { VotarAgora } from './VotacaoCondomino';
 type Acoes = ReturnType<typeof useAssembleia>;
 
 /**
- * Quem não tem celular: o síndico escolhe a unidade presente e entrega o aparelho;
- * a pessoa vota sozinha na mesma tela grande do condômino e devolve. Ninguém ao redor vê a
- * escolha enquanto a pauta está em votação, só depois de encerrada (ver `estado`).
+ * Quem não tem celular: o síndico escolhe a unidade presente (que ainda não votou nessa pauta) e entrega
+ * o aparelho; a pessoa vota sozinha na mesma tela grande do condômino e devolve.
  */
 export function VotoPelaMesa({
   assembleia,
@@ -28,7 +27,10 @@ export function VotoPelaMesa({
   const [aberto, setAberto] = useState(false);
   const [unidadeId, setUnidadeId] = useState('');
   const [etapa, setEtapa] = useState<'unidade' | 'votar' | 'feito'>('unidade');
-  const presentes = assembleia.presencas ?? [];
+  const todosPresentes = assembleia.presencas ?? [];
+  const jaVotaram = new Set((pauta.votosPorUnidade ?? []).map((v) => v.unidade.id));
+  // Unidade que já votou nessa pauta (pelo celular ou pela mesa) não pode votar de novo.
+  const presentes = todosPresentes.filter((p) => !jaVotaram.has(p.unidade.id));
   const unidade = presentes.find((p) => p.unidade.id === unidadeId)?.unidade;
 
   function abrir() {
@@ -59,7 +61,7 @@ export function VotoPelaMesa({
                 <Field
                   label="Unidade"
                   htmlFor="mesa-unidade"
-                  hint="Só aparecem unidades presentes. Marque a presença antes, se precisar."
+                  hint="Só aparecem unidades presentes que ainda não votaram nessa pauta."
                 >
                   <UnidadeSelect
                     id="mesa-unidade"
@@ -69,6 +71,10 @@ export function VotoPelaMesa({
                     placeholder="Escolha a unidade…"
                   />
                 </Field>
+              ) : todosPresentes.length ? (
+                <p className="text-sm text-muted-foreground">
+                  Todas as unidades presentes já votaram nessa pauta.
+                </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma unidade presente ainda. Marque a presença primeiro.

@@ -16,7 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { CamposPauta, PAUTA_VAZIA } from './CamposPauta';
-import { Andamento } from './Placar';
+import { Placar } from './Placar';
 import { VotoPelaMesa } from './VotoPelaMesa';
 import { VotarAgora } from './VotacaoCondomino';
 import { ResultadoPauta } from './ResultadoPauta';
@@ -233,7 +233,11 @@ function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: 
   const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
   const jaOutorgaram = new Set(a.procuracoes?.map((p) => p.unidadeOutorgante.id));
-  const disponiveis = unidades.filter((u) => !jaOutorgaram.has(u.id) && !selecionadas.includes(u.id));
+  // Unidade presente participa e vota por conta própria — não faz sentido ela também conceder procuração.
+  const presentes = new Set(a.presencas?.map((p) => p.unidade.id));
+  const disponiveis = unidades.filter(
+    (u) => !jaOutorgaram.has(u.id) && !selecionadas.includes(u.id) && !presentes.has(u.id)
+  );
   // Uma linha por procurador (CPF), com todas as unidades que ele representa.
   const porProcurador = new Map<string, NonNullable<Assembleia['procuracoes']>>();
   for (const p of a.procuracoes ?? []) porProcurador.set(p.procuradorCpf, [...(porProcurador.get(p.procuradorCpf) ?? []), p]);
@@ -298,6 +302,9 @@ function Procuracoes({ assembleia: a, acoes }: { assembleia: Assembleia; acoes: 
         )}
         {(disponiveis.length > 0 || selecionadas.length > 0) && (
           <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Só aparecem unidades que ainda não fizeram check-in — quem está presente vota por conta própria.
+            </p>
             <div className="flex flex-wrap gap-2">
               <Input
                 aria-label="Nome do procurador"
@@ -389,7 +396,7 @@ function CardPauta({ pauta: p, numero, assembleia, acoes }: PropsPauta) {
         {p.status === 'rascunho' ? (
           <p className="text-sm text-muted-foreground">Opções: {p.opcoes.map((o) => o.texto).join(' · ')}</p>
         ) : (
-          <Andamento pauta={p} presentes={assembleia.presentes} />
+          <Placar pauta={p} presentes={assembleia.presentes} />
         )}
 
         {aberta && p.status === 'rascunho' && (

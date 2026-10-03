@@ -2,15 +2,20 @@ import type { Pauta } from '@/types/condominio';
 import { rotuloUnidade } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-/** Barras com o total de cada opção; a mais votada fica destacada (na cor do resultado, se informada). */
+/**
+ * Barras com o total de cada opção (em tempo real, mesmo com a pauta ainda em votação) + o voto de cada
+ * unidade; a mais votada fica destacada (na cor do resultado, se informada).
+ */
 type Props = {
   pauta: Pauta;
   corLider?: string;
   /** Resultado final: a opção vencedora (null = empate/sem votos, nenhuma destacada). Sem ela, destaca a mais votada. */
   liderId?: string | null;
+  /** Mostra "de X presentes" ao lado do total de unidades que já votaram (pauta ainda aberta). */
+  presentes?: number;
 };
 
-export function Placar({ pauta, corLider = 'bg-primary', liderId }: Props) {
+export function Placar({ pauta, corLider = 'bg-primary', liderId, presentes }: Props) {
   const votos = (o: Pauta['opcoes'][number]) => o.votos ?? 0;
   const peso = (o: Pauta['opcoes'][number]) => o.pesoVotos ?? 0;
   const totalVotos = pauta.opcoes.reduce((soma, o) => soma + votos(o), 0);
@@ -44,13 +49,16 @@ export function Placar({ pauta, corLider = 'bg-primary', liderId }: Props) {
           </div>
         );
       })}
-      <p className="text-xs text-muted-foreground">{pauta.votantes} unidade(s) votaram</p>
+      <p className="text-xs text-muted-foreground">
+        {pauta.votantes}
+        {presentes != null ? ` de ${presentes}` : ''} unidade(s) votaram
+      </p>
       {pauta.votosPorUnidade && pauta.votosPorUnidade.length > 0 && (
         <div className="space-y-1.5 pt-2">
           <p className="text-xs font-medium text-muted-foreground">Voto de cada unidade</p>
           <ul className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
-            {pauta.votosPorUnidade.map((v, i) => (
-              <li key={i} className="flex justify-between gap-2">
+            {pauta.votosPorUnidade.map((v) => (
+              <li key={v.unidade.id} className="flex justify-between gap-2">
                 <span className="text-muted-foreground">{rotuloUnidade(v.unidade)}</span>
                 <span className="font-medium">
                   {pauta.opcoes.find((o) => o.id === v.opcaoId)?.texto ?? '—'}
@@ -60,27 +68,6 @@ export function Placar({ pauta, corLider = 'bg-primary', liderId }: Props) {
           </ul>
         </div>
       )}
-    </div>
-  );
-}
-
-/**
- * Votação ainda aberta: só quantas unidades já votaram. O placar por opção fica escondido até encerrar,
- * senão quem olha a tela na hora de um voto (ex.: voto pela mesa) descobre o que a pessoa escolheu.
- */
-export function Andamento({ pauta, presentes, grande }: { pauta: Pauta; presentes: number; grande?: boolean }) {
-  const pct = presentes ? Math.min(100, Math.round((pauta.votantes / presentes) * 100)) : 0;
-  return (
-    <div className="space-y-2">
-      <p className={cn('font-semibold', grande ? 'text-lg' : 'text-sm')}>
-        {pauta.votantes} de {presentes} unidade(s) presentes já votaram
-      </p>
-      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
-      </div>
-      <p className={cn('text-muted-foreground', grande ? 'text-base' : 'text-xs')}>
-        O resultado, com o voto de cada unidade, aparece quando a votação for encerrada.
-      </p>
     </div>
   );
 }

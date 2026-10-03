@@ -402,7 +402,7 @@ async function main() {
     );
     assert.ok(!(await api('GET', '/tarefas/hoje', { token: zelador })).json.tarefas.some((t) => t.id === tarefa.json.id), 'desativada some');
 
-    // --- Assembleia: check-in com código fixo, 1 voto secreto por unidade ---
+    // --- Assembleia: check-in com código fixo, 1 voto por unidade, resultado em tempo real ---
     const assembleia = await api('POST', '/assembleias', {
       token: sindico,
       body: { titulo: 'AGO', pautas: [{ titulo: 'Pintar a fachada', opcoes: ['Verde', 'Azul', 'Não pintar'] }] }
@@ -442,11 +442,14 @@ async function main() {
     assert.equal((await pelaMesa(semCelular.id)).status, 409, 'mesa também é 1 voto por unidade');
     assert.equal((await pelaMesa(unidade.id)).status, 409, 'unidade que já votou pelo celular');
     estado = (await api('GET', rotaA, { token: sindico })).json;
-    assert.deepEqual(estado.pautas[0].opcoes.map((o) => o.votos), [null, null, null], 'placar escondido durante a votação');
+    assert.deepEqual(estado.pautas[0].opcoes.map((o) => o.votos), [0, 1, 1], 'placar em tempo real, antes de encerrar');
     assert.equal(estado.pautas[0].votantes, 2);
     assert.equal(estado.presentes, 2);
-    assert.ok(!JSON.stringify(estado.pautas).includes(unidade.id), 'placar não liga voto a unidade');
-    assert.ok(!JSON.stringify(estado.pautas).includes(semCelular.id));
+    const votoDeAgora = (unidadeId) => estado.pautas[0].votosPorUnidade.find((v) => v.unidade.id === unidadeId)?.opcaoId;
+    assert.equal(votoDeAgora(unidade.id), pauta.opcoes[1].id, 'já mostra quem votou o quê, com a pauta ainda aberta');
+    assert.equal(votoDeAgora(semCelular.id), pauta.opcoes[2].id);
+    const estadoMoradorAoVivo = (await api('GET', rotaA, { token: morador })).json;
+    assert.deepEqual(estadoMoradorAoVivo.pautas[0].votosPorUnidade, estado.pautas[0].votosPorUnidade, 'morador também vê ao vivo');
     assert.deepEqual((await api('GET', rotaA, { token: morador })).json.minhaUnidade, { presente: true, pautasVotadas: [pauta.id] });
     assert.equal((await api('PATCH', `/assembleias/pautas/${pauta.id}`, { token: sindico, body: { status: 'rascunho' } })).status, 400, 'não volta');
     // limite de tentativas: 5 erros e nem o código certo passa (por 1 minuto)
@@ -485,6 +488,28 @@ async function main() {
     assert.equal(votoSindico.status, 204);
     assert.deepEqual((await api('GET', rotaA, { token: sindico })).json.minhaUnidade, { presente: true, pautasVotadas: [pauta.id] });
     await prisma.profile.update({ where: { email: email('sindico') }, data: { unidadeId: null } });
+
+    // --- Procurações: unidade ausente concede a um procurador (nome + CPF); presente não pode ---
+    const procuradorNome = 'Fulano da Silva';
+    const procuradorCpf = '12345678901';
+    const procurar = (unidadeIds, cpf = procuradorCpf) =>
+      api('POST', `${rotaA}/procuracoes`, { token: sindico, body: { procuradorNome, procuradorCpf: cpf, unidadeIds } });
+    assert.equal((await procurar([engano.id], '123')).status, 400, 'CPF precisa ter 11 dígitos');
+    assert.equal((await procurar([])).status, 400, 'precisa de ao menos uma unidade');
+    assert.equal((await procurar([unidade.id])).status, 409, 'unidade presente não pode conceder procuração');
+    const proc = await procurar([engano.id]); // engano: teve presença marcada e removida — está ausente
+    assert.equal(proc.status, 201);
+    assert.equal(proc.json.criadas, 1);
+    assert.equal((await procurar([engano.id])).status, 409, 'mesma unidade não concede duas vezes na mesma assembleia');
+    let estadoProc = (await api('GET', rotaA, { token: sindico })).json;
+    assert.equal(estadoProc.procuracoes.length, 1);
+    assert.equal(estadoProc.procuracoes[0].procuradorNome, procuradorNome);
+    assert.equal(estadoProc.procuracoes[0].unidadeOutorgante.id, engano.id);
+    const procId = estadoProc.procuracoes[0].id;
+    assert.equal((await api('DELETE', `${rotaA}/procuracoes/${procId}`, { token: morador })).status, 403, 'só síndico remove');
+    assert.equal((await api('DELETE', `${rotaA}/procuracoes/${procId}`, { token: sindico })).status, 204);
+    estadoProc = (await api('GET', rotaA, { token: sindico })).json;
+    assert.equal(estadoProc.procuracoes.length, 0);
 
     assert.equal((await api('POST', `${rotaA}/encerrar`, { token: sindico })).status, 204);
     assert.equal((await pelaMesa(engano.id)).status, 400, 'pauta encerrada não recebe voto');
