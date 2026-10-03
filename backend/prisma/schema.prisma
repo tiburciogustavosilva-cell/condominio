@@ -393,9 +393,25 @@ model OrdemServico {
   custoMaoDeObra Decimal    @default(0) @map("custo_mao_obra") @db.Decimal(12, 2)
   observacoes    String     @default("")
   criadoEm       DateTime   @default(now()) @map("criado_em") @db.Timestamptz
+  anexos         OrdemServicoAnexo[]
 
   @@index([ativoId])
   @@map("ordens_servico")
+}
+
+/** Nota fiscal ou orçamento anexado a uma ordem de serviço (comprovante do gasto). */
+model OrdemServicoAnexo {
+  id             String       @id @default(uuid()) @db.Uuid
+  ordemServicoId String       @map("ordem_servico_id") @db.Uuid
+  ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipo           String       // nota_fiscal | orcamento
+  nome           String // nome original do arquivo, só pra exibição
+  mimeType       String       @map("mime_type")
+  arquivo        Bytes
+  criadoEm       DateTime     @default(now()) @map("criado_em") @db.Timestamptz
+
+  @@index([ordemServicoId])
+  @@map("ordem_servico_anexos")
 }
 
 model Ocorrencia {

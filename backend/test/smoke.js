@@ -211,6 +211,49 @@ async function main() {
     assert.ok(planoListado, 'plano continua existindo depois de remover 1 dos prestadores');
     assert.deepEqual(planoListado.prestadores.map((p) => p.id), [prestB.json.id]);
 
+    // --- Ordem de serviço: anexos de nota fiscal / orçamento (PDF, imagens) ---
+    const osAnexo = await api('POST', '/ordens-servico', { token: sindico, body: { descricao: 'Troca de lâmpadas' } });
+    assert.equal(osAnexo.status, 201);
+    const osId = osAnexo.json.id;
+    const pdfB64 = Buffer.from('%PDF-1.4 fake').toString('base64');
+    const webpB64Anexo = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]).toString('base64');
+    const anexar = (token, body) => api('POST', `/ordens-servico/${osId}/anexos`, { token, body });
+    assert.equal(
+      (await anexar(morador, { tipo: 'nota_fiscal', nome: 'nf.pdf', arquivo: `data:application/pdf;base64,${pdfB64}` })).status,
+      403,
+      'só síndico anexa'
+    );
+    assert.equal(
+      (await anexar(sindico, { tipo: 'invalido', nome: 'x.pdf', arquivo: `data:application/pdf;base64,${pdfB64}` })).status,
+      400,
+      'tipo inválido'
+    );
+    assert.equal(
+      (await anexar(sindico, { tipo: 'nota_fiscal', nome: 'x.exe', arquivo: 'data:application/x-msdownload;base64,AAAA' })).status,
+      400,
+      'formato não aceito'
+    );
+    assert.equal(
+      (await anexar(sindico, { tipo: 'nota_fiscal', nome: 'nf-fake.pdf', arquivo: `data:application/pdf;base64,${webpB64Anexo}` })).status,
+      400,
+      'assinatura não bate com o mimetype informado'
+    );
+    const nf = await anexar(sindico, { tipo: 'nota_fiscal', nome: 'nf.pdf', arquivo: `data:application/pdf;base64,${pdfB64}` });
+    assert.equal(nf.status, 201);
+    const orc = await anexar(sindico, { tipo: 'orcamento', nome: 'orcamento.webp', arquivo: `data:image/webp;base64,${webpB64Anexo}` });
+    assert.equal(orc.status, 201);
+    const listaAnexos = (await api('GET', `/ordens-servico/${osId}/anexos`, { token: sindico })).json;
+    assert.equal(listaAnexos.length, 2);
+    assert.ok(!('arquivo' in listaAnexos[0]), 'lista não traz os bytes');
+    const baixarAnexo = (anexoId, token) =>
+      fetch(`${base}/ordens-servico/${osId}/anexos/${anexoId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const resNf = await baixarAnexo(nf.json.id, sindico);
+    assert.equal(resNf.status, 200);
+    assert.equal(resNf.headers.get('content-type'), 'application/pdf');
+    assert.equal((await baixarAnexo(nf.json.id, morador)).status, 403, 'morador fora de ordens de serviço');
+    assert.equal((await api('DELETE', `/ordens-servico/${osId}/anexos/${nf.json.id}`, { token: sindico })).status, 204);
+    assert.equal((await api('GET', `/ordens-servico/${osId}/anexos`, { token: sindico })).json.length, 1);
+
     const doSindico = await api('POST', '/chamados', {
       token: sindico,
       body: { titulo: 'Chamado do síndico', descricao: 'teste', prioridade: 'baixa' }

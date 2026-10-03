@@ -357,6 +357,17 @@ export interface OrdemServico {
   criadoEm: string;
 }
 
+export type TipoAnexoOs = 'nota_fiscal' | 'orcamento';
+
+/** Nota fiscal ou orçamento anexado a uma ordem de serviço (sem os bytes — ver /anexos/:id pra baixar). */
+export interface OrdemServicoAnexo {
+  id: string;
+  tipo: TipoAnexoOs;
+  nome: string;
+  mimeType: string;
+  criadoEm: string;
+}
+
 export interface Perfil {
   id: string;
   nome: string;
@@ -443,6 +454,10 @@ export const LABEL = {
     preventiva: 'Preventiva',
     corretiva: 'Corretiva',
     preditiva: 'Preditiva'
+  } as Record<string, string>,
+  tipoAnexo: {
+    nota_fiscal: 'Nota fiscal',
+    orcamento: 'Orçamento'
   } as Record<string, string>,
   prioridadeManutencao: {
     baixa: 'Baixa',

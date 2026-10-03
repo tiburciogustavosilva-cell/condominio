@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Boxes,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
   Download,
+  ExternalLink,
   Gauge,
   Loader2,
   Mail,
+  Paperclip,
   Plus,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,8 +21,9 @@ import { useManutencoes, usePrestadores } from '@/hooks/usePrestadores';
 import { useOrdensServico } from '@/hooks/useOrdensServico';
 import { dataCurta, duracaoTexto, frequenciaTexto, prazoTexto } from '@/lib/format';
 import { gerarRelatorioXlsx } from '@/lib/exportarRelatorio';
+import { lerComoDataUrl } from '@/lib/arquivo';
 import { LABEL } from '@/types/condominio';
-import type { Ativo, Manutencao, OrdemServico, Prestador } from '@/types/condominio';
+import type { Ativo, Manutencao, OrdemServico, OrdemServicoAnexo, Prestador, TipoAnexoOs } from '@/types/condominio';
 import { FormModal } from '@/components/shared/FormModal';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
@@ -118,7 +122,11 @@ export default function ManutencaoPredial() {
     recarregar: recarregarOrdens,
     criar: criarOrdem,
     atualizar: atualizarOrdem,
-    remover: removerOrdem
+    remover: removerOrdem,
+    listarAnexos,
+    adicionarAnexo,
+    removerAnexo,
+    anexoUrl
   } = useOrdensServico();
 
   const [gerando, setGerando] = useState(false);
@@ -212,6 +220,10 @@ export default function ManutencaoPredial() {
             atualizar={atualizarOrdem}
             remover={removerOrdem}
             recarregar={recarregarOrdens}
+            listarAnexos={listarAnexos}
+            adicionarAnexo={adicionarAnexo}
+            removerAnexo={removerAnexo}
+            anexoUrl={anexoUrl}
           />
         </TabsContent>
       </>
@@ -843,7 +855,11 @@ function AbaOrdens({
   criar,
   atualizar,
   remover,
-  recarregar
+  recarregar,
+  listarAnexos,
+  adicionarAnexo,
+  removerAnexo,
+  anexoUrl
 }: {
   ordens: OrdemServico[];
   ativos: Ativo[];
@@ -851,6 +867,10 @@ function AbaOrdens({
   atualizar: (id: string, d: any) => Promise<void>;
   remover: (id: string) => Promise<void>;
   recarregar: () => void;
+  listarAnexos: (id: string) => Promise<OrdemServicoAnexo[]>;
+  adicionarAnexo: (id: string, dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }) => Promise<void>;
+  removerAnexo: (id: string, anexoId: string) => Promise<void>;
+  anexoUrl: (id: string, anexoId: string) => Promise<string>;
 }) {
   const [form, setForm] = useState<any>(OS_VAZIA);
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -1038,6 +1058,13 @@ function AbaOrdens({
                 <p className="text-sm font-medium">
                   Material {moeda(o.custoMaterial)} + mão de obra {moeda(o.custoMaoDeObra)} = total {moeda(o.custoTotal)}
                 </p>
+                <Anexos
+                  ordemId={o.id}
+                  listarAnexos={listarAnexos}
+                  adicionarAnexo={adicionarAnexo}
+                  removerAnexo={removerAnexo}
+                  anexoUrl={anexoUrl}
+                />
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => editar(o)}>Editar</Button>
                   <AsyncConfirmDialog
@@ -1054,6 +1081,135 @@ function AbaOrdens({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Notas fiscais / orçamentos anexados a uma ordem de serviço (PDF, JPG, PNG ou WEBP). */
+function Anexos({
+  ordemId,
+  listarAnexos,
+  adicionarAnexo,
+  removerAnexo,
+  anexoUrl
+}: {
+  ordemId: string;
+  listarAnexos: (id: string) => Promise<OrdemServicoAnexo[]>;
+  adicionarAnexo: (id: string, dados: { tipo: TipoAnexoOs; nome: string; arquivo: string }) => Promise<void>;
+  removerAnexo: (id: string, anexoId: string) => Promise<void>;
+  anexoUrl: (id: string, anexoId: string) => Promise<string>;
+}) {
+  const [anexos, setAnexos] = useState<OrdemServicoAnexo[] | null>(null);
+  const [tipo, setTipo] = useState<TipoAnexoOs>('nota_fiscal');
+  const [enviando, setEnviando] = useState(false);
+  const [removendoId, setRemovendoId] = useState<string | null>(null);
+
+  const recarregar = useCallback(() => {
+    listarAnexos(ordemId)
+      .then(setAnexos)
+      .catch(() => setAnexos([]));
+  }, [ordemId, listarAnexos]);
+
+  useEffect(() => {
+    recarregar();
+  }, [recarregar]);
+
+  async function escolherArquivo(arquivo: File | undefined) {
+    if (!arquivo) return;
+    setEnviando(true);
+    try {
+      const dataUrl = await lerComoDataUrl(arquivo);
+      await adicionarAnexo(ordemId, { tipo, nome: arquivo.name, arquivo: dataUrl });
+      recarregar();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao anexar arquivo');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function remover(anexoId: string) {
+    setRemovendoId(anexoId);
+    try {
+      await removerAnexo(ordemId, anexoId);
+      recarregar();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao remover');
+    } finally {
+      setRemovendoId(null);
+    }
+  }
+
+  async function abrir(anexoId: string) {
+    try {
+      window.open(await anexoUrl(ordemId, anexoId), '_blank');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao abrir o arquivo');
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Paperclip className="h-3.5 w-3.5" /> Notas fiscais / orçamentos
+      </p>
+      {anexos === null ? (
+        <p className="text-xs text-muted-foreground">Carregando…</p>
+      ) : (
+        anexos.length > 0 && (
+          <ul className="space-y-1">
+            {anexos.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => abrir(a.id)}
+                  className="flex min-w-0 items-center gap-1 truncate text-left text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {LABEL.tipoAnexo[a.tipo]}: {a.nome}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remover(a.id)}
+                  disabled={removendoId === a.id}
+                  aria-label={`Remover ${a.nome}`}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-destructive disabled:opacity-50"
+                >
+                  {removendoId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className={selectCls + ' w-auto'}
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value as TipoAnexoOs)}
+        >
+          <option value="nota_fiscal">Nota fiscal</option>
+          <option value="orcamento">Orçamento</option>
+        </select>
+        <Button type="button" size="sm" variant="outline" disabled={enviando} asChild>
+          <label htmlFor={`anexo-${ordemId}`} className="cursor-pointer">
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            Anexar arquivo
+          </label>
+        </Button>
+        <input
+          id={`anexo-${ordemId}`}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
+          className="sr-only"
+          onChange={(e) => {
+            escolherArquivo(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+      </div>
     </div>
   );
 }
