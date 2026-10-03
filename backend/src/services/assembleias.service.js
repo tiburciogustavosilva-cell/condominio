@@ -194,31 +194,34 @@ async function marcarPresenca(usuario, id, unidadeId) {
 }
 
 /**
- * Registro de procuração (documento da assembleia): a unidade outorgante
- * concede a procuração pra unidade procuradora representá-la. É só ata —
- * não muda check-in nem contagem de voto.
+ * Registro de procuração (documento da assembleia): uma ou mais unidades
+ * outorgantes concedem a procuração pra uma pessoa (nome + CPF, pode ser de
+ * fora) representá-las. É só ata — não muda check-in nem contagem de voto.
  */
 async function adicionarProcuracao(usuario, id, d) {
   const assembleia = await buscar(usuario, id);
   exigirAberta(assembleia);
-  const outorganteId = String(obrigatorio(d.unidadeOutorganteId, 'unidadeOutorganteId'));
-  const procuradoraId = String(obrigatorio(d.unidadeProcuradoraId, 'unidadeProcuradoraId'));
-  if (outorganteId === procuradoraId) {
-    throw new HttpError(400, 'A unidade não pode conceder procuração a si mesma');
-  }
+  const procuradorNome = String(obrigatorio(d.procuradorNome, 'procuradorNome')).trim();
+  const procuradorCpf = String(obrigatorio(d.procuradorCpf, 'procuradorCpf')).replace(/\D/g, '');
+  if (procuradorCpf.length !== 11) throw new HttpError(400, 'CPF deve ter 11 dígitos');
+  const unidadeIds = [...new Set(Array.isArray(d.unidadeIds) ? d.unidadeIds.map(String) : [])];
+  if (!unidadeIds.length) throw new HttpError(400, 'Selecione ao menos uma unidade');
   const condominioId = assembleia.condominioId;
-  const [outorgante, procuradora] = await Promise.all([
-    prisma.unidade.findFirst({ where: { id: outorganteId, condominioId } }),
-    prisma.unidade.findFirst({ where: { id: procuradoraId, condominioId } })
-  ]);
-  if (!outorgante || !procuradora) throw new HttpError(404, 'Unidade não encontrada');
+  const achadas = await prisma.unidade.count({ where: { id: { in: unidadeIds }, condominioId } });
+  if (achadas !== unidadeIds.length) throw new HttpError(404, 'Unidade não encontrada');
   try {
-    return await prisma.procuracao.create({
-      data: { condominioId, assembleiaId: id, unidadeOutorganteId: outorganteId, unidadeProcuradoraId: procuradoraId },
-      select: { id: true }
+    const { count } = await prisma.procuracao.createMany({
+      data: unidadeIds.map((unidadeOutorganteId) => ({
+        condominioId,
+        assembleiaId: id,
+        unidadeOutorganteId,
+        procuradorNome,
+        procuradorCpf
+      }))
     });
+    return { criadas: count };
   } catch (err) {
-    if (err.code === 'P2002') throw new HttpError(409, 'Essa unidade já concedeu procuração a alguém nessa assembleia');
+    if (err.code === 'P2002') throw new HttpError(409, 'Alguma dessas unidades já concedeu procuração nessa assembleia');
     throw err;
   }
 }
@@ -366,7 +369,7 @@ async function estado(usuario, id) {
     isSindico(usuario)
       ? prisma.procuracao.findMany({
           where: { assembleiaId: id },
-          select: { id: true, criadoEm: true, unidadeOutorgante: UNIDADE, unidadeProcuradora: UNIDADE },
+          select: { id: true, criadoEm: true, unidadeOutorgante: UNIDADE, procuradorNome: true, procuradorCpf: true },
           orderBy: { criadoEm: 'asc' }
         })
       : []

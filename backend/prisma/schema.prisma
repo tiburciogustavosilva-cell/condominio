@@ -144,7 +144,6 @@ model Unidade {
   votos       PautaVotante[]
 
   procuracoesConcedidas Procuracao[] @relation("ProcuracaoOutorgante")
-  procuracoesRecebidas  Procuracao[] @relation("ProcuracaoProcuradora")
 
   @@map("unidades")
 }
@@ -580,9 +579,10 @@ model PautaVotante {
   @@map("pauta_votantes")
 }
 
-/// Registro da procuração (documento) de uma assembleia: qual unidade recebeu
-/// (procuradora) a procuração de qual unidade ausente (outorgante). É só
-/// registro/ata — não altera check-in nem contagem de voto.
+/// Registro da procuração (documento) de uma assembleia: qual pessoa (procurador,
+/// pode ser de fora do condomínio) recebeu a procuração de qual unidade ausente
+/// (outorgante). Uma linha por unidade — a mesma pessoa (CPF) pode representar
+/// várias. É só registro/ata — não altera check-in nem contagem de voto.
 model Procuracao {
   id                   String     @id @default(uuid()) @db.Uuid
   condominioId         String     @map("condominio_id") @db.Uuid
@@ -591,8 +591,8 @@ model Procuracao {
   assembleia           Assembleia @relation(fields: [assembleiaId], references: [id], onDelete: Cascade)
   unidadeOutorganteId  String     @map("unidade_outorgante_id") @db.Uuid // quem liberou/concedeu a procuração (ausente)
   unidadeOutorgante    Unidade    @relation("ProcuracaoOutorgante", fields: [unidadeOutorganteId], references: [id], onDelete: Restrict)
-  unidadeProcuradoraId String     @map("unidade_procuradora_id") @db.Uuid // quem tem/recebeu a procuração (representa)
-  unidadeProcuradora   Unidade    @relation("ProcuracaoProcuradora", fields: [unidadeProcuradoraId], references: [id], onDelete: Restrict)
+  procuradorNome       String     @map("procurador_nome") // quem tem/recebeu a procuração (representa)
+  procuradorCpf        String     @map("procurador_cpf") // só dígitos
   criadoEm             DateTime   @default(now()) @map("criado_em") @db.Timestamptz
 
   @@unique([assembleiaId, unidadeOutorganteId]) // uma unidade só concede procuração a 1 pessoa por assembleia
