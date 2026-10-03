@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListSkeleton } from '@/components/shared/ListSkeleton';
 import { AbaPrestadores } from '@/components/manutencao/AbaPrestadores';
+import { AbaRegulamentacao } from '@/components/manutencao/AbaRegulamentacao';
 
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -78,7 +79,7 @@ const PLANO_VAZIO = {
   numeroOs: ''
 };
 
-const ABAS = ['dashboard', 'ativos', 'prestadores', 'plano', 'ordens'];
+const ABAS = ['dashboard', 'ativos', 'prestadores', 'plano', 'ordens', 'regulamentacao'];
 
 // Mais urgente primeiro; planos sem próxima data vão para o fim.
 function porUrgencia(a: Manutencao, b: Manutencao) {
@@ -165,6 +166,7 @@ export default function ManutencaoPredial() {
           <TabsTrigger value="prestadores">Prestadores</TabsTrigger>
           <TabsTrigger value="plano">Plano de Manutenção</TabsTrigger>
           <TabsTrigger value="ordens">Registro de Serviços</TabsTrigger>
+          <TabsTrigger value="regulamentacao">Regulamentação</TabsTrigger>
         </TabsList>
       </PageHeader>
 
@@ -225,6 +227,10 @@ export default function ManutencaoPredial() {
             removerAnexo={removerAnexo}
             anexoUrl={anexoUrl}
           />
+        </TabsContent>
+
+        <TabsContent value="regulamentacao">
+          <AbaRegulamentacao />
         </TabsContent>
       </>
       )}
