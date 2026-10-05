@@ -1,94 +1,36 @@
-# Sobe o sistema inteiro atrás do Traefik (HTTPS automático com Let's Encrypt).
-# Variáveis (arquivo .env na raiz, ao lado deste compose):
-#   POSTGRES_PASSWORD  senha do Postgres (obrigatória)
+# Básico pra subir no Portainer: API e frontend, usando as imagens publicadas no GHCR.
+# O banco Postgres fica fora deste compose; a conexão vem de DATABASE_URL.
+# Variáveis (preencha na Stack do Portainer):
+#   DATABASE_URL       ex.: postgresql://usuario:senha@host:5432/aquila (obrigatória)
 #   JWT_SECRET         chave dos tokens (obrigatória; gere com: openssl rand -hex 32)
-#   ACME_EMAIL         e-mail do Let's Encrypt (obrigatória, pra avisos de certificado)
-#   APP_URL            padrão https://app.aquilacondominios.com.br
-#   VITE_API_URL       padrão https://api.aquilacondominios.com.br/api (vai dentro do bundle do frontend)
+#   APP_URL            endereço do frontend, usado no link de convite (padrão http://localhost:8080)
 #   SMTP_*             opcional: sem SMTP_HOST os e-mails são só simulados no log
-# Pré-requisito: os registros DNS de app. e api.aquilacondominios.com.br apontando pro servidor.
 services:
-  traefik:
-    image: traefik:v3.1
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=aquilaNet
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --certificatesresolvers.le.acme.tlschallenge=true
-      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?defina ACME_EMAIL no .env}
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt:/letsencrypt
-    networks: [aquilaNet]
-    restart: unless-stopped
-
-  db:
-    image: postgres:17
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
-      POSTGRES_DB: aquila
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d aquila"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    networks: [aquilaNet]
-    restart: unless-stopped
-
   backend:
-    build: ./backend
+    image: ghcr.io/tiburciogustavosilva-cell/condominio-backend:latest
     environment:
       PORT: 4000
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/aquila
-      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
-      APP_URL: ${APP_URL:-https://app.aquilacondominios.com.br}
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
+      APP_URL: ${APP_URL:-http://localhost:8080}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       MAIL_FROM: ${MAIL_FROM:-}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.api.rule=Host(`api.aquilacondominios.com.br`)
-      - traefik.http.routers.api.entrypoints=websecure
-      - traefik.http.routers.api.tls.certresolver=le
-      - traefik.http.services.api.loadbalancer.server.port=4000
+    ports:
+      - "4000:4000"
     networks: [aquilaNet]
-    depends_on:
-      db:
-        condition: service_healthy
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: ${VITE_API_URL:-https://api.aquilacondominios.com.br/api}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.app.rule=Host(`app.aquilacondominios.com.br`)
-      - traefik.http.routers.app.entrypoints=websecure
-      - traefik.http.routers.app.tls.certresolver=le
-      - traefik.http.services.app.loadbalancer.server.port=80
+    image: ghcr.io/tiburciogustavosilva-cell/condominio-frontend:latest
+    ports:
+      - "8080:80"
     networks: [aquilaNet]
     depends_on:
       - backend
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-  letsencrypt:
 
 networks:
   aquilaNet:
