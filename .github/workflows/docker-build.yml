@@ -45,4 +45,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:4000/api' }}
+            VITE_API_URL=${{ vars.VITE_API_URL || 'https://api.aquilacondominios.com.br/api' }}
