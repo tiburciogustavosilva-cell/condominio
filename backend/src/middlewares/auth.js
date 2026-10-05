@@ -1,6 +1,7 @@
 const prisma = require('../models/prisma');
 const { verificarToken } = require('../utils/jwt');
 const { isSindico, isEquipe } = require('../utils/acesso');
+const { condominioComAcesso } = require('../services/planos.service');
 
 async function autenticar(req, res, next) {
   const [esquema, token] = (req.headers.authorization || '').split(' ');
@@ -14,11 +15,9 @@ async function autenticar(req, res, next) {
   }
 
   // Busca no banco a cada request: o condomínio ativo da administradora pode ter mudado.
-  const usuario = await prisma.profile.findUnique({
-    where: { id: payload.sub },
-    include: { condominio: { select: { bloqueadoMotivo: true } } }
-  });
+  const usuario = await prisma.profile.findUnique({ where: { id: payload.sub } });
   if (!usuario) return res.status(401).json({ erro: 'Usuário não encontrado' });
+  usuario.condominio = usuario.condominioId ? await condominioComAcesso(usuario.condominioId) : null;
   req.usuario = usuario;
   req.suporte = payload.suporte; // id do admin, quando é ele acessando como este usuário
   next();
@@ -61,4 +60,13 @@ function semFuncionario(req, res, next) {
   next();
 }
 
-module.exports = { autenticar, exigirLiberado, apenasAdmin, apenasSindico, apenasEquipe, apenasStaff, semFuncionario };
+// Módulo que não está no plano (e o teste acabou): 403. Suporte (admin da plataforma) passa.
+function exigirRecurso(recurso) {
+  return (req, res, next) => {
+    const recursos = req.usuario.condominio?.acesso?.recursos ?? [];
+    if (req.suporte || recursos.includes(recurso)) return next();
+    res.status(403).json({ erro: 'Este módulo não está no plano do condomínio' });
+  };
+}
+
+module.exports = { autenticar, exigirLiberado, exigirRecurso, apenasAdmin, apenasSindico, apenasEquipe, apenasStaff, semFuncionario };

@@ -35,6 +35,10 @@ model Condominio {
   // Qual campo da unidade decide o peso do voto/quórum nas assembleias: "peso" (manual, padrão),
   // "fracaoIdeal" ou "pontos" — condomínios diferentes usam sistemas diferentes.
   pesoVotoPor         String          @default("peso") @map("peso_voto_por")
+  // Plano contratado (basic | pro | premium) — define os módulos liberados depois do período de teste.
+  plano               String          @default("basic")
+  // Fim do período de teste gratuito (30 dias a partir da criação). Depois dele, só com assinatura vigente.
+  trialAte            DateTime        @default(dbgenerated("(now() + '30 days'::interval)")) @map("trial_ate") @db.Timestamptz
   onboardingConcluido Boolean         @default(false) @map("onboarding_concluido")
   // Preenchido pelo admin da plataforma = acesso travado (ex.: mensalidade atrasada). null = liberado.
   bloqueadoMotivo     String?         @map("bloqueado_motivo")

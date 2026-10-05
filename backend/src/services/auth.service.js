@@ -3,6 +3,7 @@ const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
 const { obrigatorio, umDe } = require('../utils/validar');
 const { gerarToken, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN } = require('../utils/jwt');
+const { condominioComAcesso } = require('./planos.service');
 
 function formatarUsuario(p) {
   return {
@@ -20,9 +21,7 @@ function formatarUsuario(p) {
 }
 
 async function sessaoDe(profile) {
-  const condominio = profile.condominioId
-    ? await prisma.condominio.findUnique({ where: { id: profile.condominioId } })
-    : null;
+  const condominio = profile.condominioId ? await condominioComAcesso(profile.condominioId) : null;
   return { usuario: formatarUsuario(profile), condominio };
 }
 

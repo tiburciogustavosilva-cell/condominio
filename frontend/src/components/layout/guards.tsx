@@ -29,13 +29,37 @@ export function RequireSindico() {
  * escolhido) vai pro seletor antes de liberar o resto do sistema — que
  * assume um condomínio ativo em toda parte. */
 export function RequireCondominioAtivo() {
-  const { isAdmin, isAdministradora, usuario, condominio, suporte } = useAuth();
+  const { isAdmin, isAdministradora, isSindico, usuario, condominio, suporte } = useAuth();
+  const { pathname } = useLocation();
   if (isAdmin) return <Navigate to="/admin" replace />;
   if (isAdministradora && !usuario?.condominioId) {
     return <Navigate to="/meus-condominios" replace />;
   }
-  if (condominio?.bloqueadoMotivo && !suporte) return <AcessoSuspenso motivo={condominio.bloqueadoMotivo} />;
+  // Teste vencido: o síndico ainda chega na tela de planos pra escolher e pagar.
+  const planoLiberado = isSindico && pathname === "/plano";
+  if (condominio?.bloqueadoMotivo && !suporte && !planoLiberado) {
+    return <AcessoSuspenso motivo={condominio.bloqueadoMotivo} />;
+  }
   return <Outlet />;
+}
+
+/** Módulo fora do plano do condomínio: mostra o aviso e leva pra tela de planos. */
+export function RequireRecurso({ recurso }: { recurso: string }) {
+  const { condominio, suporte } = useAuth();
+  const liberado = suporte || !!condominio?.acesso?.recursos.includes(recurso);
+  if (liberado) return <Outlet />;
+  return (
+    <div className="grid min-h-[60vh] place-items-center p-6 text-center">
+      <div className="max-w-sm space-y-3">
+        <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
+        <h1 className="font-heading text-lg font-extrabold">Este módulo não está no seu plano</h1>
+        <p className="text-sm text-muted-foreground">Escolha um plano que inclua esse módulo.</p>
+        <Button asChild variant="brand" size="sm">
+          <Link to="/plano">Ver planos</Link>
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** Condomínio travado pelo admin da plataforma — a API também recusa tudo (403). */

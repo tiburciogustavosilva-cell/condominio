@@ -575,6 +575,30 @@ async function main() {
     assert.equal(estado2.pesoPresente, 7, 'trocou a métrica: agora usa pontos, não mais fração ideal');
     assert.equal((await api('PATCH', '/condominios/peso-voto', { token: sindico, body: { pesoVotoPor: 'peso' } })).status, 204);
 
+    // --- Planos: teste libera tudo; depois do teste, só com assinatura e só os módulos do plano ---
+    const planosLista = (await api('GET', '/condominios/planos', { token: sindico })).json;
+    assert.deepEqual(planosLista.map((p) => p.id), ['basic', 'pro', 'premium']);
+    assert.equal(planosLista[0].precoUnidade, 0.99);
+    const dias = (n) => new Date(Date.now() + n * 86400000);
+    const condoA = (await prisma.profile.findUnique({ where: { email: email('sindico') } })).condominioId;
+    assert.equal((await api('GET', '/encomendas', { token: sindico })).status, 200, 'no teste, tudo liberado');
+    await prisma.condominio.update({ where: { id: condoA }, data: { trialAte: dias(-1) } });
+    assert.equal((await api('GET', '/chamados', { token: sindico })).status, 423, 'teste acabou sem pagamento');
+    assert.match((await api('GET', '/auth/me', { token: sindico })).json.condominio.bloqueadoMotivo, /teste/i);
+    await prisma.assinaturaPagamento.create({ data: { condominioId: condoA, valor: 99, pagoEm: dias(-1), validoAte: dias(30) } });
+    await prisma.condominio.update({ where: { id: condoA }, data: { plano: 'basic' } });
+    assert.equal((await api('GET', '/assembleias', { token: sindico })).status, 200, 'com pagamento vigente, volta (basic tem assembleias)');
+    assert.equal((await api('GET', '/encomendas', { token: sindico })).status, 403, 'basic não tem encomendas');
+    assert.equal((await api('GET', '/chamados', { token: sindico })).status, 403, 'basic não tem chamados');
+    assert.equal((await api('GET', '/tarefas', { token: sindico })).status, 403, 'basic não tem tarefas');
+    assert.equal((await api('GET', '/unidades', { token: sindico })).status, 200, 'unidades em todos os planos');
+    assert.equal((await api('PATCH', '/condominios/plano', { token: sindico, body: { plano: 'premium' } })).status, 204);
+    assert.equal((await api('GET', '/tarefas', { token: sindico })).status, 200, 'premium tem tarefas');
+    assert.equal((await api('PATCH', '/condominios/plano', { token: sindico, body: { plano: 'inexistente' } })).status, 400);
+    assert.equal((await api('PATCH', '/condominios/plano', { token: morador, body: { plano: 'pro' } })).status, 403, 'só síndico troca');
+    // volta ao normal pros próximos testes
+    await prisma.condominio.update({ where: { id: condoA }, data: { trialAte: dias(30), plano: 'basic' } });
+
     // --- Isolamento entre condomínios ---
     const outro = await api('POST', '/auth/cadastro', {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }

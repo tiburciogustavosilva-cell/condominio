@@ -11,6 +11,7 @@ import {
   IdCard,
   Building2,
   Vote,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import type { Condominio } from "@/types/condominio";
@@ -33,6 +34,8 @@ export type NavItem = {
   staff?: boolean;
   /** Título de seção no menu, separando o que é configurado uma vez do uso diário. */
   grupo?: string;
+  /** Módulo do plano: some se o condomínio não o tiver (durante o teste, tem todos). */
+  recurso?: string;
 };
 
 type Contexto = {
@@ -53,7 +56,8 @@ export function itemVisivel(
     (!l.sindico || isSindico) &&
     (!l.staff || isSindico || isFuncionario) &&
     (!l.porteiro || !!condominio?.temPorteiro) &&
-    (!l.areasReserva || !!condominio?.temAreasReserva)
+    (!l.areasReserva || !!condominio?.temAreasReserva) &&
+    (!l.recurso || !!condominio?.acesso?.recursos.includes(l.recurso))
   );
 }
 
@@ -65,6 +69,7 @@ export const navItems: NavItem[] = [
     icon: Package,
     porteiro: true,
     funcionario: "portaria",
+    recurso: "encomendas",
   },
   {
     to: "/tarefas",
@@ -72,6 +77,7 @@ export const navItems: NavItem[] = [
     icon: ClipboardCheck,
     staff: true,
     funcionario: true,
+    recurso: "tarefas",
   },
   //{ to: "/chamados", label: "Chamados", icon: Wrench, emBreve: true },
   /*
@@ -82,19 +88,21 @@ export const navItems: NavItem[] = [
     areasReserva: true,
   },
   */
-  { to: "/avisos", label: "Avisos", icon: Megaphone, funcionario: true },
-  { to: "/ocorrencias", label: "Livro de Ocorrência", icon: BookText },
-  { to: "/votacoes", label: "Votações", icon: Vote },
+  { to: "/avisos", label: "Avisos", icon: Megaphone, funcionario: true, recurso: "avisos" },
+  { to: "/ocorrencias", label: "Livro de Ocorrência", icon: BookText, recurso: "ocorrencias" },
+  { to: "/votacoes", label: "Votações", icon: Vote, recurso: "assembleias" },
   {
     to: "/manutencao-predial",
     label: "Manutenção Predial",
     icon: ClipboardList,
     sindico: true,
     emBreve: false,
+    recurso: "manutencoes",
   },
   { to: "/unidades", label: "Unidades", icon: Building2, sindico: true, grupo: "Cadastros" },
   { to: "/moradores", label: "Moradores", icon: Users, sindico: true, grupo: "Cadastros" },
-  { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true, grupo: "Cadastros" },
+  { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true, grupo: "Cadastros", recurso: "funcionarios" },
+  { to: "/plano", label: "Meu plano", icon: CreditCard, sindico: true, grupo: "Conta" },
 ];
 
 /** Título a mostrar antes do item i, se ele abre um grupo novo. */

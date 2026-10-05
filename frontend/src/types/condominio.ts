@@ -80,6 +80,15 @@ export interface Condominio {
   bloqueadoMotivo: string | null;
   /** Qual campo da unidade decide o peso do voto/quórum nas assembleias. */
   pesoVotoPor: PesoVotoPor;
+  plano: 'basic' | 'pro' | 'premium';
+  /** Acesso agora: teste, assinatura e quais módulos. `bloqueadoMotivo` já inclui o fim do teste. */
+  acesso: {
+    emTeste: boolean;
+    liberado: boolean;
+    trialAte: string;
+    pagoAte: string | null;
+    recursos: string[];
+  };
 }
 
 export type PesoVotoPor = 'peso' | 'fracaoIdeal' | 'pontos';

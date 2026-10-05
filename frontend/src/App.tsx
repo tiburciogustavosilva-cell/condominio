@@ -12,6 +12,7 @@ import {
   RequireComPorteiro,
   RequireCondominioAtivo,
   RequireOnboardingConcluido,
+  RequireRecurso,
   RequireSindico
 } from '@/components/layout/guards';
 
@@ -36,6 +37,7 @@ import Moradores from '@/pages/Moradores';
 import Funcionarios from '@/pages/Funcionarios';
 import Unidades from '@/pages/Unidades';
 import Perfil from '@/pages/Perfil';
+import Plano from '@/pages/Plano';
 
 export default function App() {
   return (
@@ -58,30 +60,49 @@ export default function App() {
                 <Route element={<AdminLayout />}>
                   <Route element={<BloqueiaFuncionario />}>
                     <Route index element={<Dashboard />} />
-                    <Route path="chamados" element={<Chamados />} />
-                    <Route path="chamados/:id" element={<ChamadoDetalhe />} />
-                    <Route element={<RequireComAreasReserva />}>
-                      <Route path="reservas" element={<Reservas />} />
+                    <Route element={<RequireRecurso recurso="chamados" />}>
+                      <Route path="chamados" element={<Chamados />} />
+                      <Route path="chamados/:id" element={<ChamadoDetalhe />} />
                     </Route>
-                    <Route path="ocorrencias" element={<Ocorrencias />} />
-                    <Route path="votacoes" element={<Votacoes />} />
-                    <Route path="votacoes/:id" element={<Assembleia />} />
+                    <Route element={<RequireComAreasReserva />}>
+                      <Route element={<RequireRecurso recurso="reservas" />}>
+                        <Route path="reservas" element={<Reservas />} />
+                      </Route>
+                    </Route>
+                    <Route element={<RequireRecurso recurso="ocorrencias" />}>
+                      <Route path="ocorrencias" element={<Ocorrencias />} />
+                    </Route>
+                    <Route element={<RequireRecurso recurso="assembleias" />}>
+                      <Route path="votacoes" element={<Votacoes />} />
+                      <Route path="votacoes/:id" element={<Assembleia />} />
+                    </Route>
                   </Route>
                   <Route element={<RequireStaff />}>
-                    <Route path="tarefas" element={<Tarefas />} />
+                    <Route element={<RequireRecurso recurso="tarefas" />}>
+                      <Route path="tarefas" element={<Tarefas />} />
+                    </Route>
                   </Route>
                   <Route element={<RequireComPorteiro />}>
-                    <Route path="encomendas" element={<Encomendas />} />
+                    <Route element={<RequireRecurso recurso="encomendas" />}>
+                      <Route path="encomendas" element={<Encomendas />} />
+                    </Route>
                   </Route>
-                  <Route path="avisos" element={<Avisos />} />
+                  <Route element={<RequireRecurso recurso="avisos" />}>
+                    <Route path="avisos" element={<Avisos />} />
+                  </Route>
                   <Route path="perfil" element={<Perfil />} />
 
                   <Route element={<RequireSindico />}>
                     <Route path="prestadores" element={<Navigate to="/manutencao-predial?aba=prestadores" replace />} />
-                    <Route path="manutencao-predial" element={<ManutencaoPredial />} />
+                    <Route element={<RequireRecurso recurso="manutencoes" />}>
+                      <Route path="manutencao-predial" element={<ManutencaoPredial />} />
+                    </Route>
                     <Route path="moradores" element={<Moradores />} />
-                    <Route path="funcionarios" element={<Funcionarios />} />
+                    <Route element={<RequireRecurso recurso="funcionarios" />}>
+                      <Route path="funcionarios" element={<Funcionarios />} />
+                    </Route>
                     <Route path="unidades" element={<Unidades />} />
+                    <Route path="plano" element={<Plano />} />
                   </Route>
                 </Route>
               </Route>
