@@ -4,19 +4,23 @@ const PLANOS = {
   pro: {
     nome: 'Pro',
     precoUnidade: 1.49,
-    recursos: ['assembleias', 'avisos', 'ocorrencias', 'encomendas', 'chamados', 'reservas', 'funcionarios']
+    recursos: ['assembleias', 'avisos', 'ocorrencias', 'encomendas']
   },
   premium: {
     nome: 'Premium',
     precoUnidade: 1.99,
     recursos: [
-      'assembleias', 'avisos', 'ocorrencias', 'encomendas', 'chamados', 'reservas', 'funcionarios',
+      'assembleias', 'avisos', 'ocorrencias', 'encomendas', 'chamados', 'funcionarios',
       'tarefas', 'mapa', 'manutencoes'
     ]
   }
 };
 
-const TODOS_RECURSOS = [...new Set(Object.values(PLANOS).flatMap((p) => p.recursos))];
+// Durante o teste vale tudo. Reservas existe no código mas ainda não está em nenhum plano vendido.
+const TODOS_RECURSOS = [
+  'assembleias', 'avisos', 'ocorrencias', 'encomendas', 'chamados', 'reservas', 'funcionarios',
+  'tarefas', 'mapa', 'manutencoes'
+];
 
 const MSG_TESTE_ENCERRADO = 'Período de teste encerrado — regularize a assinatura pra continuar';
 

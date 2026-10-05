@@ -33,6 +33,8 @@ const DESTAQUES: Record<PlanoId, { selo?: string; itens: string[] }> = {
   premium: {
     itens: [
       'Tudo do plano Pro',
+      'Chamados',
+      'Cadastro de funcionários',
       'Gestão de manutenções',
       'Gestão de tarefas para colaboradores',
       'Registro fotográfico das tarefas realizadas',
