@@ -47,9 +47,9 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/definir-senha" element={<DefinirSenha />} />
-          <Route path="/perguntas-condominio" element={<PerguntasCondominio />} />
 
           <Route element={<RequireAuth />}>
+            <Route path="/perguntas-condominio" element={<PerguntasCondominio />} />
             <Route path="/meus-condominios" element={<MeusCondominios />} />
             <Route element={<RequireAdmin />}>
               <Route path="/admin" element={<Admin />} />

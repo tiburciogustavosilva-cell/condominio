@@ -1,23 +1,23 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Brand, BrandPanel } from '@/components/shared/Brand';
-import { Field } from '@/components/shared/Field';
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Brand, BrandPanel } from "@/components/shared/Brand";
+import { Field } from "@/components/shared/Field";
 
 export default function Login() {
   const [params] = useSearchParams();
   // só caminho interno ("/..."), nunca "//site" — senão vira redirecionamento para fora
-  const voltar = params.get('voltar');
-  const destino = voltar?.startsWith('/') && !voltar.startsWith('//') ? voltar : '/';
-  // vindo de um link (ex.: QR da assembleia) é um condômino de verdade: sem os dados de demonstração
-  const [email, setEmail] = useState(voltar ? '' : 'sindico@condominio.com');
-  const [senha, setSenha] = useState(voltar ? '' : 'admin123');
+  const voltar = params.get("voltar");
+  const destino =
+    voltar?.startsWith("/") && !voltar.startsWith("//") ? voltar : "/";
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function Login() {
       await login(email, senha);
       navigate(destino, { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Falha no login');
+      toast.error(err instanceof Error ? err.message : "Falha no login");
     } finally {
       setLoading(false);
     }
@@ -38,9 +38,17 @@ export default function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* painel de marca */}
-      <BrandPanel video="/brand/alpha.mp4" title={<>A gestão do seu condomínio, <span className="text-gradient">num só lugar.</span></>}>
-        Chamados, reservas de áreas comuns, encomendas e avisos — com o
-        síndico e os moradores na mesma página.
+      <BrandPanel
+        video="/brand/alpha.mp4"
+        title={
+          <>
+            A gestão do seu condomínio,{" "}
+            <span className="text-gradient">num só lugar.</span>
+          </>
+        }
+      >
+        Chamados, reservas de áreas comuns, encomendas e avisos — com o síndico
+        e os moradores na mesma página.
       </BrandPanel>
 
       {/* formulário */}
@@ -56,7 +64,9 @@ export default function Login() {
           <Card className="p-8 shadow-md">
             <div className="mb-6 space-y-1">
               <h2 className="font-heading text-2xl font-extrabold">Entrar</h2>
-              <p className="text-muted-foreground">Use suas credenciais de acesso.</p>
+              <p className="text-muted-foreground">
+                Use suas credenciais de acesso.
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -82,24 +92,26 @@ export default function Login() {
                   required
                 />
               </Field>
-              <Button type="submit" variant="brand" className="h-12 w-full text-base" disabled={loading}>
+              <Button
+                type="submit"
+                variant="brand"
+                className="h-12 w-full text-base"
+                disabled={loading}
+              >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Entrar
               </Button>
             </form>
 
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Ainda não tem uma conta?{' '}
-              <Link to="/cadastro" className="font-medium text-foreground underline underline-offset-2">
+              Ainda não tem uma conta?{" "}
+              <Link
+                to="/cadastro"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
                 Cadastre-se
               </Link>
             </p>
-
-            <div className="mt-5 rounded-md bg-muted p-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Contas de teste</p>
-              <p>Síndico — sindico@condominio.com / admin123</p>
-              <p>Morador — morador@condominio.com / morador123</p>
-            </div>
           </Card>
         </motion.div>
       </div>

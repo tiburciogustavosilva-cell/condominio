@@ -57,7 +57,6 @@ function proximaEtapa(atual: Etapa, respostas: Respostas): Etapa | null {
 export default function PerguntasCondominio() {
   const { usuario, isSindico, recarregarCondominio } = useAuth();
   const navigate = useNavigate();
-  const modoTeste = !usuario;
 
   const [etapa, setEtapa] = useState<Etapa>('blocos');
   const [respostas, setRespostas] = useState<Respostas>(VAZIO);
@@ -73,11 +72,6 @@ export default function PerguntasCondominio() {
   const totalEtapas = etapasVisiveis.length;
 
   async function finalizar(respostasFinais: Respostas) {
-    if (modoTeste) {
-      toast.success('Modo teste — respostas não foram salvas.');
-      navigate('/cadastro');
-      return;
-    }
     if (!usuario?.condominioId || !isSindico) {
       toast.error('Só o síndico pode responder essas perguntas.');
       return;
@@ -181,12 +175,6 @@ export default function PerguntasCondominio() {
         <Brand className="mb-6 justify-center" />
 
         <Card className="overflow-hidden p-6 shadow-md sm:p-8">
-          {modoTeste && (
-            <div className="mb-5 rounded-md bg-warning/15 px-3 py-2 text-center text-xs font-medium text-warning-foreground">
-              Modo teste: você não está logado, então as respostas não serão salvas.
-            </div>
-          )}
-
           {/* progresso */}
           <div className="mb-6 flex gap-1.5">
             {Array.from({ length: totalEtapas }).map((_, i) => (
