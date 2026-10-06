@@ -2,10 +2,11 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
-const { obrigatorio, parcial, paraData } = require('../utils/validar');
+const { obrigatorio, parcial, paraData, umDe } = require('../utils/validar');
 const { validarSenha, normalizarEmail, sessaoDe } = require('./auth.service');
 const { gerarTokenSenha, gerarTokenSuporte } = require('../utils/jwt');
 const { rotuloUnidade } = require('../utils/unidade');
+const { PLANOS } = require('../utils/planos');
 const { enviarEmail } = require('../integrations/mailer');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:8080';
@@ -62,6 +63,7 @@ async function criar(d) {
       nome: String(obrigatorio(d.nome, 'nome')).trim(),
       endereco: d.endereco || '',
       cnpj: d.cnpj || '',
+      plano: d.plano ? umDe(d.plano, Object.keys(PLANOS), 'plano') : undefined,
       profiles: {
         create: {
           nome: String(obrigatorio(d.sindicoNome, 'sindicoNome')).trim(),
@@ -101,10 +103,14 @@ function atualizar(id, d) {
 async function usuariosDo(condominioId) {
   const usuarios = await prisma.profile.findMany({
     where: { condominioId },
-    select: { id: true, nome: true, email: true, papel: true, cargo: true, unidade: { select: { numero: true, bloco: true } } },
+    select: { id: true, nome: true, email: true, papel: true, cargo: true, emailConfirmadoEm: true, unidade: { select: { numero: true, bloco: true } } },
     orderBy: { nome: 'asc' }
   });
-  return usuarios.map(({ unidade, ...u }) => ({ ...u, unidadeLabel: rotuloUnidade(unidade) }));
+  return usuarios.map(({ unidade, emailConfirmadoEm, ...u }) => ({
+    ...u,
+    emailConfirmado: !!emailConfirmadoEm,
+    unidadeLabel: rotuloUnidade(unidade)
+  }));
 }
 
 /** Sessão como o usuário escolhido (token de suporte, 2h): vê e faz exatamente o que ele vê e faz. */
@@ -113,6 +119,20 @@ async function acessarComo(admin, id) {
   if (profile.papel === 'admin') throw new HttpError(400, 'Não é possível acessar como outro admin');
   console.log(`[suporte] ${admin.email} acessou como ${profile.email}`);
   return { token: gerarTokenSuporte(profile, admin.id), tokenType: 'Bearer', ...(await sessaoDe(profile)) };
+}
+
+/** Cadastros públicos que ainda não clicaram no link (inclui administradora sem condomínio). */
+function pendentes() {
+  return prisma.profile.findMany({
+    where: { emailConfirmadoEm: null },
+    select: { id: true, nome: true, email: true, papel: true, criadoEm: true },
+    orderBy: { criadoEm: 'desc' }
+  });
+}
+
+/** Fallback quando o link de confirmação não chega: o admin confirma o e-mail na mão. */
+async function confirmarEmail(id) {
+  await prisma.profile.update({ where: { id }, data: { emailConfirmadoEm: new Date() } });
 }
 
 const SELECT_PAGAMENTO = { id: true, valor: true, pagoEm: true, validoAte: true };
@@ -143,6 +163,8 @@ module.exports = {
   reenviarConvite,
   usuariosDo,
   acessarComo,
+  confirmarEmail,
+  pendentes,
   pagamentosDo,
   registrarPagamento,
   excluirPagamento

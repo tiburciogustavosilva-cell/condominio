@@ -53,6 +53,8 @@ type AuthValue = {
    * empresa, sem condomínio ainda). Retorna `precisaConfirmarEmail` se o
    * projeto exigir confirmação por e-mail antes de liberar a sessão. */
   cadastrar: (dados: DadosCadastro) => Promise<{ precisaConfirmarEmail: boolean }>;
+  /** Link do e-mail de cadastro: confirma e já entra. */
+  confirmarEmail: (token: string) => Promise<void>;
   /** Link do convite por e-mail: define a senha e já entra. */
   definirSenha: (token: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -115,8 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function cadastrar(dados: DadosCadastro) {
-    entrar(await api.post<RespostaToken>('/auth/cadastro', dados));
-    return { precisaConfirmarEmail: false }; // sem confirmação por e-mail: já entra logado
+    return api.post<{ precisaConfirmarEmail: boolean }>('/auth/cadastro', dados);
+  }
+
+  async function confirmarEmail(token: string) {
+    entrar(await api.post<RespostaToken>('/auth/confirmar-email', { token }));
   }
 
   async function definirSenha(token: string, senha: string) {
@@ -177,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         carregando,
         login,
         cadastrar,
+        confirmarEmail,
         definirSenha,
         logout,
         atualizarNome,

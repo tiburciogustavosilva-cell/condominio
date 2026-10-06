@@ -19,6 +19,7 @@ import {
 import Login from '@/pages/Login';
 import Cadastro from '@/pages/Cadastro';
 import DefinirSenha from '@/pages/DefinirSenha';
+import ConfirmarEmail from '@/pages/ConfirmarEmail';
 import PerguntasCondominio from '@/pages/PerguntasCondominio';
 import MeusCondominios from '@/pages/MeusCondominios';
 import Admin from '@/pages/Admin';
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/definir-senha" element={<DefinirSenha />} />
+          <Route path="/confirmar-email" element={<ConfirmarEmail />} />
 
           <Route element={<RequireAuth />}>
             <Route path="/perguntas-condominio" element={<PerguntasCondominio />} />

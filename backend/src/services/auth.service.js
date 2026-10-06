@@ -2,8 +2,11 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../models/prisma');
 const HttpError = require('../utils/httpError');
 const { obrigatorio, umDe } = require('../utils/validar');
-const { gerarToken, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN } = require('../utils/jwt');
+const { gerarToken, gerarTokenSenha, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN } = require('../utils/jwt');
 const { condominioComAcesso } = require('./planos.service');
+const { enviarEmail } = require('../integrations/mailer');
+
+const APP_URL = process.env.APP_URL || 'http://localhost:8080';
 
 function formatarUsuario(p) {
   return {
@@ -41,6 +44,34 @@ async function login(email, senha) {
   if (!profile || !(await bcrypt.compare(String(senha || ''), profile.senhaHash))) {
     throw new HttpError(401, 'E-mail ou senha inválidos');
   }
+  if (!profile.emailConfirmadoEm) {
+    await enviarConfirmacao(profile);
+    throw new HttpError(403, 'Confirme seu e-mail para entrar. Enviamos um novo link.');
+  }
+  return emitirToken(profile);
+}
+
+function enviarConfirmacao(profile) {
+  const link = `${APP_URL}/confirmar-email?token=${gerarTokenSenha(profile)}`;
+  return enviarEmail({
+    para: profile.email,
+    assunto: 'Confirme seu e-mail',
+    texto: `Olá, ${profile.nome}!\n\nConfirme seu e-mail pelo link abaixo para ativar sua conta (vale por 7 dias):\n\n${link}`
+  });
+}
+
+/** Link do e-mail de cadastro: marca o e-mail como confirmado e já entra. */
+async function confirmarEmail(token) {
+  let profile;
+  try {
+    profile = await prisma.profile.findUnique({ where: { id: idDoTokenSenha(token) } });
+    verificarTokenSenha(token, profile);
+  } catch {
+    throw new HttpError(400, 'Link inválido ou expirado. Tente entrar para receber um novo.');
+  }
+  if (!profile.emailConfirmadoEm) {
+    profile = await prisma.profile.update({ where: { id: profile.id }, data: { emailConfirmadoEm: new Date() } });
+  }
   return emitirToken(profile);
 }
 
@@ -53,7 +84,8 @@ async function cadastrar(dados) {
     nome: String(obrigatorio(dados.nome, 'nome')).trim(),
     email,
     senhaHash: await bcrypt.hash(dados.senha, 10),
-    papel: tipo
+    papel: tipo,
+    emailConfirmadoEm: null
   };
 
   if (await prisma.profile.findUnique({ where: { email } })) {
@@ -81,7 +113,8 @@ async function cadastrar(dados) {
             }
           }
   });
-  return emitirToken(profile);
+  await enviarConfirmacao(profile);
+  return { precisaConfirmarEmail: true };
 }
 
 async function trocarSenha(usuario, senhaAtual, novaSenha) {
@@ -102,8 +135,8 @@ async function definirSenha(token, senha) {
   } catch {
     throw new HttpError(400, 'Link inválido ou expirado. Peça um novo ao suporte.');
   }
-  profile = await prisma.profile.update({ where: { id: profile.id }, data: { senhaHash: await bcrypt.hash(senha, 10) } });
+  profile = await prisma.profile.update({ where: { id: profile.id }, data: { senhaHash: await bcrypt.hash(senha, 10), emailConfirmadoEm: profile.emailConfirmadoEm ?? new Date() } });
   return emitirToken(profile);
 }
 
-module.exports = { login, cadastrar, definirSenha, trocarSenha, sessaoDe, validarSenha, normalizarEmail };
+module.exports = { login, cadastrar, confirmarEmail, definirSenha, trocarSenha, sessaoDe, validarSenha, normalizarEmail };

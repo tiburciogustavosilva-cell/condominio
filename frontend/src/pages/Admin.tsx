@@ -50,14 +50,20 @@ function TextoAssinatura({ c }: { c: CondominioAdmin }) {
   );
 }
 
+type Pendente = { id: string; nome: string; email: string; papel: Papel; criadoEm: string };
+
 type UsuarioCondominio = {
   id: string;
   nome: string;
   email: string;
   papel: Papel;
   cargo: Cargo | null;
+  emailConfirmado: boolean;
   unidadeLabel: string | null;
 };
+
+const selectCls =
+  'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const VAZIO = {
   nome: '',
@@ -65,7 +71,8 @@ const VAZIO = {
   cnpj: '',
   sindicoNome: '',
   sindicoEmail: '',
-  sindicoSenha: ''
+  sindicoSenha: '',
+  plano: 'basic'
 };
 
 /** Dono da plataforma: todos os condomínios — cria, trava e destrava o acesso. */
@@ -88,11 +95,17 @@ export default function Admin() {
     usuarios: UsuarioCondominio[] | null;
   } | null>(null);
 
-  const recarregar = () =>
+  const [pendentes, setPendentes] = useState<Pendente[]>([]);
+  const recarregar = () => {
     api
       .get<CondominioAdmin[]>('/admin/condominios')
       .then(setLista)
       .catch((e) => toast.error(e.message));
+    api
+      .get<Pendente[]>('/admin/pendentes')
+      .then(setPendentes)
+      .catch((e) => toast.error(e.message));
+  };
 
   useEffect(() => {
     recarregar();
@@ -171,6 +184,17 @@ export default function Admin() {
     }
   }
 
+  async function confirmarEmail(u: { id: string; nome: string }) {
+    try {
+      await api.post(`/admin/usuarios/${u.id}/confirmar-email`);
+      toast.success(`E-mail de ${u.nome} confirmado`);
+      setPendentes((p) => p.filter((x) => x.id !== u.id));
+      setAcessando((a) => a?.usuarios && { ...a, usuarios: a.usuarios!.map((x) => (x.id === u.id ? { ...x, emailConfirmado: true } : x)) });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao confirmar e-mail');
+    }
+  }
+
   const filtrados = lista?.filter((c) => bate(busca, c.nome, c.endereco, c.cnpj, c.administradora?.nome));
   const set = (campo: keyof typeof VAZIO, valor: string) => setForm((f) => ({ ...f, [campo]: valor }));
 
@@ -200,6 +224,25 @@ export default function Admin() {
             <LogOut className="h-4 w-4" /> Sair
           </Button>
         </div>
+
+        {pendentes.length > 0 && (
+          <Card className="space-y-2 p-4">
+            <p className="text-sm font-semibold">Cadastros aguardando confirmação de e-mail</p>
+            {pendentes.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0">
+                  <span className="font-medium">{p.nome}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {LABEL.papel[p.papel]} · {p.email} · {dataCurta(p.criadoEm)}
+                  </span>
+                </span>
+                <Button size="sm" variant="outline" onClick={() => confirmarEmail(p)}>
+                  Confirmar e-mail
+                </Button>
+              </div>
+            ))}
+          </Card>
+        )}
 
         <div className="flex flex-wrap justify-between gap-2">
           <BuscaInput value={busca} onChange={setBusca} placeholder="Buscar condomínio" />
@@ -356,20 +399,26 @@ export default function Admin() {
                   <div key={papel} className="space-y-1">
                     <p className="text-xs font-semibold uppercase text-muted-foreground">{LABEL.papel[papel]}</p>
                     {grupo.map((u) => (
-                      <button
-                        key={u.id}
-                        className="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
-                        onClick={() => entrarComo(u)}
-                      >
-                        <span>
-                          <span className="font-medium">{nomeComFuncao(u)}</span>
-                          <span className="block text-xs text-muted-foreground">
-                            {u.email}
-                            {u.unidadeLabel && ` · ${u.unidadeLabel}`}
+                      <div key={u.id} className="flex items-center gap-2">
+                        <button
+                          className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
+                          onClick={() => entrarComo(u)}
+                        >
+                          <span>
+                            <span className="font-medium">{nomeComFuncao(u)}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {u.email}
+                              {u.unidadeLabel && ` · ${u.unidadeLabel}`}
+                            </span>
                           </span>
-                        </span>
-                        <LogIn className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </button>
+                          <LogIn className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </button>
+                        {!u.emailConfirmado && (
+                          <Button size="sm" variant="outline" onClick={() => confirmarEmail(u)}>
+                            Confirmar e-mail
+                          </Button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 );
@@ -388,6 +437,13 @@ export default function Admin() {
             </Field>
             <Field label="CNPJ (opcional)" htmlFor="cnpj">
               <Input id="cnpj" value={form.cnpj} onChange={(e) => set('cnpj', e.target.value)} />
+            </Field>
+            <Field label="Plano" htmlFor="plano">
+              <select id="plano" className={selectCls} value={form.plano} onChange={(e) => set('plano', e.target.value)}>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
             </Field>
             <Field label="Nome do síndico" htmlFor="sindicoNome">
               <Input
