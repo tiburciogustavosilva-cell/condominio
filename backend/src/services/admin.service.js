@@ -8,6 +8,7 @@ const { gerarTokenSenha, gerarTokenSuporte } = require('../utils/jwt');
 const { rotuloUnidade } = require('../utils/unidade');
 const { PLANOS } = require('../utils/planos');
 const { enviarEmail } = require('../integrations/mailer');
+const { emailComBotao } = require('../integrations/emailLayout');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:8080';
 
@@ -29,13 +30,18 @@ function listar() {
 }
 
 function enviarConvite(profile, condominio) {
-  const link = `${APP_URL}/definir-senha?token=${gerarTokenSenha(profile)}`;
   return enviarEmail({
     para: profile.email,
     assunto: `Seu acesso ao ${condominio.nome}`,
-    texto:
-      `Olá, ${profile.nome}!\n\nVocê é síndico do ${condominio.nome} no sistema. ` +
-      `Crie sua senha pelo link abaixo (vale por 7 dias e só pode ser usado uma vez):\n\n${link}`
+    ...emailComBotao({
+      etiqueta: 'Convite de acesso',
+      titulo: condominio.nome,
+      nome: profile.nome,
+      texto: `Você é síndico do ${condominio.nome} no sistema. Crie sua senha para entrar.`,
+      botao: 'Criar minha senha',
+      link: `${APP_URL}/definir-senha?token=${gerarTokenSenha(profile)}`,
+      aviso: 'O link vale por 7 dias e só pode ser usado uma vez.'
+    })
   });
 }
 

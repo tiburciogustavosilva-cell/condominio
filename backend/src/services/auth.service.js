@@ -5,6 +5,7 @@ const { obrigatorio, umDe } = require('../utils/validar');
 const { gerarToken, gerarTokenSenha, idDoTokenSenha, verificarTokenSenha, EXPIRES_IN } = require('../utils/jwt');
 const { condominioComAcesso } = require('./planos.service');
 const { enviarEmail } = require('../integrations/mailer');
+const { emailComBotao } = require('../integrations/emailLayout');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:8080';
 
@@ -52,11 +53,18 @@ async function login(email, senha) {
 }
 
 function enviarConfirmacao(profile) {
-  const link = `${APP_URL}/confirmar-email?token=${gerarTokenSenha(profile)}`;
   return enviarEmail({
     para: profile.email,
-    assunto: 'Confirme seu e-mail',
-    texto: `Olá, ${profile.nome}!\n\nConfirme seu e-mail pelo link abaixo para ativar sua conta (vale por 7 dias):\n\n${link}`
+    assunto: 'Confirme seu e-mail — Áquila Condomínios',
+    ...emailComBotao({
+      etiqueta: 'Confirmação de cadastro',
+      titulo: 'Confirme seu e-mail',
+      nome: profile.nome,
+      texto: 'Falta só um passo: confirme seu e-mail para ativar sua conta.',
+      botao: 'Confirmar e-mail',
+      link: `${APP_URL}/confirmar-email?token=${gerarTokenSenha(profile)}`,
+      aviso: 'O link vale por 7 dias. Se você não fez este cadastro, ignore esta mensagem.'
+    })
   });
 }
 
