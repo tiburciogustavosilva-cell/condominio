@@ -17,6 +17,7 @@ const SELECT = {
   nome: true,
   endereco: true,
   cnpj: true,
+  plano: true,
   bloqueadoMotivo: true,
   criadoEm: true,
   administradora: { select: { nome: true } },
@@ -94,12 +95,13 @@ async function reenviarConvite(id) {
   return { enviadosPara: sindicos.map((s) => s.email) };
 }
 
-/** Edita dados e trava/destrava: bloqueadoMotivo com texto = bloqueado, vazio/null = liberado. */
+/** Edita dados, troca o plano (só o admin, cobrança é manual) e trava/destrava: bloqueadoMotivo com texto = bloqueado, vazio/null = liberado. */
 function atualizar(id, d) {
   const data = parcial(d, {
     nome: (v) => String(obrigatorio(v, 'nome')).trim(),
     endereco: (v) => String(v ?? '').trim(),
     cnpj: (v) => String(v ?? '').trim(),
+    plano: (v) => umDe(v, Object.keys(PLANOS), 'plano'),
     bloqueadoMotivo: (v) => (v && String(v).trim()) || null
   });
   return prisma.condominio.update({ where: { id }, data, select: SELECT });

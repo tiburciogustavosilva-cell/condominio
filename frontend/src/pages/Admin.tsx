@@ -23,6 +23,7 @@ type CondominioAdmin = {
   nome: string;
   endereco: string;
   cnpj: string;
+  plano: string;
   bloqueadoMotivo: string | null;
   administradora: { nome: string } | null;
   _count: { unidades: number; profiles: number };
@@ -65,6 +66,8 @@ type UsuarioCondominio = {
 const selectCls =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
+const NOME_PLANO: Record<string, string> = { basic: 'Basic', pro: 'Pro', premium: 'Premium' };
+
 const VAZIO = {
   nome: '',
   endereco: '',
@@ -88,7 +91,7 @@ export default function Admin() {
   const [salvando, setSalvando] = useState(false);
   const [motivo, setMotivo] = useState('Mensalidade em atraso');
   const [assinaturaDe, setAssinaturaDe] = useState<CondominioAdmin | null>(null);
-  const [editando, setEditando] = useState<Pick<CondominioAdmin, 'id' | 'nome' | 'endereco' | 'cnpj'> | null>(null);
+  const [editando, setEditando] = useState<Pick<CondominioAdmin, 'id' | 'nome' | 'endereco' | 'cnpj' | 'plano'> | null>(null);
   /** Condomínio escolhido em "Acessar" e quem usa ele (null = carregando). */
   const [acessando, setAcessando] = useState<{
     condominio: CondominioAdmin;
@@ -270,7 +273,7 @@ export default function Admin() {
                       {c.administradora && ` · ${c.administradora.nome}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {c._count.unidades} unidades · {c._count.profiles} usuários
+                      Plano {NOME_PLANO[c.plano] ?? c.plano} · {c._count.unidades} unidades · {c._count.profiles} usuários
                     </p>
                     <TextoAssinatura c={c} />
                     {c.bloqueadoMotivo && (
@@ -281,7 +284,7 @@ export default function Admin() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setEditando({ id: c.id, nome: c.nome, endereco: c.endereco, cnpj: c.cnpj })}
+                      onClick={() => setEditando({ id: c.id, nome: c.nome, endereco: c.endereco, cnpj: c.cnpj, plano: c.plano })}
                     >
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
@@ -366,6 +369,18 @@ export default function Admin() {
                   onChange={(e) => setEditando({ ...editando, cnpj: e.target.value })}
                 />
               </Field>
+              <Field label="Plano" htmlFor="editar-plano">
+                <select
+                  id="editar-plano"
+                  className={selectCls}
+                  value={editando.plano}
+                  onChange={(e) => setEditando({ ...editando, plano: e.target.value })}
+                >
+                  {Object.entries(NOME_PLANO).map(([id, nome]) => (
+                    <option key={id} value={id}>{nome}</option>
+                  ))}
+                </select>
+              </Field>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setEditando(null)}>
                   Cancelar
@@ -440,9 +455,9 @@ export default function Admin() {
             </Field>
             <Field label="Plano" htmlFor="plano">
               <select id="plano" className={selectCls} value={form.plano} onChange={(e) => set('plano', e.target.value)}>
-                <option value="basic">Basic</option>
-                <option value="pro">Pro</option>
-                <option value="premium">Premium</option>
+                {Object.entries(NOME_PLANO).map(([id, nome]) => (
+                  <option key={id} value={id}>{nome}</option>
+                ))}
               </select>
             </Field>
             <Field label="Nome do síndico" htmlFor="sindicoNome">

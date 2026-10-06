@@ -1,15 +1,9 @@
-const path = require('path');
-
 // Campos vêm do cadastro (texto livre): escapa antes de pôr no HTML.
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// Imagens embutidas no e-mail (cid), não dependem do site estar no ar.
-const ASSETS = path.join(__dirname, 'email-assets');
-const IMAGENS = [
-  { filename: 'emblema.png', path: path.join(ASSETS, 'emblema.png'), cid: 'emblema' },
-  { filename: 'mascote.png', path: path.join(ASSETS, 'mascote.png'), cid: 'mascote' }
-];
+// Imagens por URL pública: embutidas (cid) o Gmail lista como anexo.
+const BRAND = 'https://app.aquilacondominios.com.br/brand';
 
 /** Moldura Áquila (topo navy + faixa dourada + rodapé). `conteudo` são <tr> já montados. */
 function layoutEmail(conteudo, rodape) {
@@ -20,7 +14,7 @@ function layoutEmail(conteudo, rodape) {
 <tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:14px;overflow:hidden">
     <tr><td align="center" style="background:#0B2545;padding:24px 24px 18px">
-      <img src="cid:emblema" width="90" alt="Áquila Condomínios" style="display:block;border:0;background:#FFFFFF;border-radius:10px;padding:8px">
+      <img src="${BRAND}/emblema.png" width="90" alt="Áquila Condomínios" style="display:block;border:0;background:#FFFFFF;border-radius:10px;padding:8px">
       <p style="margin:12px 0 0;color:#FFFFFF;font-size:18px;font-weight:700;letter-spacing:2px">ÁQUILA</p>
       <p style="margin:2px 0 0;color:#C9A45C;font-size:11px;letter-spacing:3px">CONDOMÍNIOS</p>
     </td></tr>
@@ -46,7 +40,7 @@ function emailComBotao({ etiqueta, titulo, nome, texto, botao, link, aviso }) {
           <p style="margin:0;color:#3A4358;font-size:15px;line-height:1.55">Olá, <strong>${esc(nome)}</strong>! ${esc(texto)}</p>
         </td>
         <td width="110" style="vertical-align:bottom;padding-left:12px">
-          <img src="cid:mascote" width="110" alt="" style="display:block;border:0">
+          <img src="${BRAND}/mascote.png" width="110" alt="" style="display:block;border:0">
         </td>
       </tr></table>
     </td></tr>
@@ -60,7 +54,7 @@ function emailComBotao({ etiqueta, titulo, nome, texto, botao, link, aviso }) {
     </td></tr>`,
     'Mensagem automática da Áquila Condomínios · não responda este e-mail.'
   );
-  return { html, texto: `Olá, ${nome}!\n\n${texto}\n\n${link}\n\n${aviso}`, attachments: IMAGENS };
+  return { html, texto: `Olá, ${nome}!\n\n${texto}\n\n${link}\n\n${aviso}` };
 }
 
-module.exports = { esc, IMAGENS, layoutEmail, emailComBotao };
+module.exports = { esc, BRAND, layoutEmail, emailComBotao };

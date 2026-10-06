@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const prisma = require('../models/prisma');
 const { statusManutencao } = require('../utils/recorrencia');
 const { enviarEmail } = require('./mailer');
-const { esc, IMAGENS, layoutEmail } = require('./emailLayout');
+const { esc, BRAND, layoutEmail } = require('./emailLayout');
 
 const dia = (d) => d.toISOString().slice(0, 10);
 const dataBR = (iso) => iso.split('-').reverse().join('/');
@@ -39,7 +39,7 @@ function htmlEmail(condominio, prestador, m, proxima) {
           <p style="margin:0;color:#3A4358;font-size:15px;line-height:1.55">Olá, <strong>${esc(prestador.nome)}</strong>! O <strong>${cond}</strong> solicita o agendamento da manutenção abaixo.</p>
         </td>
         <td width="110" style="vertical-align:bottom;padding-left:12px">
-          <img src="cid:mascote" width="110" alt="" style="display:block;border:0">
+          <img src="${BRAND}/mascote.png" width="110" alt="" style="display:block;border:0">
         </td>
       </tr></table>
     </td></tr>
@@ -65,8 +65,7 @@ function emailLembrete(condominio, prestador, m, proxima) {
   return {
     assunto: `Manutenção a agendar: ${m.titulo}`,
     texto: corpoEmail(condominio, prestador, m, proxima),
-    html: htmlEmail(condominio, prestador, m, proxima),
-    attachments: IMAGENS
+    html: htmlEmail(condominio, prestador, m, proxima)
   };
 }
 

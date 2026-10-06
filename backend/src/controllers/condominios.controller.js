@@ -3,10 +3,6 @@ const planos = require('../services/planos.service');
 
 module.exports = {
   planos: (req, res) => res.json(planos.catalogo()),
-  mudarPlano: async (req, res) => {
-    await planos.mudarPlano(req.usuario, req.body.plano);
-    res.status(204).end();
-  },
   listar: async (req, res) => res.json(await service.listarDaAdministradora(req.usuario)),
   criar: async (req, res) => res.status(201).json(await service.criar(req.usuario, req.body)),
   ativar: async (req, res) => {

@@ -6,9 +6,8 @@ const { apenasSindico, exigirLiberado } = require('../middlewares/auth');
 router.put('/atual', exigirLiberado, apenasSindico, c.responderOnboarding);
 // Qual campo da unidade decide o peso do voto nas assembleias
 router.patch('/peso-voto', exigirLiberado, apenasSindico, c.atualizarPesoVoto);
-// Planos: o síndico troca mesmo com o teste vencido (é assim que ele escolhe o que vai pagar)
+// Catálogo de planos (quem troca o plano é o admin da plataforma)
 router.get('/planos', c.planos);
-router.patch('/plano', apenasSindico, c.mudarPlano);
 // Administradora: seus condomínios (checagem de papel no service)
 router.get('/', c.listar);
 router.post('/', c.criar);

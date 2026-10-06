@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnidades } from '@/hooks/useUnidades';
 import { api } from '@/lib/api';
@@ -8,7 +7,6 @@ import { dataCurta } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 type PlanoId = 'basic' | 'pro' | 'premium';
@@ -50,10 +48,9 @@ const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curr
 
 /** Cobrança mensal do condomínio: cada unidade paga o preço do plano escolhido. */
 export default function Plano() {
-  const { condominio, recarregarCondominio } = useAuth();
+  const { condominio } = useAuth();
   const { unidades } = useUnidades();
   const [catalogo, setCatalogo] = useState<PlanoCatalogo[]>([]);
-  const [trocando, setTrocando] = useState<PlanoId | null>(null);
 
   useEffect(() => {
     api.get<PlanoCatalogo[]>('/condominios/planos').then(setCatalogo).catch(() => setCatalogo([]));
@@ -62,19 +59,6 @@ export default function Plano() {
   const atual = condominio?.plano;
   const acesso = condominio?.acesso;
   const qtdUnidades = unidades.length;
-
-  async function escolher(plano: PlanoId) {
-    setTrocando(plano);
-    try {
-      await api.patch('/condominios/plano', { plano });
-      await recarregarCondominio();
-      toast.success(`Plano ${catalogo.find((p) => p.id === plano)?.nome ?? ''} escolhido`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível trocar o plano');
-    } finally {
-      setTrocando(null);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -93,11 +77,14 @@ export default function Plano() {
           )}
           {!acesso?.emTeste && !acesso?.pagoAte && (
             <p className="font-semibold text-destructive">
-              O teste terminou e não há assinatura vigente. Escolha o plano e fale com o suporte para regularizar.
+              O teste terminou e não há assinatura vigente. Entre em contato com a Áquila Condomínios para regularizar.
             </p>
           )}
           <p className="text-sm text-muted-foreground">
             {qtdUnidades} unidade(s) cadastrada(s) no condomínio.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Quer mudar de plano? Entre em contato com a Áquila Condomínios para realizar a troca.
           </p>
         </CardContent>
       </Card>
@@ -132,14 +119,7 @@ export default function Plano() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  variant={ehAtual ? 'outline' : 'brand'}
-                  disabled={ehAtual || trocando !== null}
-                  onClick={() => escolher(p.id)}
-                >
-                  {trocando === p.id && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {ehAtual ? 'Plano atual' : `Escolher o ${p.nome}`}
-                </Button>
+                {ehAtual && <Badge variant="outline" className="self-start">Plano atual</Badge>}
               </CardContent>
             </Card>
           );

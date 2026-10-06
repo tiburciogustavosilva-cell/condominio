@@ -1,6 +1,7 @@
 // Smoke test da API: auth JWT Bearer + regras de acesso que antes eram RLS + fluxo de encomendas.
 // Cria os próprios condomínios/usuários e apaga tudo no fim — não depende do seed. Rode: npm test
 require('dotenv').config();
+delete process.env.SMTP_HOST; // e-mails simulados: cadastro/confirmação não podem sair de verdade
 const assert = require('assert');
 const bcrypt = require('bcryptjs');
 const app = require('../src/app');
@@ -57,10 +58,15 @@ async function main() {
       body: { tipo: 'sindico', email: email('sindico'), senha, nome: 'Síndico', condominioNome: 'Smoke A' }
     });
     assert.equal(cad.status, 201);
-    assert.equal(cad.json.tokenType, 'Bearer');
-    assert.ok(!cad.json.usuario.senhaHash);
+    assert.deepEqual(cad.json, { precisaConfirmarEmail: true }, 'cadastro não entra logado');
 
     assert.equal((await api('POST', '/auth/login', { body: { email: email('sindico'), senha: 'errada' } })).status, 401);
+    assert.equal((await api('POST', '/auth/login', { body: { email: email('sindico'), senha } })).status, 403, 'e-mail não confirmado');
+    assert.equal((await api('POST', '/auth/confirmar-email', { body: { token: 'lixo' } })).status, 400);
+    const pendente = await prisma.profile.findUnique({ where: { email: email('sindico') } });
+    const conf = await api('POST', '/auth/confirmar-email', { body: { token: gerarTokenSenha(pendente) } });
+    assert.equal(conf.json.tokenType, 'Bearer');
+    assert.ok(!conf.json.usuario.senhaHash);
     const sindico = await login(email('sindico'), senha);
     assert.ok(sindico);
     assert.equal((await api('GET', '/chamados')).status, 401, 'sem Bearer');
@@ -592,10 +598,9 @@ async function main() {
     assert.equal((await api('GET', '/chamados', { token: sindico })).status, 403, 'basic não tem chamados');
     assert.equal((await api('GET', '/tarefas', { token: sindico })).status, 403, 'basic não tem tarefas');
     assert.equal((await api('GET', '/unidades', { token: sindico })).status, 200, 'unidades em todos os planos');
-    assert.equal((await api('PATCH', '/condominios/plano', { token: sindico, body: { plano: 'premium' } })).status, 204);
+    assert.equal((await api('PATCH', '/condominios/plano', { token: sindico, body: { plano: 'premium' } })).status, 404, 'síndico não troca o plano');
+    await prisma.condominio.update({ where: { id: condoA }, data: { plano: 'premium' } });
     assert.equal((await api('GET', '/tarefas', { token: sindico })).status, 200, 'premium tem tarefas');
-    assert.equal((await api('PATCH', '/condominios/plano', { token: sindico, body: { plano: 'inexistente' } })).status, 400);
-    assert.equal((await api('PATCH', '/condominios/plano', { token: morador, body: { plano: 'pro' } })).status, 403, 'só síndico troca');
     // volta ao normal pros próximos testes
     await prisma.condominio.update({ where: { id: condoA }, data: { trialAte: dias(30), plano: 'basic' } });
 
@@ -603,7 +608,9 @@ async function main() {
     const outro = await api('POST', '/auth/cadastro', {
       body: { tipo: 'sindico', email: email('outro'), senha, nome: 'Outro', condominioNome: 'Smoke B' }
     });
-    const tokenOutro = outro.json.token;
+    assert.equal(outro.status, 201);
+    const pendenteOutro = await prisma.profile.findUnique({ where: { email: email('outro') } });
+    const tokenOutro = (await api('POST', '/auth/confirmar-email', { body: { token: gerarTokenSenha(pendenteOutro) } })).json.token;
     assert.equal(
       (await api('PUT', '/mapa', { token: tokenOutro, body: { itens: [{ id: pecaA, camada: 'geral', tipo: 'rua', x: 0, y: 0 }] } })).status,
       400,
@@ -647,6 +654,10 @@ async function main() {
     assert.equal(editado.json.endereco, 'Rua X, 1');
     assert.equal((await editar({ nome: '' })).status, 400, 'nome não pode ficar vazio');
     assert.equal((await editar({ endereco: null })).json.endereco, '', 'null vira vazio, não erro 500');
+    assert.equal((await editar({ plano: 'pro' })).json.plano, 'pro', 'admin troca o plano');
+    assert.equal((await editar({ plano: 'inexistente' })).status, 400);
+    const sindicoSeDaPremium = { token: sindicoNovo, body: { plano: 'premium' } };
+    assert.equal((await api('PATCH', `/admin/condominios/${novo.json.id}`, sindicoSeDaPremium)).status, 403, 'só o admin troca o plano');
 
     // Assinatura: registra pagamento, o vigente aparece na lista, exclui
     const pagar = (body) => api('POST', `/admin/condominios/${novo.json.id}/pagamentos`, { token: admin, body });
