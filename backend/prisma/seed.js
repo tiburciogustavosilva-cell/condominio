@@ -10,6 +10,7 @@ const dia = (delta) => {
 };
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') throw new Error('Seed de demonstração bloqueado em produção.');
   if (await prisma.profile.count()) return console.log('Banco já tem usuários — seed ignorado.');
 
   const cond = await prisma.condominio.create({
