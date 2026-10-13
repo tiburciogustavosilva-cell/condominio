@@ -51,6 +51,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListSkeleton } from "@/components/shared/ListSkeleton";
+import { BuscaInput, bate } from "@/components/shared/BuscaInput";
+import { FilterPills } from "@/components/shared/FilterPills";
 import { AbaPrestadores } from "@/components/manutencao/AbaPrestadores";
 import { AbaRegulamentacao } from "@/components/manutencao/AbaRegulamentacao";
 
@@ -736,6 +738,30 @@ function AbaPlano({
   const [aberto, setAberto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [prazo, setPrazo] = useState("");
+
+  const qtd = (st: string) =>
+    manutencoes.filter((m) => (m.status ?? "em_dia") === st).length;
+  const filtrosPrazo = [
+    { value: "", label: `Todos (${manutencoes.length})` },
+    { value: "vencida", label: `Vencidos (${qtd("vencida")})` },
+    { value: "proxima", label: `Próximos (${qtd("proxima")})` },
+    { value: "em_dia", label: `Em dia (${qtd("em_dia")})` },
+  ];
+  const visiveis = manutencoes
+    .filter((m) => !prazo || (m.status ?? "em_dia") === prazo)
+    .filter((m) =>
+      bate(
+        busca,
+        m.titulo,
+        m.ativoNome,
+        m.prestadorNome,
+        m.numeroOs,
+        m.descricao
+      )
+    )
+    .sort(porUrgencia);
 
   function set(campo: string, valor: string) {
     setForm((f: any) => ({ ...f, [campo]: valor }));
@@ -1053,7 +1079,24 @@ function AbaPlano({
         />
       ) : (
         <div className="space-y-3">
-          {[...manutencoes].sort(porUrgencia).map((m) => (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <FilterPills
+              options={filtrosPrazo}
+              value={prazo}
+              onChange={setPrazo}
+            />
+            <BuscaInput
+              value={busca}
+              onChange={setBusca}
+              placeholder="Buscar por serviço, equipamento, prestador ou OS…"
+            />
+          </div>
+          {visiveis.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nenhum plano encontrado com esses filtros.
+            </p>
+          )}
+          {visiveis.map((m) => (
             <Card key={m.id}>
               <CardContent className="space-y-2 pt-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
