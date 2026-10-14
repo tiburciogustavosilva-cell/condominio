@@ -13,16 +13,13 @@ export type LinhaComErro = { erro: string };
 
 const COL_NUMERO = 'Número';
 const COL_BLOCO = 'Bloco';
-const COL_TIPO = 'Tipo (apartamento/casa/comercial/garagem)';
+const COL_TIPO = 'Tipo (apartamento, casa, loja, garagem…)';
 const COL_FRACAO = 'Fração ideal (%)';
 const COL_PESO = 'Peso do voto';
 const COL_PONTOS = 'Pontos';
 
-const TIPOS_VALIDOS = ['apartamento', 'casa', 'comercial', 'garagem'];
-
 function normalizarTipo(valor: string) {
-  const t = valor.trim().toLowerCase();
-  return TIPOS_VALIDOS.includes(t) ? t : 'apartamento';
+  return valor.trim().toLowerCase() || 'apartamento';
 }
 
 /** Modelo .xlsx com as colunas certas pro condomínio — "Bloco" só aparece se ele tiver blocos. */
@@ -58,7 +55,8 @@ export async function lerModeloUnidades(
     unidades.push({
       numero,
       bloco: condominio.temBlocos ? String(linha[COL_BLOCO] ?? '').trim() : '',
-      tipo: normalizarTipo(String(linha[COL_TIPO] ?? '')),
+      // planilhas baixadas antes ainda têm o cabeçalho antigo
+      tipo: normalizarTipo(String(linha[COL_TIPO] ?? linha['Tipo (apartamento/casa/comercial/garagem)'] ?? '')),
       fracaoIdeal: String(linha[COL_FRACAO] ?? '').trim(),
       pesoVoto: String(linha[COL_PESO] ?? '').trim() || '1',
       pontos: String(linha[COL_PONTOS] ?? '').trim()

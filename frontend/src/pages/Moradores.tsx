@@ -29,7 +29,7 @@ export default function Moradores() {
   const { moradores, carregando, recarregar, criar, atualizar, remover } = useMoradores();
   const { unidades } = useUnidades();
   const { condominio } = useAuth();
-  const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', papel: 'condomino', vinculo: 'proprietario' };
+  const vazio = { nome: '', email: '', senha: '', telefone: '', unidadeId: '', vinculo: 'proprietario' };
   const [form, setForm] = useState(vazio);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
@@ -76,7 +76,6 @@ export default function Moradores() {
       nome: m.nome,
       telefone: m.telefone || '',
       unidadeId: m.unidadeId || '',
-      papel: m.papel,
       vinculo: m.vinculo
     });
     setAberto(true);
@@ -96,13 +95,12 @@ export default function Moradores() {
         await atualizar(editandoId, {
           nome: form.nome,
           telefone: form.telefone,
-          papel: form.papel,
           vinculo: form.vinculo,
           unidadeId: form.unidadeId || null,
           senha: form.senha || undefined
         });
       } else {
-        await criar(form);
+        await criar({ ...form, papel: 'condomino' });
       }
       toast.success(editandoId ? 'Morador atualizado' : 'Morador cadastrado');
       cancelarEdicao();
@@ -230,17 +228,6 @@ export default function Moradores() {
                     {l}
                   </option>
                 ))}
-              </select>
-            </Field>
-            <Field label="Papel" htmlFor="papel">
-              <select
-                id="papel"
-                className={selectCls}
-                value={form.papel}
-                onChange={(e) => set('papel', e.target.value)}
-              >
-                <option value="condomino">Condômino</option>
-                <option value="sindico">Síndico</option>
               </select>
             </Field>
           </div>

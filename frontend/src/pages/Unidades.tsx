@@ -217,17 +217,20 @@ export default function Unidades() {
               <Input id="bloco" value={form.bloco} onChange={(e) => set('bloco', e.target.value)} />
             </Field>
             <Field label="Tipo" htmlFor="tipo">
-              <select
+              <Input
                 id="tipo"
-                className={selectCls}
+                list="tipos-unidade"
+                placeholder="Ex.: apartamento, casa, loja, garagem, depósito"
+                maxLength={40}
                 value={form.tipo}
                 onChange={(e) => set('tipo', e.target.value)}
-              >
-                <option value="apartamento">Apartamento</option>
-                <option value="casa">Casa</option>
-                <option value="comercial">Comercial</option>
-                <option value="garagem">Garagem</option>
-              </select>
+                required
+              />
+              <datalist id="tipos-unidade">
+                {[...new Set(['apartamento', 'casa', 'loja', 'garagem', 'depósito', ...unidades.map((u) => u.tipo)])].map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
             </Field>
             <Field label="Fração ideal (%)" htmlFor="fracao">
               <Input
