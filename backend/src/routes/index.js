@@ -29,5 +29,6 @@ router.use('/manutencoes', semFuncionario, exigirRecurso('manutencoes'), require
 router.use('/ativos', semFuncionario, exigirRecurso('manutencoes'), require('./ativos.routes'));
 router.use('/ordens-servico', semFuncionario, exigirRecurso('manutencoes'), require('./ordensServico.routes'));
 router.use('/dashboard', semFuncionario, require('./dashboard.routes'));
+router.use('/relatorios', semFuncionario, require('./relatorios.routes'));
 
 module.exports = router;

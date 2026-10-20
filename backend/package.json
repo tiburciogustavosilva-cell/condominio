@@ -11,7 +11,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "admin": "node prisma/criar-admin.js",
-    "test": "node test/tarefas.test.js && node test/assembleias.test.js && node test/smoke.js"
+    "test": "node test/tarefas.test.js && node test/relatorios.test.js && node test/assembleias.test.js && node test/smoke.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
