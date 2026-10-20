@@ -1,10 +1,13 @@
 const prisma = require('../models/prisma');
 const { condominioDe } = require('../utils/acesso');
 const { statusManutencao } = require('../utils/recorrencia');
+const HttpError = require('../utils/httpError');
 
 /** Mesmo corte da tela de Encomendas: a partir daqui a encomenda conta como parada. */
 const DIAS_PARADA = 3;
 const PERIODOS = [3, 6, 12];
+/** Teto do período personalizado (o gráfico tem uma coluna por mês). */
+const MAX_MESES = 36;
 
 const media = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const custo = (os) => Number(os.custoMaterial ?? 0) + Number(os.custoMaoDeObra ?? 0);
@@ -12,6 +15,29 @@ const custo = (os) => Number(os.custoMaterial ?? 0) + Number(os.custoMaoDeObra ?
 /** 1º dia (UTC) do mês que abre um período de `meses` meses terminando no mês atual. */
 function inicioPeriodo(meses, hoje = new Date()) {
   return new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() - (meses - 1), 1));
+}
+
+const diaValido = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '') && !Number.isNaN(Date.parse(s));
+
+/**
+ * Período do relatório: `de`/`ate` ("YYYY-MM-DD", inclusive) ou os últimos `meses` (3, 6, 12; padrão 6).
+ * Devolve `desde` (inclusive), `fim` (exclusivo), quantos meses o gráfico cobre e as datas em texto.
+ */
+function periodo({ meses, de, ate } = {}, hoje = new Date()) {
+  let desde, fim;
+  if (de || ate) {
+    if (!diaValido(de) || !diaValido(ate) || de > ate) throw new HttpError(400, 'Período inválido');
+    desde = new Date(`${de}T00:00:00Z`);
+    fim = new Date(`${ate}T00:00:00Z`);
+    fim.setUTCDate(fim.getUTCDate() + 1);
+  } else {
+    desde = inicioPeriodo(PERIODOS.includes(meses) ? meses : 6, hoje);
+    fim = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
+  }
+  const ultimo = new Date(fim.getTime() - 86400000);
+  const n = (ultimo.getUTCFullYear() - desde.getUTCFullYear()) * 12 + ultimo.getUTCMonth() - desde.getUTCMonth() + 1;
+  if (n > MAX_MESES) throw new HttpError(400, `Escolha um período de até ${MAX_MESES} meses`);
+  return { desde, fim, meses: n, de: desde.toISOString().slice(0, 10), ate: ultimo.toISOString().slice(0, 10) };
 }
 
 /**
@@ -33,12 +59,12 @@ function porMes(itens, desde, meses) {
 }
 
 // ponytail: agrupamento em memória; trocar por date_trunc via $queryRaw se o volume crescer
-async function resumo(usuario, mesesPedido) {
+async function resumo(usuario, filtro) {
   const condominioId = condominioDe(usuario);
   const recursos = usuario.condominio?.acesso?.recursos ?? [];
   const tem = (r) => recursos.includes(r);
-  const meses = PERIODOS.includes(mesesPedido) ? mesesPedido : 6;
-  const desde = inicioPeriodo(meses);
+  const { desde, fim, meses, de, ate } = periodo(filtro);
+  const no = { gte: desde, lt: fim };
 
   const [unidades, unidadesVazias, vinculos, funcionarios, ocorrencias, manutencoes, encomendas, assembleias] =
     await Promise.all([
@@ -50,12 +76,12 @@ async function resumo(usuario, mesesPedido) {
         _count: { _all: true }
       }),
       prisma.profile.count({ where: { condominioId, papel: 'funcionario' } }),
-      tem('ocorrencias') ? ocorrenciasDoPeriodo(condominioId, desde, meses) : null,
-      tem('manutencoes') ? manutencoesDoPeriodo(condominioId, desde, meses) : null,
-      tem('encomendas') ? encomendasDoPeriodo(condominioId, desde, meses) : null,
+      tem('ocorrencias') ? ocorrenciasDoPeriodo(condominioId, no, meses) : null,
+      tem('manutencoes') ? manutencoesDoPeriodo(condominioId, no, meses) : null,
+      tem('encomendas') ? encomendasDoPeriodo(condominioId, no, meses) : null,
       tem('assembleias')
         ? prisma.assembleia.findMany({
-            where: { condominioId, status: 'encerrada', encerradaEm: { gte: desde } },
+            where: { condominioId, status: 'encerrada', encerradaEm: no },
             select: { id: true, titulo: true, encerradaEm: true, _count: { select: { presencas: true } } },
             orderBy: { encerradaEm: 'desc' },
             take: 6
@@ -65,6 +91,8 @@ async function resumo(usuario, mesesPedido) {
 
   return {
     meses,
+    de,
+    ate,
     geral: {
       unidades,
       unidadesOcupadas: unidades - unidadesVazias,
@@ -80,11 +108,12 @@ async function resumo(usuario, mesesPedido) {
   };
 }
 
-async function ocorrenciasDoPeriodo(condominioId, desde, meses) {
+async function ocorrenciasDoPeriodo(condominioId, no, meses) {
+  const desde = no.gte;
   const [criadas, conclusoes, abertasAgora] = await Promise.all([
-    prisma.ocorrencia.findMany({ where: { condominioId, criadoEm: { gte: desde } }, select: { criadoEm: true, categoria: true } }),
+    prisma.ocorrencia.findMany({ where: { condominioId, criadoEm: no }, select: { criadoEm: true, categoria: true } }),
     prisma.ocorrenciaHistorico.findMany({
-      where: { status: 'concluido', criadoEm: { gte: desde }, ocorrencia: { condominioId } },
+      where: { status: 'concluido', criadoEm: no, ocorrencia: { condominioId } },
       select: { ocorrenciaId: true, criadoEm: true, ocorrencia: { select: { criadoEm: true } } }
     }),
     prisma.ocorrencia.count({ where: { condominioId, status: { not: 'concluido' } } })
@@ -110,13 +139,14 @@ async function ocorrenciasDoPeriodo(condominioId, desde, meses) {
   };
 }
 
-async function manutencoesDoPeriodo(condominioId, desde, meses) {
+async function manutencoesDoPeriodo(condominioId, no, meses) {
+  const desde = no.gte;
   const [executadas, porStatus, planos] = await Promise.all([
     prisma.ordemServico.findMany({
-      where: { condominioId, dataExecucao: { gte: desde } },
+      where: { condominioId, dataExecucao: no },
       select: { dataExecucao: true, tipo: true, custoMaterial: true, custoMaoDeObra: true }
     }),
-    prisma.ordemServico.groupBy({ by: ['status'], where: { condominioId, dataAbertura: { gte: desde } }, _count: { _all: true } }),
+    prisma.ordemServico.groupBy({ by: ['status'], where: { condominioId, dataAbertura: no }, _count: { _all: true } }),
     prisma.manutencao.findMany({
       where: { condominioId, ativo: true, statusManual: { notIn: ['concluida', 'cancelada'] } },
       select: { ultimaManutencao: true, frequenciaUnidade: true, frequenciaIntervalo: true, diasAntecedencia: true }
@@ -137,9 +167,10 @@ async function manutencoesDoPeriodo(condominioId, desde, meses) {
   };
 }
 
-async function encomendasDoPeriodo(condominioId, desde, meses) {
+async function encomendasDoPeriodo(condominioId, no, meses) {
+  const desde = no.gte;
   const [recebidas, paradas] = await Promise.all([
-    prisma.encomenda.findMany({ where: { condominioId, criadoEm: { gte: desde } }, select: { criadoEm: true, entregueEm: true } }),
+    prisma.encomenda.findMany({ where: { condominioId, criadoEm: no }, select: { criadoEm: true, entregueEm: true } }),
     prisma.encomenda.count({
       where: { condominioId, status: 'aguardando', criadoEm: { lt: new Date(Date.now() - DIAS_PARADA * 86400000) } }
     })
@@ -153,4 +184,4 @@ async function encomendasDoPeriodo(condominioId, desde, meses) {
   };
 }
 
-module.exports = { resumo, porMes, inicioPeriodo };
+module.exports = { resumo, porMes, inicioPeriodo, periodo };

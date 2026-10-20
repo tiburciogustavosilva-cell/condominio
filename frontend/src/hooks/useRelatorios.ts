@@ -2,22 +2,24 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { RelatoriosResumo } from '@/types/condominio';
 
-/** `meses = null` não busca (ex.: Painel de quem não é síndico). */
-export function useRelatorios(meses: number | null) {
+/** `query` = periodoQuery(...); null não busca e mantém o último resultado (Painel de não-síndico, datas incompletas). */
+export function useRelatorios(query: string | null) {
   const [dados, setDados] = useState<RelatoriosResumo | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    if (meses === null) return;
+    if (query === null) return;
     let ativo = true;
     setDados(null);
+    setErro(null);
     api
-      .get<RelatoriosResumo>(`/relatorios?meses=${meses}`)
+      .get<RelatoriosResumo>(`/relatorios?${query}`)
       .then((resumo) => ativo && setDados(resumo))
-      .catch(() => {});
+      .catch((e: Error) => ativo && setErro(e.message));
     return () => {
       ativo = false;
     };
-  }, [meses]);
+  }, [query]);
 
-  return { dados, carregando: dados === null };
+  return { dados, erro, carregando: dados === null && !erro };
 }

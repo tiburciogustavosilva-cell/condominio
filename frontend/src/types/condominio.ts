@@ -411,6 +411,9 @@ export interface DashboardResumo {
 
 export interface RelatoriosResumo {
   meses: number;
+  /** Período efetivo, "YYYY-MM-DD" inclusive. */
+  de: string;
+  ate: string;
   geral: {
     unidades: number;
     unidadesOcupadas: number;

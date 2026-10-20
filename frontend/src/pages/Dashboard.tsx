@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Wrench,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useRelatorios } from '@/hooks/useRelatorios';
+import { PeriodoFiltro, periodoQuery, type Periodo } from '@/components/shared/PeriodoFiltro';
 import { useAuth } from '@/hooks/useAuth';
 import { dataCurta, dataHora, prazoTexto } from '@/lib/format';
 import { rotaVisivel } from '@/components/layout/nav-items';
@@ -68,7 +69,8 @@ function Numero({ icon: Icon, label, valor, to }: { icon: typeof Home; label: st
 export default function Dashboard() {
   const auth = useAuth();
   const { dados } = useDashboard();
-  const { dados: rel } = useRelatorios(auth.isSindico ? 3 : null);
+  const [periodo, setPeriodo] = useState<Periodo>({ meses: '3', de: '', ate: '' });
+  const { dados: rel, erro: erroRel } = useRelatorios(auth.isSindico ? periodoQuery(periodo) : null);
   const ve = (to: string) => rotaVisivel(to, auth);
   const cabecalho = <PageHeader title="Painel" />;
 
@@ -256,8 +258,11 @@ export default function Dashboard() {
       {s ? (
         <div className="grid gap-6 lg:grid-cols-3">
           {mural}
-          <Painel titulo="Últimos 3 meses" to="/relatorios">
-            {!rel ? (
+          <Painel titulo="Indicadores do período" to="/relatorios">
+            <PeriodoFiltro value={periodo} onChange={setPeriodo} className="mb-4" />
+            {erroRel ? (
+              <p className="text-sm text-destructive">{erroRel}</p>
+            ) : !rel ? (
               <Skeleton className="h-40" />
             ) : (
               <div className="grid grid-cols-2 gap-3">

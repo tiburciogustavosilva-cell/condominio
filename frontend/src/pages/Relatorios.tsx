@@ -4,21 +4,15 @@ import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Building2, Wallet, BookText, Package, BarChart3 } from 'lucide-react';
 import { useRelatorios } from '@/hooks/useRelatorios';
-import { moeda } from '@/lib/format';
+import { dataCurta, moeda } from '@/lib/format';
 import { LABEL } from '@/types/condominio';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { FilterPills } from '@/components/shared/FilterPills';
+import { PeriodoFiltro, periodoQuery, type Periodo } from '@/components/shared/PeriodoFiltro';
 import { StatCard } from '@/components/shared/StatCard';
 import { ProgressStat } from '@/components/shared/ProgressStat';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const PERIODOS = [
-  { value: '3', label: '3 meses' },
-  { value: '6', label: '6 meses' },
-  { value: '12', label: '12 meses' }
-];
 
 const cor = (token: string) => `hsl(var(--${token}))`;
 /** '2026-10' → 'out/26' */
@@ -85,13 +79,22 @@ function Ranking({ itens, valor = String }: { itens: { label: string; total: num
 }
 
 export default function Relatorios() {
-  const [meses, setMeses] = useState('6');
-  const { dados } = useRelatorios(Number(meses));
+  const [periodo, setPeriodo] = useState<Periodo>({ meses: '6', de: '', ate: '' });
+  const { dados, erro } = useRelatorios(periodoQuery(periodo));
   const cabecalho = (
     <PageHeader title="Relatórios">
-      <FilterPills options={PERIODOS} value={meses} onChange={setMeses} />
+      <PeriodoFiltro value={periodo} onChange={setPeriodo} />
     </PageHeader>
   );
+
+  if (erro) {
+    return (
+      <div className="space-y-6">
+        {cabecalho}
+        <EmptyState icon={BarChart3} title="Não deu pra gerar o relatório" description={erro} />
+      </div>
+    );
+  }
 
   if (!dados) {
     return (
@@ -126,7 +129,7 @@ export default function Relatorios() {
           icon={Building2}
         />
         {manutencoes && (
-          <StatCard label="Custo de manutenção" value={moeda(manutencoes.custoTotal)} hint={`Últimos ${dados.meses} meses`} icon={Wallet} tone="secondary" />
+          <StatCard label="Custo de manutenção" value={moeda(manutencoes.custoTotal)} hint={`${dataCurta(dados.de)} a ${dataCurta(dados.ate)}`} icon={Wallet} tone="secondary" />
         )}
         {ocorrencias && (
           <StatCard
