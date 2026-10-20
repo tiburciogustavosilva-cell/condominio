@@ -409,6 +409,38 @@ export interface DashboardResumo {
   avisos: Aviso[];
 }
 
+export interface RelatoriosResumo {
+  meses: number;
+  geral: {
+    unidades: number;
+    unidadesOcupadas: number;
+    funcionarios: number;
+    moradoresPorVinculo: { vinculo: string; total: number }[];
+  };
+  /** Cada seção é null quando o módulo não está no plano do condomínio. */
+  ocorrencias: {
+    porMes: { mes: string; abertas: number; concluidas: number }[];
+    porCategoria: { categoria: string; total: number }[];
+    total: number;
+    abertasAgora: number;
+    diasMedioResolucao: number | null;
+  } | null;
+  manutencoes: {
+    custoPorMes: { mes: string; total: number }[];
+    custoTotal: number;
+    custoPorTipo: { tipo: string; total: number }[];
+    ordensPorStatus: { status: string; total: number }[];
+    planos: { em_dia: number; proxima: number; vencida: number };
+  } | null;
+  encomendas: {
+    porMes: { mes: string; total: number }[];
+    total: number;
+    horasMediaRetirada: number | null;
+    paradas: number;
+  } | null;
+  assembleias: { id: string; titulo: string; encerradaEm: string; presencas: number }[] | null;
+}
+
 export const LABEL = {
   papel: {
     sindico: 'Síndico',

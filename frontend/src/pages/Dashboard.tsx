@@ -15,9 +15,12 @@ import {
   Vote,
   Home,
   ClipboardList,
-  Wallet
+  Wallet,
+  BarChart3,
+  Timer
 } from 'lucide-react';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useRelatorios } from '@/hooks/useRelatorios';
 import { useAuth } from '@/hooks/useAuth';
 import { dataCurta, dataHora, prazoTexto } from '@/lib/format';
 import { rotaVisivel } from '@/components/layout/nav-items';
@@ -65,6 +68,7 @@ function Numero({ icon: Icon, label, valor, to }: { icon: typeof Home; label: st
 export default function Dashboard() {
   const auth = useAuth();
   const { dados } = useDashboard();
+  const { dados: rel } = useRelatorios(auth.isSindico ? 3 : null);
   const ve = (to: string) => rotaVisivel(to, auth);
   const cabecalho = <PageHeader title="Painel" />;
 
@@ -250,7 +254,38 @@ export default function Dashboard() {
       )}
 
       {s ? (
-        <div className="grid gap-6 lg:grid-cols-2">{mural}</div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {mural}
+          <Painel titulo="Últimos 3 meses" to="/relatorios">
+            {!rel ? (
+              <Skeleton className="h-40" />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <Numero icon={Home} label="Ocupação" valor={`${rel.geral.unidades ? Math.round((rel.geral.unidadesOcupadas / rel.geral.unidades) * 100) : 0}%`} />
+                {rel.manutencoes && <Numero icon={Wallet} label="Gasto com manutenção" valor={moeda(rel.manutencoes.custoTotal)} />}
+                {rel.ocorrencias && <Numero icon={BookText} label="Ocorrências registradas" valor={rel.ocorrencias.total} />}
+                {rel.ocorrencias && (
+                  <Numero
+                    icon={Timer}
+                    label="Resolução média"
+                    valor={rel.ocorrencias.diasMedioResolucao === null ? '—' : `${rel.ocorrencias.diasMedioResolucao.toLocaleString('pt-BR')} dias`}
+                  />
+                )}
+                {rel.encomendas && <Numero icon={Package} label="Encomendas recebidas" valor={rel.encomendas.total} />}
+                {rel.encomendas && (
+                  <Numero icon={Timer} label="Retirada média" valor={rel.encomendas.horasMediaRetirada === null ? '—' : `${rel.encomendas.horasMediaRetirada} h`} />
+                )}
+                {rel.assembleias?.[0] && (
+                  <Numero
+                    icon={BarChart3}
+                    label="Presença na última assembleia"
+                    valor={`${rel.geral.unidades ? Math.round((rel.assembleias[0].presencas / rel.geral.unidades) * 100) : 0}%`}
+                  />
+                )}
+              </div>
+            )}
+          </Painel>
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           {comChamados && (

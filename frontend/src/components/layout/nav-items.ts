@@ -12,6 +12,7 @@ import {
   Building2,
   Vote,
   CreditCard,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import type { Condominio } from "@/types/condominio";
@@ -99,6 +100,7 @@ export const navItems: NavItem[] = [
     emBreve: false,
     recurso: "manutencoes",
   },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, sindico: true },
   { to: "/unidades", label: "Unidades", icon: Building2, sindico: true, grupo: "Cadastros" },
   { to: "/moradores", label: "Moradores", icon: Users, sindico: true, grupo: "Cadastros" },
   { to: "/funcionarios", label: "Funcionários", icon: IdCard, sindico: true, grupo: "Cadastros", recurso: "funcionarios" },

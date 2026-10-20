@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/sonner';
@@ -39,6 +40,8 @@ import Funcionarios from '@/pages/Funcionarios';
 import Unidades from '@/pages/Unidades';
 import Perfil from '@/pages/Perfil';
 import Plano from '@/pages/Plano';
+// Sob demanda: só o síndico baixa o recharts.
+const Relatorios = lazy(() => import('@/pages/Relatorios'));
 
 export default function App() {
   return (
@@ -105,6 +108,7 @@ export default function App() {
                     </Route>
                     <Route path="unidades" element={<Unidades />} />
                     <Route path="plano" element={<Plano />} />
+                    <Route path="relatorios" element={<Suspense fallback={null}><Relatorios /></Suspense>} />
                   </Route>
                 </Route>
               </Route>
